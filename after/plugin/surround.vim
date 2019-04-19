@@ -6,61 +6,11 @@
 " new delimiters more cleanly with the builtin LaTeX da/di/etc. commands,
 " and provide new tool for jumping outside of delimiters.
 "------------------------------------------------------------------------------"
-let g:scripts=map(['1ab', 'abc234'], 'substitute(v:val, "[^a-z]", "", "g")')
-if !exists("g:plugs")
-  echo "Warning: vim-plug required to check if dependency plugins are installed."
+"Dependencies
+if !g:loaded_surround
+  echom "Warning: vim-filetypetools requires vim-surround, disabling some features."
   finish
 endif
-if !PlugActive("vim-surround") || !PlugActive("delimitmate")
-  echom "Warning: vim-surround or delimitmate not available."
-  finish
-endif
-
-"------------------------------------------------------------------------------"
-"Initial configuration
-"------------------------------------------------------------------------------"
-"First a simple function for moving outside current delimiter
-"Puts cursor to the right of closing braces and quotes
-" * Just search for braces instead of using percent-mapping, because when
-"   in the middle of typing often don't particularly *care* if a bracket is completed/has
-"   a pair -- just see a bracket, and want to get out of it.
-" * Also percent matching solution would require leaving insert mode, triggering
-"   various autocmds, and is much slower/jumpier -- vim script solutions are better!
-" ( [ [ ( "  "  asdfad) sdf    ]  sdfad   ]  asdfasdf) hello   asdfas) 
-function! s:tabreset()
-  let b:menupos=0 | return ''
-endfunction
-function! s:outofdelim(n)
-  "Note: matchstrpos is relatively new/less portable, e.g. fails on midway
-  "Used to use matchstrpos, now just use match(); much simpler
-  let regex = "[\"')\\]}>]" "list of 'outside' delimiters for jk matching
-  let pos = 0 "minimum match position
-  let string = getline('.')[col('.')-1:]
-  for i in range(a:n)
-    let result = match(string, regex, pos) "get info on *first* match
-    if result==-1 | break | endif
-    let pos = result + 1 "go to next one
-  endfor
-  if mode()!~#'[rRiI]' && pos+col('.')>=col('$')
-    let pos=col('$')-col('.')-1
-  endif
-  if pos==0 "relative position is zero, i.e. don't move
-    return ""
-  else
-    return repeat("\<Right>", pos)
-  endif
-endfunction
-"Apply remaps
-"Map to 'ctrl-.' which is <F2> in iTerm
-inoremap <expr> <F2> !pumvisible() ? <sid>outofdelim(1)
-  \ : b:menupos==0 ? "\<C-e>".<sid>tabreset().<sid>outofdelim(1)
-  \ : "\<C-y>".<sid>tabreset().<sid>outofdelim(1)
-"Fancy builtin delimitMate version
-"Get cursor outside of consecutive delimiter, ignoring subgroups
-"and always passing to the right of consecutive braces
-"Also disable <C-n> to avoid confusion; will be using up/down anyway
-" imap <C-p> <Plug>delimitMateJumpMany
-" imap <C-n> <Nop>
 "Remap surround.vim defaults
 "Make the visual-mode map same as insert-mode map; by default it is capital S
 "Note: Lowercase Isurround surrounds words, ISurround surrounds lines.
@@ -91,8 +41,8 @@ nmap yS. ySis
 "ys<target>, yS<target>, visual-mode S, insert-mode <C-s>, et cetera
 function! s:target(symbol,start,end,...) "if final argument passed, this is buffer-local
   if a:0 "surprisingly, below is standard vim script syntax
-    " silent! unlet g:surround_{char2nr(a:symbol)}
     let b:surround_{char2nr(a:symbol)}=a:start."\r".a:end
+    " silent! unlet g:surround_{char2nr(a:symbol)}
   else
     let g:surround_{char2nr(a:symbol)}=a:start."\r".a:end
   endif
@@ -124,7 +74,7 @@ nmap cs\ /\\"<CR>xNx
 call s:target('p', 'print(', ')')
 "f for functions, with user prompting
 call s:target('f', "\1function: \1(", ')') "initial part is for prompt, needs double quotes
-nnoremap        dsf mzF(bdt(xf)x`z
+nnoremap dsf mzF(bdt(xf)x`z
 nnoremap <expr> csf 'F(hciw'.input('function: ').'<Esc>'
 
 "------------------------------------------------------------------------------"
