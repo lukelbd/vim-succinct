@@ -6,6 +6,7 @@
 " new delimiters more cleanly with the builtin LaTeX da/di/etc. commands,
 " and provide new tool for jumping outside of delimiters.
 "------------------------------------------------------------------------------"
+let g:scripts=map(['1ab', 'abc234'], 'substitute(v:val, "[^a-z]", "", "g")')
 if !exists("g:plugs")
   echo "Warning: vim-plug required to check if dependency plugins are installed."
   finish
