@@ -11,14 +11,21 @@ if !g:loaded_surround
   echom "Warning: vim-filetypetools requires vim-surround, disabling some features."
   finish
 endif
+"Tools
+if !g:filetypetools_surround_prefix
+  let g:filetypetools_surround_prefix='<C-s>'
+endif
+if !g:filetypetools_symbol_prefix
+  let g:filetypetools_symbol_prefix='<C-i>'
+endif
 "Remap surround.vim defaults
 "Make the visual-mode map same as insert-mode map; by default it is capital S
 "Note: Lowercase Isurround surrounds words, ISurround surrounds lines.
-vmap <C-s> <Plug>VSurround
-imap <C-s> <Plug>Isurround
+exe 'vmap '.g:filetypetools_surround_prefix.' <Plug>VSurround'
+exe 'imap '.g:filetypetools_surround_prefix.' <Plug>Isurround'
 "Cancellation
-inoremap <C-s><Esc> <Nop>
-inoremap <C-z><Esc> <Nop>
+exe 'imap '.g:filetypetools_surround_prefix.'<Esc> <Nop>'
+exe 'imap '.g:filetypetools_symbol_prefix.'<Esc> <Nop>'
 
 "------------------------------------------------------------------------------"
 "Define additional shortcuts like ys's' for the non-whitespace part
@@ -39,13 +46,17 @@ nmap yS. ySis
 "These will only be 'placed', never detected; for example, will never work in
 "da<target>, ca<target>, cs<target><other>, etc. commands; only should be used for
 "ys<target>, yS<target>, visual-mode S, insert-mode <C-s>, et cetera
-function! s:target(symbol,start,end,...) "if final argument passed, this is buffer-local
+function! s:target(map,start,end,...) "if final argument passed, this is buffer-local
   if a:0 "surprisingly, below is standard vim script syntax
-    let b:surround_{char2nr(a:symbol)}=a:start."\r".a:end
-    " silent! unlet g:surround_{char2nr(a:symbol)}
+    let b:surround_{char2nr(a:map)}=a:start."\r".a:end
+    " silent! unlet g:surround_{char2nr(a:map)}
   else
-    let g:surround_{char2nr(a:symbol)}=a:start."\r".a:end
+    let g:surround_{char2nr(a:map)}=a:start."\r".a:end
   endif
+endfunction
+"And this function is for declaring symbol maps
+function! s:symbol(map,value)
+  exe 'inoremap <buffer> '.g:filetypetools_symbol_prefix.a:map.' '.a:value
 endfunction
 
 "------------------------------------------------------------------------------"
@@ -250,106 +261,105 @@ function! s:texsurround()
   "Shortcuts
   "------------------------------------------------------------------------------"
   "Basics
-  inoremap <buffer> <C-z>[ []<Left>
-  inoremap <buffer> <C-z>( ()<Left>
-  inoremap <buffer> <C-z>< <><Left>
-  inoremap <buffer> <C-z>{ {}<Left>
+  call s:symbol('[', '[]<Left>')
+  call s:symbol('(', '()<Left>')
+  call s:symbol('<', '<><Left>')
+  call s:symbol('{', '{}<Left>')
 
   "Font sizing
-  inoremap <buffer> <C-z>1 \tiny
-  inoremap <buffer> <C-z>2 \scriptsize
-  inoremap <buffer> <C-z>3 \footnotesize
-  inoremap <buffer> <C-z>4 \small
-  inoremap <buffer> <C-z>5 \normalsize
-  inoremap <buffer> <C-z>6 \large
-  inoremap <buffer> <C-z>7 \Large
-  inoremap <buffer> <C-z>8 \LARGE
-  inoremap <buffer> <C-z>9 \huge
-  inoremap <buffer> <C-z>0 \Huge
+  call s:symbol('1', '\tiny')
+  call s:symbol('2', '\scriptsize')
+  call s:symbol('3', '\footnotesize')
+  call s:symbol('4', '\small')
+  call s:symbol('5', '\normalsize')
+  call s:symbol('6', '\large')
+  call s:symbol('7', '\Large')
+  call s:symbol('8', '\LARGE')
+  call s:symbol('9', '\huge')
+  call s:symbol('0', '\Huge')
 
   "First arrows, most commonly used ones anyway
-  inoremap <buffer> <C-z>> \Rightarrow
-  inoremap <buffer> <C-z>< \Longrightarrow
+  call s:symbol('>', '\Rightarrow')
+  call s:symbol('<', '\Longrightarrow')
   "Misc symbotls, want quick access
-  inoremap <buffer> <C-z>; \item
-  inoremap <buffer> <C-z>/ \pause
+  call s:symbol(';', '\item')
+  call s:symbol('/', '\pause')
   "Math symbols
-  inoremap <buffer> <C-z>a \alpha
-  inoremap <buffer> <C-z>b \beta
-  inoremap <buffer> <C-z>c \xi
+  call s:symbol('a', '\alpha')
+  call s:symbol('b', '\beta')
+  call s:symbol('c', '\xi')
   "weird curly one
   "the upper case looks like 3 lines
-  inoremap <buffer> <C-z>C \Xi
+  call s:symbol('C', '\Xi')
   "looks like an x so want to use this map
   "pronounced 'zi', the 'i' in 'tide'
-  inoremap <buffer> <C-z>x \chi
+  call s:symbol('x', '\chi')
 
   "Greek letters
-  inoremap <buffer> <C-z>d \delta
-  inoremap <buffer> <C-z>D \Delta
-  inoremap <buffer> <C-z>f \phi
-  inoremap <buffer> <C-z>F \Phi
-  inoremap <buffer> <C-z>g \gamma
-  inoremap <buffer> <C-z>G \Gamma
-  inoremap <buffer> <C-z>K \kappa
-  inoremap <buffer> <C-z>l \lambda
-  inoremap <buffer> <C-z>L \Lambda
-  inoremap <buffer> <C-z>m \mu
-  inoremap <buffer> <C-z>n \nabla
-  inoremap <buffer> <C-z>N \nu
-  inoremap <buffer> <C-z>e \epsilon
-  inoremap <buffer> <C-z>E \eta
-  inoremap <buffer> <C-z>p \pi
-  inoremap <buffer> <C-z>P \Pi
-  inoremap <buffer> <C-z>q \theta
-  inoremap <buffer> <C-z>Q \Theta
-  inoremap <buffer> <C-z>r \rho
-  inoremap <buffer> <C-z>s \sigma
-  inoremap <buffer> <C-z>S \Sigma
-  inoremap <buffer> <C-z>t \tau
-  inoremap <buffer> <C-z>y \psi
-  inoremap <buffer> <C-z>Y \Psi
-  inoremap <buffer> <C-z>w \omega
-  inoremap <buffer> <C-z>W \Omega
-  inoremap <buffer> <C-z>z \zeta
+  call s:symbol('d', '\delta')
+  call s:symbol('D', '\Delta')
+  call s:symbol('f', '\phi')
+  call s:symbol('F', '\Phi')
+  call s:symbol('g', '\gamma')
+  call s:symbol('G', '\Gamma')
+  call s:symbol('K', '\kappa')
+  call s:symbol('l', '\lambda')
+  call s:symbol('L', '\Lambda')
+  call s:symbol('m', '\mu')
+  call s:symbol('n', '\nabla')
+  call s:symbol('N', '\nu')
+  call s:symbol('e', '\epsilon')
+  call s:symbol('E', '\eta')
+  call s:symbol('p', '\pi')
+  call s:symbol('P', '\Pi')
+  call s:symbol('q', '\theta')
+  call s:symbol('Q', '\Theta')
+  call s:symbol('r', '\rho')
+  call s:symbol('s', '\sigma')
+  call s:symbol('S', '\Sigma')
+  call s:symbol('t', '\tau')
+  call s:symbol('y', '\psi')
+  call s:symbol('Y', '\Psi')
+  call s:symbol('w', '\omega')
+  call s:symbol('W', '\Omega')
+  call s:symbol('z', '\zeta')
 
   "Needed for pdfcomment newlines
-  inoremap <buffer> <C-z>M \textCR<CR>
+  call s:symbol('M', '\textCR<CR>')
 
   "Derivatives
-  inoremap <buffer> <C-z>: \partial
-  inoremap <buffer> <C-z>' \mathrm{d}
-  inoremap <buffer> <C-z>" \mathrm{D}
+  call s:symbol(':', '\partial')
+  call s:symbol("'", '\mathrm{d}')'
+  call s:symbol('"', '\mathrm{D}')
 
   "u is for unary
-  inoremap <buffer> <C-z>U ${-}$
-  inoremap <buffer> <C-z>u ${+}$
+  call s:symbol('U', '${-}$')
+  call s:symbol('u', '${+}$')
 
   "Integration
-  inoremap <buffer> <C-z>i \int
-  inoremap <buffer> <C-z>I \iint
+  call s:symbol('i', '\int')
+  call s:symbol('I', '\iint')
 
   "3 levels of differentiation; each one stronger
-  inoremap <buffer> <C-z>- ${-}$
-  inoremap <buffer> <C-z>+ \sum
-  inoremap <buffer> <C-z>* \prod
-  inoremap <buffer> <C-z>x \times
-  inoremap <buffer> <C-z>. \cdot
-  inoremap <buffer> <C-z>o $^\circ$
-  inoremap <buffer> <C-z>= \equiv
-  inoremap <buffer> <C-z>~ {\sim}
-  inoremap <buffer> <C-z>k ^{}<Left>
-  inoremap <buffer> <C-z>j _{}<Left>
-  inoremap <buffer> <C-z>K ^\mathrm{}<Left>
-  inoremap <buffer> <C-z>J _\mathrm{}<Left>
-  inoremap <buffer> <C-z>, \,
+  call s:symbol('-', '${-}$')
+  call s:symbol('+', '\sum')
+  call s:symbol('*', '\prod')
+  call s:symbol('x', '\times')
+  call s:symbol('.', '\cdot')
+  call s:symbol('o', '$^\circ$')
+  call s:symbol('=', '\equiv')
+  call s:symbol('~', '{\sim}')
+  call s:symbol('k', '^{}<Left>')
+  call s:symbol('j', '{}<Left>')
+  call s:symbol('K', '^\mathrm{}<Left>')
+  call s:symbol('J', '\mathrm{}<Left>')
+  call s:symbol(',', '\,')
 
   "Insert a line (feel free to modify width)
   "Will prompt user for fraction of page
   "Note centering fails inside itemize environments, so use begin/end center instead
-  " inoremap <buffer> <expr> <C-z>_ '{\centering\noindent\rule{'.input('fraction: ').'\textwidth}{0.7pt}}'
-  inoremap <buffer> <expr> <C-z>_ '\begin{center}\noindent\rule{'.input('fraction: ').'\textwidth}{0.7pt}\end{center}'
-  "centerline (can modify this; \rule is simple enough to understand)
+  " _ '{\centering\noindent\rule{'.input('fraction: ').'\textwidth}{0.7pt}}'
+  call s:symbol('_', "'\begin{center}\noindent\rule{'.input('fraction: ').'\textwidth}{0.7pt}\end{center}'")
 endfunction
 
 "------------------------------------------------------------------------------"
