@@ -28,13 +28,14 @@ To enable all features, this requires the
   your vim session to the background of your terminal session,
   I suggest also adding `noremap <C-z> <Nop>` to your `.vimrc`.
 
-## Insert mode maps
+## Commands and maps
+* `:TabToggle`: Toggles `expandtab` on-and-off.
 * `<Plug>outofdelim`: Jumps to the right of the next closing
   delimiter. This is handy when the cursor is inside a complex
   next of varying types of delimiters.
-
-## Commands
-* `:TabToggle`: Toggles `expandtab` on-and-off.
+* `<Plug>surround`, `<Plug>symbol`: Maps for surrounding selected
+  text, or normal-mode specified boundaries, with some delimiter, or
+  for simply inserting some symbol.
 
 # Installation
 Install with your favorite [plugin manager](https://vi.stackexchange.com/questions/388/what-is-the-difference-between-the-vim-plugin-managers).
