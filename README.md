@@ -6,9 +6,6 @@ To enable all features, this requires the
 [vim-text-obj](https://github.com/kana/vim-textobj-user), [surround.vim](https://github.com/tpope/vim-surround), and [delimitMate](https://github.com/Raimondi/delimitMate) plugins
 (see the files in `after/plugin`).
 
-## Commands
-* `:TabToggle`: Toggles `expandtab` on-and-off.
-
 ## Global options
 * `g:filetypetools_tab_filetypes`: Vim-list of strings specifying
   filetypes for which we want `:TabToggle` to be called by default.
@@ -35,6 +32,9 @@ To enable all features, this requires the
 * `<Plug>outofdelim`: Jumps to the right of the next closing
   delimiter. This is handy when the cursor is inside a complex
   next of varying types of delimiters.
+
+## Commands
+* `:TabToggle`: Toggles `expandtab` on-and-off.
 
 # Installation
 Install with your favorite [plugin manager](https://vi.stackexchange.com/questions/388/what-is-the-difference-between-the-vim-plugin-managers).

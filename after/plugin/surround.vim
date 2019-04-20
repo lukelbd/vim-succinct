@@ -12,10 +12,10 @@ if !g:loaded_surround
   finish
 endif
 "Tools
-if !g:filetypetools_surround_prefix
+if !exists('g:filetypetools_surround_prefix')
   let g:filetypetools_surround_prefix='<C-s>'
 endif
-if !g:filetypetools_symbol_prefix
+if !exists('g:filetypetools_symbol_prefix')
   let g:filetypetools_symbol_prefix='<C-i>'
 endif
 "Remap surround.vim defaults

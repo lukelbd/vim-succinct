@@ -25,17 +25,22 @@ if !exists('*textobj#user#plugin')
   echom "Warning: vim-filetypetools requires vim-textobj-user, disabling some features."
   finish
 endif
+
 "Autocommand
 augroup textobj_tex
   au!
   au BufEnter * call s:textobj_setup()
 augroup END
-
-"Helper function
+"Maps
+noremap <expr> <silent> gc <sid>search('^\ze\s*'.Comment().'.*$', 1).'gg'
+noremap <expr> <silent> gC <sid>search('^\ze\s*'.Comment().'.*$', 0).'gg'
+noremap <expr> <silent> ge <sid>search('^\ze\s*$', 1).'gg'
+noremap <expr> <silent> gE <sid>search('^\ze\s*$', 0).'gg'
+"Sets text objects for certain filetypes
 function! s:textobj_setup()
-  call textobj#user#plugin('universal',s:universal_textobjs_dict)
+  call textobj#user#plugin('universal', s:universal_textobjs_dict)
   if &ft=='tex' "this will overwrite some default ones, quote-related
-    call textobj#user#plugin('latex',s:tex_textobjs_dict)
+    call textobj#user#plugin('latex', s:tex_textobjs_dict)
   endif
 endfunction
 
@@ -160,10 +165,23 @@ let s:tex_textobjs_dict={
   \   },
   \ }
 
-
 "------------------------------------------------------------------------------"
 " Helper functions
 "------------------------------------------------------------------------------"
+"Returns comments
+function! Strip(text)
+  return substitute(a:text, '^\s*\(.\{-}\)\s*$', '\1', '')
+endfunction
+function! Comment(...)
+  if &ft == '' || &commentstring == '' "the
+    return ''
+  elseif &commentstring =~ '%s'
+    return Strip(split(&commentstring, '%s')[0])
+  else
+    return ''
+  endif
+endfunction
+
 "Motion functions
 "Had hard time getting stuff to work in textobj
 function! s:search(regex,forward)
@@ -171,10 +189,6 @@ function! s:search(regex,forward)
   let result=search(a:regex, 'Wn'.motion)
   return (result==0 ? line('.') : result)
 endfunction
-noremap <expr> <silent> gc <sid>search('^\ze\s*'.Comment().'.*$', 1).'gg'
-noremap <expr> <silent> gC <sid>search('^\ze\s*'.Comment().'.*$', 0).'gg'
-noremap <expr> <silent> ge <sid>search('^\ze\s*$', 1).'gg'
-noremap <expr> <silent> gE <sid>search('^\ze\s*$', 0).'gg'
 
 "Functions for current line stuff
 function! s:current_line_a()
