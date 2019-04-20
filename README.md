@@ -1,7 +1,10 @@
 # File type plugins
 This is a collection of plugins providing filetype-specific tools
-for editing various documents. The `plugin` features require
-[vim-text-obj]() and [surround.vim]().
+for editing various documents.
+To enable all features, this requires the
+<!-- The `plugin` features require -->
+[vim-text-obj](https://github.com/kana/vim-textobj-user), [surround.vim](https://github.com/tpope/vim-surround), and [delimitMate](https://github.com/Raimondi/delimitMate) plugins
+(see the files in `after/plugin`).
 
 ## Commands
 * `:TabToggle`: Toggles `expandtab` on-and-off.
@@ -32,10 +35,6 @@ for editing various documents. The `plugin` features require
 * `<Plug>outofdelim`: Jumps to the right of the next closing
   delimiter. This is handy when the cursor is inside a complex
   next of varying types of delimiters.
-* 
-
-## Normal mode maps
-
 
 # Installation
 Install with your favorite [plugin manager](https://vi.stackexchange.com/questions/388/what-is-the-difference-between-the-vim-plugin-managers).

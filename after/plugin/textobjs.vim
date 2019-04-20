@@ -21,10 +21,11 @@ endfor
 
 "This fucking stupid plugin doesn't fucking support buffer-local
 "mappings, an incredibly simple feature, because it fucking sucks
-if !PlugActive('vim-textobj-user')
-  echom "Warning: textobj plugin unavailable."
+if !exists('*textobj#user#plugin')
+  echom "Warning: vim-filetypetools requires vim-textobj-user, disabling some features."
   finish
 endif
+"Autocommand
 augroup textobj_tex
   au!
   au BufEnter * call s:textobj_setup()

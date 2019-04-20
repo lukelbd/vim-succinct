@@ -11,6 +11,7 @@ endif
 if !exists('g:filetypetools_outofdelim_map')
   let g:filetypetools_outofdelim_map='<F2>'
 endif
+"Make mapping
 exe 'imap '.g:filetypetools_outofdelim_map.' <Plug>outofdelim'
 
 "Simple function puts cursor to the right of closing braces and quotes
