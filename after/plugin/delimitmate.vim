@@ -4,15 +4,15 @@
 "------------------------------------------------------------------------------"
 "Dependencies
 if !g:loaded_delimitMate
-  echom "Warning: vim-filetypetools requires delimitMate, disabling some features."
+  echom "Warning: vim-textools requires delimitMate, disabling some features."
   finish
 endif
 "Map to 'ctrl-.' which is remapped to <F2> in my iTerm session
-if !exists('g:filetypetools_outofdelim_map')
-  let g:filetypetools_outofdelim_map='<F2>'
+if !exists('g:textools_outofdelim_map')
+  let g:textools_outofdelim_map='<F2>'
 endif
 "Make mapping
-exe 'imap '.g:filetypetools_outofdelim_map.' <Plug>outofdelim'
+exe 'imap '.g:textools_outofdelim_map.' <Plug>outofdelim'
 
 "Simple function puts cursor to the right of closing braces and quotes
 " * Just search for braces instead of using percent-mapping, because when

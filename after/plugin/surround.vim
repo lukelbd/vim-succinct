@@ -8,25 +8,25 @@
 "------------------------------------------------------------------------------"
 "Dependencies
 if !g:loaded_surround
-  echom "Warning: vim-filetypetools requires vim-surround, disabling some features."
+  echom "Warning: vim-textools requires vim-surround, disabling some features."
   finish
 endif
 "Tools
 "\hello{asdffads }
-if !exists('g:filetypetools_surround_prefix')
-  let g:filetypetools_surround_prefix='<C-s>'
+if !exists('g:textools_surround_prefix')
+  let g:textools_surround_prefix='<C-s>'
 endif
-if !exists('g:filetypetools_symbol_prefix')
-  let g:filetypetools_symbol_prefix='<C-i>'
+if !exists('g:textools_symbol_prefix')
+  let g:textools_symbol_prefix='<C-i>'
 endif
 "Remap surround.vim defaults
 "Make the visual-mode map same as insert-mode map; by default it is capital S
 "Note: Lowercase Isurround surrounds words, ISurround surrounds lines.
-exe 'vmap '.g:filetypetools_surround_prefix.' <Plug>VSurround'
-exe 'imap '.g:filetypetools_surround_prefix.' <Plug>Isurround'
+exe 'vmap '.g:textools_surround_prefix.' <Plug>VSurround'
+exe 'imap '.g:textools_surround_prefix.' <Plug>Isurround'
 "Cancellation
-exe 'imap '.g:filetypetools_surround_prefix.'<Esc> <Nop>'
-exe 'imap '.g:filetypetools_symbol_prefix.'<Esc> <Nop>'
+exe 'imap '.g:textools_surround_prefix.'<Esc> <Nop>'
+exe 'imap '.g:textools_symbol_prefix.'<Esc> <Nop>'
 
 "------------------------------------------------------------------------------"
 "Define additional shortcuts like ys's' for the non-whitespace part
@@ -57,7 +57,7 @@ function! s:target(map,start,end,...) "if final argument passed, this is buffer-
 endfunction
 "And this function is for declaring symbol maps
 function! s:symbol(map,value)
-  exe 'inoremap <buffer> '.g:filetypetools_symbol_prefix.a:map.' '.a:value
+  exe 'inoremap <buffer> '.g:textools_symbol_prefix.a:map.' '.a:value
 endfunction
 
 "------------------------------------------------------------------------------"
@@ -364,6 +364,7 @@ endfunction
 
 "------------------------------------------------------------------------------"
 "HTML macros
+"------------------------------------------------------------------------------"
 "For now pretty empty, but we should add to this
 "Note that tag delimiters are *built in* to vim-surround
 "Just use the target 't', and prompt will ask for description

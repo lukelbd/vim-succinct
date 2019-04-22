@@ -3,12 +3,12 @@
 " on and off.
 "------------------------------------------------------------------------------"
 "Autocommand
-if !exists('g:filetypetools_tab_filetypes')
-  let g:filetypetools_tab_filetypes=['text','gitconfig','make']
+if !exists('g:textools_tab_filetypes')
+  let g:textools_tab_filetypes=['text','gitconfig','make']
 endif
 augroup tab_toggle
   au!
-  au FileType * exe 'TabToggle '.(index(g:filetypetools_tab_filetypes, &ft)!=-1)
+  au FileType * exe 'TabToggle '.(index(g:textools_tab_filetypes, &ft)!=-1)
 augroup END
 "Fucntion
 function! s:tabtoggle(...)

@@ -22,7 +22,7 @@ endfor
 "This fucking stupid plugin doesn't fucking support buffer-local
 "mappings, an incredibly simple feature, because it fucking sucks
 if !exists('*textobj#user#plugin')
-  echom "Warning: vim-filetypetools requires vim-textobj-user, disabling some features."
+  echom "Warning: vim-textools requires vim-textobj-user, disabling some features."
   finish
 endif
 
