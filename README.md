@@ -2,7 +2,6 @@
 This is a collection of plugins providing filetype-specific tools
 for editing various documents.
 To enable all features, this requires the
-<!-- The `plugin` features require -->
 [vim-text-obj](https://github.com/kana/vim-textobj-user), [surround.vim](https://github.com/tpope/vim-surround), and [delimitMate](https://github.com/Raimondi/delimitMate) plugins
 (see the files in `after/plugin`).
 This setup is highly customized and would take quite a while to document, so
