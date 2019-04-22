@@ -14,7 +14,7 @@ But it is **extremely** powerful, so I
 recommend trying it out.
 
 I also highly recommend checking out my [vimlatex
-script](`https://github.com/lukelbd/dotfiles/blob/master/bin/vimlatex`) (found in my `dotfiles` repo), which makes
+script](https://github.com/lukelbd/dotfiles/blob/master/bin/vimlatex) (found in my `dotfiles` repo), which makes
 compiling LaTeX documents, running `latexdiff` on
 files with formatted YYYY-MM-DD strings, and
 converting LaTeX documents to Word with `pandoc`
