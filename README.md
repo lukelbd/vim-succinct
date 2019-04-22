@@ -48,24 +48,20 @@ This is best used with my [idetools plugin](https://github.com/lukelbd/vim-ideto
 -->
 
 ## Maps
-* `<F2>`: Jumps to the right of the next closing
-  delimiter. This is handy when the cursor is inside a complex
-  next of varying types of delimiters. It stands in contrast to
-  delimitMate's `<Plug>delimitMateJumpMany` map, which jumps outside of arbitrarily nested delimiters.
+* `<F2>`: Jumps to the right of the **next closing
+  delimiter** (i.e. `]`, `>`, `)`, or `}`). This is handy when the cursor is inside a complex
+  next of varying types of delimiters, a common difficulty when writing LaTeX equations. It stands in contrast to
+  delimitMate's `<Plug>delimitMateJumpMany` map, which jumps to the far outside of nested delimiters.
 
-  By default, this is `<F2>`,
-  because I configure iTerm2 (my terminal of choice) to remap
-  the normally impossible but easy-to-press key-combination
-  "`<C-.>`" to the unused function key `<F2>`.
-  You can change this map with `g:textools_outofdelim_map`.
+  The map can be changed with `g:gextools_outofdelim_map`. It is `<F2>` by default because I configure iTerm2 (my terminal of choice) to remap the normally impossible but easy-to-press key-combination "`<C-.>`" to the unused key `<F2>`.
 * New `surround.vim` delimiter key codes: Custom delimiters
   integrated with the `surround.vim` plugin, introducing
   a series of insert, visual, and normal mode maps
   (see `surround.vim` for details).
   The default prefix for visual and insert mode maps is
   `<C-s>` (maps to `<Plug>VSurround` and `<Plug>ISurround`),
-  and can be changed with the
-  `g:textools_surround_prefix` variable.
+  and can be changed with
+  `g:textools_surround_prefix`.
   Note the map `<C-s>` may require running
   `bind -r '"\C-s"'` in your terminal or adding it
   to your `~/.bashrc` or `~/.bash_profile`.
@@ -85,7 +81,7 @@ This is best used with my [idetools plugin](https://github.com/lukelbd/vim-ideto
 * New symbol insert key codes: Custom maps for inserting text
   in insert mode.
   The default symbol insert prefix is `<C-z>`,
-  and can be changed with the `g:textools_symbol_prefix`.
+  and can be changed with `g:textools_symbol_prefix`.
   I suggest adding `noremap <C-z> <Nop>` to your `.vimrc`,
   to prevent accidentally sending
   your vim session to the background of your terminal session,

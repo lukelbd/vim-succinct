@@ -24,13 +24,14 @@ exe 'imap '.g:textools_outofdelim_map.' <Plug>outofdelim'
 function! s:outofdelim(n)
   "Note: matchstrpos is relatively new/less portable, e.g. fails on midway
   "Used to use matchstrpos, now just use match(); much simpler
-  let regex = "[\"')\\]}>]" "list of 'outside' delimiters for jk matching
-  let pos = 0 "minimum match position
-  let string = getline('.')[col('.')-1:]
+  " let regex = "[\"')\\]}>]"
+  let regex="[)\\]}>]" "list of 'outside' delimiters for jk matching
+  let pos=0 "minimum match position
+  let string=getline('.')[col('.')-1:]
   for i in range(a:n)
-    let result = match(string, regex, pos) "get info on *first* match
+    let result=match(string, regex, pos) "get info on *first* match
     if result==-1 | break | endif
-    let pos = result + 1 "go to next one
+    let pos=result + 1 "go to next one
   endfor
   if mode()!~#'[rRiI]' && pos+col('.')>=col('$')
     let pos=col('$')-col('.')-1
