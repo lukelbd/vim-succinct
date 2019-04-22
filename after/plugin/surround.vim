@@ -329,7 +329,7 @@ function! s:texsurround()
 
   "Derivatives
   call s:symbol(':', '\partial')
-  call s:symbol("'", '\mathrm{d}')'
+  call s:symbol("'", '\mathrm{d}')
   call s:symbol('"', '\mathrm{D}')
 
   "u is for unary
