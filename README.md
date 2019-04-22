@@ -13,13 +13,11 @@ to dig into the `vimscript` code to get the full picture.
 But it is **extremely** powerful, so I
 recommend trying it out.
 
-I also highly recommend checking out my [vimlatex
-script](https://github.com/lukelbd/dotfiles/blob/master/bin/vimlatex) (found in my `dotfiles` repo), which makes
-compiling LaTeX documents, running `latexdiff` on
-files with formatted YYYY-MM-DD strings, and
-converting LaTeX documents to Word with `pandoc`
-very easy. [This file](https://github.com/lukelbd/dotfiles/blob/master/.vim/ftplugin/tex.vim) shows how to map to this
-utility from inside vim.
+If you find this plugin useful, I also highly recommend
+two other tools I developed:
+
+* My [vim-scrollwrapped plugin](https://github.com/lukelbd/vim-scrollwrapped), which toggles "wrapped" lines automatically for non-code documents (like markdown, RST, and LaTeX files) and makes scrolling through vim windows with heavily wrapped lines much, much easier.
+* My [vimlatex script](https://github.com/lukelbd/dotfiles/blob/master/bin/vimlatex) (found in my `dotfiles` repo), which makes compiling LaTeX documents, running `latexdiff` on files with formatted YYYY-MM-DD strings, and converting LaTeX documents to Word with `pandoc` very easy. [This file](https://github.com/lukelbd/dotfiles/blob/master/.vim/ftplugin/tex.vim) shows how to map to this utility from inside vim.
 
 <!--
 ## Commands
