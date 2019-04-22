@@ -1,6 +1,5 @@
 "------------------------------------------------------------------------------"
-" Very simple script
-" Just adds a handy mapping
+" Very simple script, just adds a handy mapping
 "------------------------------------------------------------------------------"
 "Dependencies
 if !g:loaded_delimitMate
@@ -47,7 +46,7 @@ endfunction
 function! s:tab_reset()
   let b:menupos=0 | return ''
 endfunction
-"The mapping
+"Define the map
 inoremap <expr> <Plug>outofdelim !pumvisible() ? <sid>outofdelim(1)
   \ : b:menupos==0 ? "\<C-e>".<sid>tab_reset().<sid>outofdelim(1)
   \ : "\<C-y>".<sid>tab_reset().<sid>outofdelim(1)
