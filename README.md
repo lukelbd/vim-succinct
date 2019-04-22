@@ -5,6 +5,9 @@ To enable all features, this requires the
 <!-- The `plugin` features require -->
 [vim-text-obj](https://github.com/kana/vim-textobj-user), [surround.vim](https://github.com/tpope/vim-surround), and [delimitMate](https://github.com/Raimondi/delimitMate) plugins
 (see the files in `after/plugin`).
+This setup is highly customized and would take quite a while to document, so
+for now I will just give a broad summary of its features and expect any users
+to dig into the `vimscript` code a bit to get the full picture.
 
 ## Commands
 * `:TabToggle`: Toggles `expandtab` on-and-off.
@@ -49,7 +52,14 @@ To enable all features, this requires the
   `\end{itemize}` environment, or running `yswb` in normal mode
   to surround the word under the cursor with a `\textbf{}` command.
   See `after/plugin/surround.vim` to view the new delimiter key codes.
-* New symbol insert key codes: Custom method for inserting text
+* New text object key codes: Custom delimiters integrated
+  with the `vim-textobj-user` plugin for selecting, deleting, yanking, etc.
+  blocks of text with `ca`, `yi`, `da`, etc. Example usage includes
+  selecting a LaTeX `\begin{}` `\end{}` environment with `vaL`, or
+  changing text inside a LaTeX command with `cil`.
+  See `after/plugin/textobjs.vim` to view all the new text
+  objects.
+* New symbol insert key codes: Custom maps for inserting text
   by pressing `g:filetypetools_symbol_prefix` followed by a character.
   Example usage includes running `<C-z>a` in a LaTeX document
   to insert the alpha character `\alpha`.
