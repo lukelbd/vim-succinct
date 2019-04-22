@@ -21,8 +21,10 @@ converting LaTeX documents to Word with `pandoc`
 very easy. [This file](https://github.com/lukelbd/dotfiles/blob/master/.vim/ftplugin/tex.vim) shows how to map to this
 utility from inside vim.
 
+<!--
 ## Commands
 * `:TabToggle`: Toggles `expandtab` on-and-off.
+-->
 
 <!--
 ## Syntax highlighting
