@@ -6,11 +6,11 @@ that make editing LaTeX documents unbelievably fast.
 Some of these changes are useful for all kinds of
 other files, but LaTeX is by far the focus here.
 
-This setup is fairly complex and would take quite a
+This setup is complex and would take quite a
 while to document, so
 for now I will just give a broad summary of its features and expect any users
 to dig into the `vimscript` code to get the full picture.
-But it is **extremely** powerful, especially for editing LaTeX documents, so I
+But it is **extremely** powerful, so I
 recommend trying it out.
 
 I also highly recommend checking out my [`vimlatex`
