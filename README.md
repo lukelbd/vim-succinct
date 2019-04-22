@@ -3,8 +3,8 @@ This is a collection of enhancements
 to the
 [vim-text-obj](https://github.com/kana/vim-textobj-user), [surround.vim](https://github.com/tpope/vim-surround), and [delimitMate](https://github.com/Raimondi/delimitMate) plugins
 that make editing LaTeX documents unbelievably fast.
-Some of these changes are useful for all kinds of
-other files, but LaTeX is by far the focus here.
+Some of these changes are also useful for editing
+other files, but LaTeX is the focus here.
 
 This setup is complex and would take quite a
 while to document, so
