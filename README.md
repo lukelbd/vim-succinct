@@ -4,6 +4,7 @@ for editing various documents.
 To enable all features, this requires the
 [vim-text-obj](https://github.com/kana/vim-textobj-user), [surround.vim](https://github.com/tpope/vim-surround), and [delimitMate](https://github.com/Raimondi/delimitMate) plugins
 (see the files in `after/plugin`).
+
 This setup is complex and would take quite a while to document, so
 for now I will just give a broad summary of its features and expect any users
 to dig into the `vimscript` code to get the full picture.
