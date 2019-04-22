@@ -13,6 +13,7 @@ to dig into the `vimscript` code to get the full picture.
 But it is **extremely** powerful, so I
 recommend trying it out.
 
+## Recommendations
 If you find this plugin useful, I also highly recommend
 two other tools I developed:
 
@@ -58,15 +59,22 @@ This is best used with my [idetools plugin](https://github.com/lukelbd/vim-ideto
   "`<C-.>`" to the unused function key `<F2>`.
   You can change this map with `g:textools_outofdelim_map`.
 * New `surround.vim` delimiter key codes: Custom delimiters
-  integrated with the `surround.vim` plugin in insert and visual
-  selection modes. See `surround.vim` for details.
+  integrated with the `surround.vim` plugin, introducing
+  a series of insert, visual, and normal mode maps
+  (see `surround.vim` for details).
+  The default prefix for visual and insert mode maps is
+  `<C-s>` (maps to `<Plug>VSurround` and `<Plug>ISurround`),
+  and can be changed with the
+  `g:textools_surround_prefix` variable.
+  Note the map `<C-s>` may require running
+  `bind -r '"\C-s"'` in your terminal or adding it
+  to your `~/.bashrc` or `~/.bash_profile`.
+
   Example usage includes making a visual selection in a LaTeX document
   then pressing `<C-s>*` to surround with a `\begin{itemize}`
   `\end{itemize}` environment, or running `yswb` in normal mode
   to surround the word under the cursor with a `\textbf{}` command.
   See `after/plugin/surround.vim` to view the new delimiter key codes.
-  You can change the default prefix with
-  `g:textools_surround_prefix`.
 * New text object key codes: Custom delimiters integrated
   with the `vim-textobj-user` plugin for selecting, deleting, yanking, etc.
   blocks of text with `ca`, `yi`, `da`, etc. Example usage includes
@@ -75,32 +83,16 @@ This is best used with my [idetools plugin](https://github.com/lukelbd/vim-ideto
   See `after/plugin/textobjs.vim` to view all the new text
   objects.
 * New symbol insert key codes: Custom maps for inserting text
-  by pressing `g:textools_symbol_prefix` followed by a character.
-  Example usage includes running `<C-z>a` in a LaTeX document
-  to insert the alpha character `\alpha`.
-  See `after/plugin/surround.vim` to view the new symbol key codes.
-  You can change the default prefix with
-  `g:textools_symbol_prefix`.
-
-## Global options
-* `g:textools_tab_filetypes`: Vim-list of strings specifying
-  filetypes for which we want `:TabToggle` to be called by default.
-  Generally speaking, these should just be filetypes for which literal
-  tab characters are syntactically meaningful.
-  The default is `['text','gitconfig','make']`.
-* `g:textools_surround_prefix`: The key to use for the
-  insert and visual mode `surround.vim` mappings,
-  `<Plug>VSurround` and `<Plug>ISurround`. See the `surround.vim`
-  documentation for details. The default is `<C-s>`.
-  Note this may require running
-  `bind -r '"\C-s"'` in your terminal or adding it
-  to your `~/.bashrc` or `~/.bash_profile`.
-* `g:textools_symbol_prefix`: The key to use for
-  insert mode symbol-insert mappings.
-  The default is `<C-z>`.
+  in insert mode.
+  The default symbol insert prefix is `<C-z>`,
+  and can be changed with the `g:textools_symbol_prefix`.
   I suggest adding `noremap <C-z> <Nop>` to your `.vimrc`,
   to prevent accidentally sending
   your vim session to the background of your terminal session,
+
+  Example usage includes running `<C-z>a` in a LaTeX document
+  to insert the LaTeX alpha character `\alpha`.
+  See `after/plugin/surround.vim` to view the new symbol key codes.
 
 # Installation
 Install with your favorite [plugin manager](https://vi.stackexchange.com/questions/388/what-is-the-difference-between-the-vim-plugin-managers).
