@@ -21,9 +21,6 @@ exe 'imap '.g:filetypetools_outofdelim_map.' <Plug>outofdelim'
 " * Also percent matching solution would require leaving insert mode, triggering
 "   various autocmds, and is much slower/jumpier -- vim script solutions are better!
 " ( [ [ ( "  "  asdfad) sdf    ]  sdfad   ]  asdfasdf) hello   asdfas) 
-function! s:tabreset()
-  let b:menupos=0 | return ''
-endfunction
 function! s:outofdelim(n)
   "Note: matchstrpos is relatively new/less portable, e.g. fails on midway
   "Used to use matchstrpos, now just use match(); much simpler
@@ -44,12 +41,12 @@ function! s:outofdelim(n)
     return repeat("\<Right>", pos)
   endif
 endfunction
-"Apply remaps
+"Helper function, harmless but does nothing for most users
+"See https://github.com/lukelbd/dotfiles/blob/master/.vimrc
+function! s:tab_reset()
+  let b:menupos=0 | return ''
+endfunction
+"The mapping
 inoremap <expr> <Plug>outofdelim !pumvisible() ? <sid>outofdelim(1)
-  \ : b:menupos==0 ? "\<C-e>".<sid>tabreset().<sid>outofdelim(1)
-  \ : "\<C-y>".<sid>tabreset().<sid>outofdelim(1)
-
-"Fancy builtin delimitMate version
-"Gets cursor outside of consecutive delimiter, ignoring subgroups
-"and always passing to the right of consecutive braces
-" imap <F2> <Plug>delimitMateJumpMany
+  \ : b:menupos==0 ? "\<C-e>".<sid>tab_reset().<sid>outofdelim(1)
+  \ : "\<C-y>".<sid>tab_reset().<sid>outofdelim(1)

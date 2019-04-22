@@ -9,33 +9,36 @@ To enable all features, this requires the
 ## Global options
 * `g:filetypetools_tab_filetypes`: Vim-list of strings specifying
   filetypes for which we want `:TabToggle` to be called by default.
-  By default, this is `['text','gitconfig','make']`.
-  reused
-* `'g:filetypetools_outofdelim_map'`: The key to use for the
+  Generally speaking, these should just be filetypes for which literal
+  tab characters are syntactically meaningful.
+  The default is `['text','gitconfig','make']`.
+* `g:filetypetools_outofdelim_map`: The key to use for the
   insert-mode out-of-current-delimiter mapping, `<Plug>outofdelim`.
   By default, this is `<F2>`,
-  because I configure iTerm (my terminal of choice) to remap
+  because I configure iTerm2 (my terminal of choice) to remap
   the normally impossible but easy-to-press key-combination
   "`<C-.>`" to the unused function key `<F2>`.
 * `g:filetypetools_surround_prefix`: The key to use for the
   insert-mode surround mappings, `<Plug>filetypetools-surround`.
-  By default, this is `<C-s>`. Note this may require running
-  `bind -r '"\C-s"'` in your terminal or adding this text
+  The default is `<C-s>`. Note this may require running
+  `bind -r '"\C-s"'` in your terminal or adding it
   to your `.bashrc` or `.bash_profile`.
-* `g:filetypetools_symbol_prefix`:
+* `g:filetypetools_symbol_prefix`: The key to use for the
   insert-mode symbol-insert mappings, `<Plug>filetypetools-symbol`.
-  By default, this is `<C-z>`. To prevent accidentally sending
+  The default is `<C-z>`. To prevent accidentally sending
   your vim session to the background of your terminal session,
   I suggest also adding `noremap <C-z> <Nop>` to your `.vimrc`.
 
 ## Commands and maps
 * `:TabToggle`: Toggles `expandtab` on-and-off.
-* `<Plug>outofdelim`: Jumps to the right of the next closing
-  delimiter. This is handy when the cursor is inside a complex
-  next of varying types of delimiters.
 * `<Plug>surround`, `<Plug>symbol`: Maps for surrounding selected
   text, or normal-mode specified boundaries, with some delimiter, or
   for simply inserting some symbol.
+* `<Plug>outofdelim`: Jumps to the right of the next closing
+  delimiter. This is handy when the cursor is inside a complex
+  next of varying types of delimiters. It stands in contrast to
+  delimitMate's `<Plug>delimitMateJumpMany` map, which jumps outside
+  of arbitrarily nested delimiters.
 
 # Installation
 Install with your favorite [plugin manager](https://vi.stackexchange.com/questions/388/what-is-the-difference-between-the-vim-plugin-managers).
