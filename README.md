@@ -18,6 +18,8 @@ two other tools I developed:
 
 * My [vim-scrollwrapped plugin](https://github.com/lukelbd/vim-scrollwrapped), which toggles "wrapped" lines automatically for non-code documents (like markdown, RST, and LaTeX files) and makes scrolling through vim windows with heavily wrapped lines much, much easier.
 * My [vimlatex script](https://github.com/lukelbd/dotfiles/blob/master/bin/vimlatex) (found in my `dotfiles` repo), which makes compiling LaTeX documents, running `latexdiff` on files with formatted YYYY-MM-DD strings, and converting LaTeX documents to Word with `pandoc` very easy. [This file](https://github.com/lukelbd/dotfiles/blob/master/.vim/ftplugin/tex.vim) shows how to map to this utility from inside vim.
+* My [ctags preference file](https://github.com/lukelbd/dotfiles/blob/master/.ctags), which contains a bunch of new definitions for marking section, figure, table, etc. locations with ctags.
+This is best used with my [idetools plugin](https://github.com/lukelbd/vim-idetools).
 
 <!--
 ## Commands
