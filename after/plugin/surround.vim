@@ -12,6 +12,7 @@ if !g:loaded_surround
   finish
 endif
 "Tools
+"\hello{asdffads }
 if !exists('g:filetypetools_surround_prefix')
   let g:filetypetools_surround_prefix='<C-s>'
 endif
@@ -355,11 +356,10 @@ function! s:texsurround()
   call s:symbol('J', '_\mathrm{}<Left>')
   call s:symbol(',', '\,')
 
-  "Insert a line (feel free to modify width)
-  "Will prompt user for fraction of page
+  "Insert a line (feel free to modify width), will prompt user for fraction of page
   "Note centering fails inside itemize environments, so use begin/end center instead
   " _ '{\centering\noindent\rule{'.input('fraction: ').'\textwidth}{0.7pt}}'
-  call s:symbol('_', "'\begin{center}\noindent\rule{'.input('fraction: ').'\textwidth}{0.7pt}\end{center}'")
+  " call s:symbol('_', "'\begin{center}\noindent\rule{'.input('fraction: ').'\textwidth}{0.7pt}\end{center}'")
 endfunction
 
 "------------------------------------------------------------------------------"
