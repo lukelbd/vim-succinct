@@ -41,18 +41,16 @@ To enable all features, this requires the
   next of varying types of delimiters. It stands in contrast to
   delimitMate's `<Plug>delimitMateJumpMany` map, which jumps outside
   of arbitrarily nested delimiters.
-* New surround delimiters: Custom delimiters
+* New `surround.vim` delimiter key codes: Custom delimiters
   integrated with the `surround.vim` plugin in insert and visual
   selection modes. See `surround.vim` for details.
-
   Example usage includes making a visual selection in a LaTeX document
   then pressing `<C-s>*` to surround with a `\begin{itemize}`
   `\end{itemize}` environment, or running `yswb` in normal mode
   to surround the word under the cursor with a `\textbf{}` command.
   See `after/plugin/surround.vim` to view the new delimiter key codes.
-* New symbol insert maps: Custom method for inserting text
+* New symbol insert key codes: Custom method for inserting text
   by pressing `g:filetypetools_symbol_prefix` followed by a character.
-
   Example usage includes running `<C-z>a` in a LaTeX document
   to insert the alpha character `\alpha`.
   See `after/plugin/surround.vim` to view all the new symbol
