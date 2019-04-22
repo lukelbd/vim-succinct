@@ -47,11 +47,16 @@ This is best used with my [idetools plugin](https://github.com/lukelbd/vim-ideto
 -->
 
 ## Maps
-* `<Plug>outofdelim`: Jumps to the right of the next closing
+* `<F2>`: Jumps to the right of the next closing
   delimiter. This is handy when the cursor is inside a complex
   next of varying types of delimiters. It stands in contrast to
-  delimitMate's `<Plug>delimitMateJumpMany` map, which jumps outside
-  of arbitrarily nested delimiters.
+  delimitMate's `<Plug>delimitMateJumpMany` map, which jumps outside of arbitrarily nested delimiters.
+
+  By default, this is `<F2>`,
+  because I configure iTerm2 (my terminal of choice) to remap
+  the normally impossible but easy-to-press key-combination
+  "`<C-.>`" to the unused function key `<F2>`.
+  You can change this map with `g:textools_outofdelim_map`.
 * New `surround.vim` delimiter key codes: Custom delimiters
   integrated with the `surround.vim` plugin in insert and visual
   selection modes. See `surround.vim` for details.
@@ -60,6 +65,8 @@ This is best used with my [idetools plugin](https://github.com/lukelbd/vim-ideto
   `\end{itemize}` environment, or running `yswb` in normal mode
   to surround the word under the cursor with a `\textbf{}` command.
   See `after/plugin/surround.vim` to view the new delimiter key codes.
+  You can change the default prefix with
+  `g:textools_surround_prefix`.
 * New text object key codes: Custom delimiters integrated
   with the `vim-textobj-user` plugin for selecting, deleting, yanking, etc.
   blocks of text with `ca`, `yi`, `da`, etc. Example usage includes
@@ -72,6 +79,8 @@ This is best used with my [idetools plugin](https://github.com/lukelbd/vim-ideto
   Example usage includes running `<C-z>a` in a LaTeX document
   to insert the alpha character `\alpha`.
   See `after/plugin/surround.vim` to view the new symbol key codes.
+  You can change the default prefix with
+  `g:textools_symbol_prefix`.
 
 ## Global options
 * `g:textools_tab_filetypes`: Vim-list of strings specifying
@@ -79,12 +88,6 @@ This is best used with my [idetools plugin](https://github.com/lukelbd/vim-ideto
   Generally speaking, these should just be filetypes for which literal
   tab characters are syntactically meaningful.
   The default is `['text','gitconfig','make']`.
-* `g:textools_outofdelim_map`: The key to use for the
-  insert-mode out-of-current-delimiter mapping, `<Plug>outofdelim`.
-  By default, this is `<F2>`,
-  because I configure iTerm2 (my terminal of choice) to remap
-  the normally impossible but easy-to-press key-combination
-  "`<C-.>`" to the unused function key `<F2>`.
 * `g:textools_surround_prefix`: The key to use for the
   insert and visual mode `surround.vim` mappings,
   `<Plug>VSurround` and `<Plug>ISurround`. See the `surround.vim`
