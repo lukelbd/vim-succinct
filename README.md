@@ -48,12 +48,11 @@ This is best used with my [idetools plugin](https://github.com/lukelbd/vim-ideto
 -->
 
 ## Maps
-* `<F2>`: Jumps to the right of the **next closing
-  delimiter** (i.e. `]`, `>`, `)`, or `}`). This is handy when the cursor is inside a complex
+* `<F1>`, `<F2>`: In insert mode, jumps to the right of the previous or next **delimiter** (i.e. any of the characters `[]<>(){}`). This is handy when the cursor is inside a complex
   next of varying types of delimiters, a common difficulty when writing LaTeX equations. It stands in contrast to
   delimitMate's `<Plug>delimitMateJumpMany` map, which jumps to the far outside of nested delimiters.
 
-  The map can be changed with `g:gextools_outofdelim_map`. It is `<F2>` by default because I configure iTerm2 (my terminal of choice) to remap the normally impossible but easy-to-press key-combination "`<C-.>`" to the unused key `<F2>`.
+  The maps can be changed with `g:textools_prevdelim_map` and `g:textools_nextdelim_map`. The defaults are `<F1>` and `<F2>` because I configure iTerm2 to map the normally impossible key combinations `<C-,>` and `<C-.>` to function key presses. This is done by creating maps in Preferences that send the `<F1>` and `<F2>` ASCII HEX codes `0x1b 0x4f 0x50` and `0x1b 0x4f 0x51`, respectively.
 * New `surround.vim` delimiter key codes: Custom delimiters
   integrated with the `surround.vim` plugin, introducing
   a series of insert, visual, and normal mode maps

@@ -12,7 +12,6 @@ if !g:loaded_surround
   finish
 endif
 "Tools
-"\hello{asdffads }
 if !exists('g:textools_surround_prefix')
   let g:textools_surround_prefix='<C-s>'
 endif

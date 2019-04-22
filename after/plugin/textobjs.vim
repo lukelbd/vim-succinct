@@ -8,17 +8,6 @@
 " Some ideas for future:
 " https://github.com/kana/vim-textobj-lastpat/tree/master/plugin/textobj (similar to my d/ and d? commands!)
 "------------------------------------------------------------------------------"
-"Alias single-key builtin text objects
-function! s:alias(original,new)
-  exe 'onoremap i'.a:original.' i'.a:new
-  exe 'xnoremap i'.a:original.' i'.a:new
-  exe 'onoremap a'.a:original.' a'.a:new
-  exe 'xnoremap a'.a:original.' a'.a:new
-endfunction
-for pair in ['r[', 'a<', 'c{']
-  call s:alias(pair[0], pair[1])
-endfor
-
 "This fucking stupid plugin doesn't fucking support buffer-local
 "mappings, an incredibly simple feature, because it fucking sucks
 if !exists('*textobj#user#plugin')
@@ -31,11 +20,6 @@ augroup textobj_tex
   au!
   au BufEnter * call s:textobj_setup()
 augroup END
-"Maps
-noremap <expr> <silent> gc <sid>search('^\ze\s*'.Comment().'.*$', 1).'gg'
-noremap <expr> <silent> gC <sid>search('^\ze\s*'.Comment().'.*$', 0).'gg'
-noremap <expr> <silent> ge <sid>search('^\ze\s*$', 1).'gg'
-noremap <expr> <silent> gE <sid>search('^\ze\s*$', 0).'gg'
 "Sets text objects for certain filetypes
 function! s:textobj_setup()
   call textobj#user#plugin('universal', s:universal_textobjs_dict)
@@ -110,14 +94,13 @@ let s:universal_textobjs_dict={
   \     'select-i': 'iQ',
   \   },
   \ }
-" \     'move-p': 'gC', "tried doing this, got weird error, whatevs
-" \     'move-n': 'gc',
-" For some reason this doesn't work, have to use special methodall
-" \   'fart': {
+" For some reason this doesn't work, have to use special methodcall
 " \     'pattern': ['\<[_a-zA-Z0-9.]*(', ')'],
 " \     'select-a': 'aF',
 " \     'select-i': 'iF',
-" \   },
+" Tried doing this, got weird error, whatevs
+" \     'move-p': 'gC',
+" \     'move-n': 'gc',
 
 "------------------------------------------------------------------------------"
 "TeX plugin definitions
