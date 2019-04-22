@@ -16,7 +16,7 @@ if !exists('g:textools_surround_prefix')
   let g:textools_surround_prefix='<C-s>'
 endif
 if !exists('g:textools_symbol_prefix')
-  let g:textools_symbol_prefix='<C-i>'
+  let g:textools_symbol_prefix='<C-z>'
 endif
 "Remap surround.vim defaults
 "Make the visual-mode map same as insert-mode map; by default it is capital S
