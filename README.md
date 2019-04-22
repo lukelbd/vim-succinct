@@ -4,9 +4,11 @@ for editing various documents.
 To enable all features, this requires the
 [vim-text-obj](https://github.com/kana/vim-textobj-user), [surround.vim](https://github.com/tpope/vim-surround), and [delimitMate](https://github.com/Raimondi/delimitMate) plugins
 (see the files in `after/plugin`).
-This setup is highly customized and would take quite a while to document, so
+This setup is complex and would take quite a while to document, so
 for now I will just give a broad summary of its features and expect any users
-to dig into the `vimscript` code a bit to get the full picture.
+to dig into the `vimscript` code to get the full picture.
+But it is **extremely** powerful, especially for editing LaTeX documents, so I
+recommend trying it out.
 
 ## Commands
 * `:TabToggle`: Toggles `expandtab` on-and-off.
@@ -14,17 +16,18 @@ to dig into the `vimscript` code a bit to get the full picture.
 ## Syntax highlighting
 * Added support for MATLAB, NCL, and "awk" script syntax highlighting. See
   files in the `syntax` folder.
-* Added support for highlighting supercomputer directives in comments at
+* Added support for highlighting SLURM and PBS supercomputer directives in comments at
   the head of shell scripts. See `after/syntax/sh.vim`.
 * Improved the default python and LaTeX highlighting. See
   `syntax/python.vim` and `after/syntax/tex.vim`.
-* Improved comment highlighting for fortran and HTML syntax highlighting.
+* Improved comment highlighting for fortran and HTML syntax.
   See files in the `after/syntax` folder.
 
 ## Filetype settings
 * For most languages, added a normal mode `<C-z>` map
-  for "running" the current file.
-  See files in the `ftplugin` folder.
+  for "running" the current file. See files in the `ftplugin` folder.
+* For LaTeX documents, this relies on having my custom file for typesetting documents,
+  `https://github.com/lukelbd/blob/master/vimlatex`, somewhere in your `$PATH`.
 
 ## Plugin extensions
 * `<Plug>outofdelim`: Jumps to the right of the next closing
