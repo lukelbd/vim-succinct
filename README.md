@@ -27,8 +27,8 @@ recommend trying it out.
 ## Filetype settings
 * For most languages, added a normal mode `<C-z>` map
   for "running" the current file. See files in the `ftplugin` folder.
-* For LaTeX documents, this relies on having my custom file for typesetting documents,
-  `https://github.com/lukelbd/blob/master/vimlatex`, somewhere in your `$PATH`.
+* For LaTeX documents, this relies on having my custom script for typesetting documents,
+  `https://github.com/lukelbd/dotfiles/blob/master/vimlatex`, somewhere in your `$PATH`.
 
 ## Plugin extensions
 * `<Plug>outofdelim`: Jumps to the right of the next closing
