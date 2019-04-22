@@ -11,33 +11,22 @@ to dig into the `vimscript` code a bit to get the full picture.
 ## Commands
 * `:TabToggle`: Toggles `expandtab` on-and-off.
 
-## Global options
-* `g:filetypetools_tab_filetypes`: Vim-list of strings specifying
-  filetypes for which we want `:TabToggle` to be called by default.
-  Generally speaking, these should just be filetypes for which literal
-  tab characters are syntactically meaningful.
-  The default is `['text','gitconfig','make']`.
-* `g:filetypetools_outofdelim_map`: The key to use for the
-  insert-mode out-of-current-delimiter mapping, `<Plug>outofdelim`.
-  By default, this is `<F2>`,
-  because I configure iTerm2 (my terminal of choice) to remap
-  the normally impossible but easy-to-press key-combination
-  "`<C-.>`" to the unused function key `<F2>`.
-* `g:filetypetools_surround_prefix`: The key to use for the
-  insert and visual mode `surround.vim` mappings,
-  `<Plug>VSurround` and `<Plug>ISurround`. See the `surround.vim`
-  documentation for details. The default is `<C-s>`.
-  Note this may require running
-  `bind -r '"\C-s"'` in your terminal or adding it
-  to your `~/.bashrc` or `~/.bash_profile`.
-* `g:filetypetools_symbol_prefix`: The key to use for
-  insert mode symbol-insert mappings.
-  The default is `<C-z>`.
-  I suggest adding `noremap <C-z> <Nop>` to your `.vimrc`,
-  to prevent accidentally sending
-  your vim session to the background of your terminal session,
+## Syntax highlighting
+* Added support for MATLAB, NCL, and "awk" script syntax highlighting. See
+  files in the `syntax` folder.
+* Added support for highlighting supercomputer directives in comments at
+  the head of shell scripts. See `after/syntax/sh.vim`.
+* Improved the default python and LaTeX highlighting. See
+  `syntax/python.vim` and `after/syntax/tex.vim`.
+* Improved comment highlighting for fortran and HTML syntax highlighting.
+  See files in the `after/syntax` folder.
 
-## Maps
+## Filetype settings
+* For most languages, added a normal mode `<C-z>` map
+  for "running" the current file.
+  See files in the `ftplugin` folder.
+
+## Plugin extensions
 * `<Plug>outofdelim`: Jumps to the right of the next closing
   delimiter. This is handy when the cursor is inside a complex
   next of varying types of delimiters. It stands in contrast to
@@ -63,6 +52,32 @@ to dig into the `vimscript` code a bit to get the full picture.
   Example usage includes running `<C-z>a` in a LaTeX document
   to insert the alpha character `\alpha`.
   See `after/plugin/surround.vim` to view the new symbol key codes.
+
+## Global options
+* `g:filetypetools_tab_filetypes`: Vim-list of strings specifying
+  filetypes for which we want `:TabToggle` to be called by default.
+  Generally speaking, these should just be filetypes for which literal
+  tab characters are syntactically meaningful.
+  The default is `['text','gitconfig','make']`.
+* `g:filetypetools_outofdelim_map`: The key to use for the
+  insert-mode out-of-current-delimiter mapping, `<Plug>outofdelim`.
+  By default, this is `<F2>`,
+  because I configure iTerm2 (my terminal of choice) to remap
+  the normally impossible but easy-to-press key-combination
+  "`<C-.>`" to the unused function key `<F2>`.
+* `g:filetypetools_surround_prefix`: The key to use for the
+  insert and visual mode `surround.vim` mappings,
+  `<Plug>VSurround` and `<Plug>ISurround`. See the `surround.vim`
+  documentation for details. The default is `<C-s>`.
+  Note this may require running
+  `bind -r '"\C-s"'` in your terminal or adding it
+  to your `~/.bashrc` or `~/.bash_profile`.
+* `g:filetypetools_symbol_prefix`: The key to use for
+  insert mode symbol-insert mappings.
+  The default is `<C-z>`.
+  I suggest adding `noremap <C-z> <Nop>` to your `.vimrc`,
+  to prevent accidentally sending
+  your vim session to the background of your terminal session,
 
 # Installation
 Install with your favorite [plugin manager](https://vi.stackexchange.com/questions/388/what-is-the-difference-between-the-vim-plugin-managers).
