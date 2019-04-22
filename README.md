@@ -53,8 +53,7 @@ To enable all features, this requires the
   by pressing `g:filetypetools_symbol_prefix` followed by a character.
   Example usage includes running `<C-z>a` in a LaTeX document
   to insert the alpha character `\alpha`.
-  See `after/plugin/surround.vim` to view all the new symbol
-  key codes.
+  See `after/plugin/surround.vim` to view the new symbol key codes.
 
 # Installation
 Install with your favorite [plugin manager](https://vi.stackexchange.com/questions/388/what-is-the-difference-between-the-vim-plugin-managers).
