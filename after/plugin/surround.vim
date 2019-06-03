@@ -100,11 +100,11 @@ function! s:texsurround()
   " First the delimiters
   "----------------------------------------------------------------------------"
   "'l' for commands
-  call s:target('l', "\1command: \1{", '}')
+  call s:target('l', "\\\1command: \1{", '}')
   nmap <buffer> dsl F{F\dt{dsB
   nmap <buffer> <expr> csl 'F{F\lct{'.input('command: ').'<Esc>F\'
-  "'L' for environments
 
+  "'L' for environments
   "Note uppercase registers *append* to previous contents
   call s:target('L', "\\begin{\1\\begin{\1}", "\n"."\\end{\1\1}")
   nnoremap <buffer> dsL :let @/='\\end{[^}]\+}.*\n'<CR>dgn:let @/='\\begin{[^}]\+}.*\n'<CR>dgN
