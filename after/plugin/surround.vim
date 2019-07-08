@@ -230,8 +230,8 @@ function! s:texsurround()
   " call s:target('F', '\begin{subfigure}{.5\textwidth}'."\n".'\centering'."\n".'\includegraphics{', "}\n".'\end{subfigure}', 1)
 
   "Equations
-  call s:target('%', '\begin{equation*}', "\n".'\end{equation*}', 1)
-  call s:target('^', '\begin{align*}', "\n".'\end{align*}', 1)
+  call s:target('%', '\begin{align*}', "\n".'\end{align*}', 1) "because it is next to the '$' key
+  call s:target('^', '\begin{equation*}', "\n".'\end{equation*}', 1)
   call s:target('t', '\begin{tabular}{', "}\n".'\end{tabular}', 1)
   call s:target('T', '\begin{table}'."\n".'\centering'."\n".'\caption{}'."\n".'\begin{tabular}{', "}\n".'\end{tabular}'."\n".'\end{table}', 1)
   call s:target('>', '\uncover<X>{%', "\n".'}', 1)
@@ -241,7 +241,7 @@ function! s:texsurround()
   call s:target('*', '\begin{itemize}',                  "\n".'\end{itemize}', 1)
   call s:target('&', '\begin{description}',              "\n".'\end{description}', 1) "d is now open
   call s:target('#', '\begin{enumerate}',                "\n".'\end{enumerate}', 1)
-  call s:target('@', '\begin{enumerate}[label=\alph*.]', "\n".'\end{enumerate}', 1)
+  call s:target('@', '\begin{enumerate}[label=\alph*.]', "\n".'\end{enumerate}', 1) "because ampersand looks like alpha
 
   "Versions of the above, but this time puting them on own lines
   "TODO: fix these
