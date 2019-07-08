@@ -99,16 +99,16 @@ function! s:texsurround()
   "----------------------------------------------------------------------------"
   " First the delimiters
   "----------------------------------------------------------------------------"
-  "'l' for commands
-  call s:target('l', "\\\1command: \1{", '}')
-  nmap <buffer> dsl F{F\dt{dsB
-  nmap <buffer> <expr> csl 'F{F\lct{'.input('command: ').'<Esc>F\'
+  "',' for commands
+  call s:target(',', "\\\1command: \1{", '}')
+  nmap <buffer> ds, F{F\dt{dsB
+  nmap <buffer> <expr> cs, 'F{F\lct{'.input('command: ').'<Esc>F\'
 
-  "'L' for environments
+  "'.' for environments
   "Note uppercase registers *append* to previous contents
-  call s:target('L', "\\begin{\1\\begin{\1}", "\n"."\\end{\1\1}")
-  nnoremap <buffer> dsL :let @/='\\end{[^}]\+}.*\n'<CR>dgn:let @/='\\begin{[^}]\+}.*\n'<CR>dgN
-  nnoremap <expr> <buffer> csL ':let @/="\\\\end{\\zs[^}]\\+\\ze}"<CR>cgn'
+  call s:target('.', "\\begin{\1\\begin{\1}", "\n"."\\end{\1\1}")
+  nnoremap <buffer> ds. :let @/='\\end{[^}]\+}.*\n'<CR>dgn:let @/='\\begin{[^}]\+}.*\n'<CR>dgN
+  nnoremap <expr> <buffer> cs. ':let @/="\\\\end{\\zs[^}]\\+\\ze}"<CR>cgn'
            \ .input('\begin{')
            \ .'<Esc>h:let @z="<C-r><C-w>"<CR>:let @/="\\\\begin{\\zs[^}]\\+\\ze}"<CR>cgN<C-r>z<Esc>'
   " nmap <buffer> dsL /\\end{<CR>:noh<CR><Up>V<Down>^%<Down>dp<Up>V<Up>d
@@ -140,14 +140,14 @@ function! s:texsurround()
   call s:target(']', '\begin{bmatrix}',          "\n".'\end{bmatrix}',      1)
 
   "Font types
-  call s:target('o', '{\color{red}', '}', 1) "requires \usepackage[colorlinks]{hyperref}
+  call s:target('e', '\emph{'  ,     '}', 1)
+  call s:target('E', '{\color{red}', '}', 1) "e for red, needs \usepackage[colorlinks]{hyperref}
   call s:target('u', '\underline{',  '}', 1)
   call s:target('i', '\textit{',     '}', 1)
-  call s:target('E', '\emph{'  ,     '}', 1) "use e for times 10 to the whatever
-  call s:target('b', '\textbf{',     '}', 1)
-  call s:target('B', '\mathbf{',     '}', 1)
-  call s:target('r', '\mathrm{',     '}', 1)
-  call s:target('R', '\mathbb{',     '}', 1) "usually for denoting sets of numbers
+  call s:target('o', '\textbf{',     '}', 1) "o for bold
+  call s:target('O', '\mathbf{',     '}', 1)
+  call s:target('m', '\mathrm{',     '}', 1)
+  call s:target('M', '\mathbb{',     '}', 1) "usually for denoting sets of numbers
   call s:target('z', '\mathcal{',    '}', 1)
 
   "Verbatim
@@ -171,7 +171,6 @@ function! s:texsurround()
   "Simple enivronments, exponents, etc.
   call s:target('\', '\sqrt{',       '}',   1)
   call s:target('$', '$',            '$',   1)
-  call s:target('e', '\times10^{',   '}',   1)
   " call s:target('k', '^\mathrm{',           '}',   1)
   " call s:target('j', '_\mathrm{',           '}',   1)
   call s:target('k', '\overset{}{',  '}',   1)
@@ -191,10 +190,10 @@ function! s:texsurround()
   "Beamer
   call s:target('n', '\pdfcomment{', '}', 1) "not sure what this is used for
   call s:target('!', '\frametitle{', '}', 1)
+  call s:target('l', '\begin{column}{0.5\textwidth}',  "\n".'\end{column}', 1) "l for column
+  call s:target('L', '\begin{columns}', "\n".'\end{columns}')
   " call s:target('c', '\begin{column}{',  "}\n".'\end{column}', 1)
   " call s:target('C', '\begin{columns}[', ']\end{columns}',     1)
-  call s:target('c', '\begin{column}{0.5\textwidth}',  "\n".'\end{column}', 1)
-  call s:target('C', '\begin{columns}', "\n".'\end{columns}')
   " call s:target('z', '\note{',    '}', 1) "notes are for beamer presentations, appear in separate slide
 
   "Shortcuts for citations and such
@@ -224,7 +223,7 @@ function! s:texsurround()
   call s:target('w', '{\usebackgroundtemplate{}\begin{frame}', "\n".'\end{frame}}', 1)
 
   "Figure environments, and pages
-  call s:target('m', '\begin{minipage}{\linewidth}', "\n".'\end{minipage}', 1) "not sure what this is used for
+  call s:target('P', '\begin{minipage}{\linewidth}', "\n".'\end{minipage}', 1) "not sure what this is used for
   call s:target('f', '\begin{center}'."\n".'\centering'."\n".'\includegraphics{', "}\n".'\end{center}', 1)
   call s:target('F', '\begin{figure}'."\n".'\centering'."\n".'\includegraphics{', "}\n".'\end{figure}', 1)
   call s:target('W', '\begin{wrapfigure}{r}{.5\textwidth}'."\n".'\centering'."\n".'\includegraphics{', "}\n".'\end{wrapfigure}', 1)
@@ -236,6 +235,7 @@ function! s:texsurround()
   call s:target('t', '\begin{tabular}{', "}\n".'\end{tabular}', 1)
   call s:target('T', '\begin{table}'."\n".'\centering'."\n".'\caption{}'."\n".'\begin{tabular}{', "}\n".'\end{tabular}'."\n".'\end{table}', 1)
   call s:target('>', '\uncover<X>{%', "\n".'}', 1)
+  call s:target('<', '\uncover<X>{\item ',                '}', 1)
 
   "Itemize environments
   call s:target('*', '\begin{itemize}',                  "\n".'\end{itemize}', 1)
@@ -288,10 +288,10 @@ function! s:texsurround()
   call s:symbol('a', '\alpha')
   call s:symbol('b', '\beta')
   call s:symbol('c', '\xi')
-  "weird curly one
+  "Weird curly one
   "the upper case looks like 3 lines
   call s:symbol('C', '\Xi')
-  "looks like an x so want to use this map
+  "Looks like an x so want to use this map
   "pronounced 'zi', the 'i' in 'tide'
   call s:symbol('x', '\chi')
 
@@ -309,7 +309,7 @@ function! s:texsurround()
   call s:symbol('n', '\nabla')
   call s:symbol('N', '\nu')
   call s:symbol('e', '\epsilon')
-  call s:symbol('E', '\eta')
+  call s:symbol('h', '\eta')
   call s:symbol('p', '\pi')
   call s:symbol('P', '\Pi')
   call s:symbol('q', '\theta')
@@ -345,7 +345,6 @@ function! s:texsurround()
   call s:symbol('+', '\sum')
   call s:symbol('*', '\prod')
   call s:symbol('x', '\times')
-  call s:symbol('.', '\cdot')
   call s:symbol('o', '$^\circ$')
   call s:symbol('=', '\equiv')
   call s:symbol('~', '{\sim}')
@@ -353,7 +352,9 @@ function! s:texsurround()
   call s:symbol('j', '_{}<Left>')
   call s:symbol('K', '^\mathrm{}<Left>')
   call s:symbol('J', '_\mathrm{}<Left>')
+  call s:target('E', '\times10^{}<Left>') "more like a symbol conceptually
   call s:symbol(',', '\,')
+  call s:symbol('.', '\cdot')
 
   "Insert a line (feel free to modify width), will prompt user for fraction of page
   "Note centering fails inside itemize environments, so use begin/end center instead
@@ -373,7 +374,7 @@ augroup html_delimit
 augroup END
 function! s:htmlmacros()
   call s:target('h', '<head>',   '</head>',   1)
-  call s:target('b', '<body>',   '</body>',   1)
+  call s:target('o', '<body>',   '</body>',   1)
   call s:target('t', '<title>',  '</title>',  1)
   call s:target('e', '<em>',     '</em>',     1)
   call s:target('t', '<strong>', '</strong>', 1)

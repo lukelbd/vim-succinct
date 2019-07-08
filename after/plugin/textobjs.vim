@@ -94,11 +94,11 @@ let s:universal_textobjs_dict={
   \     'select-i': 'iQ',
   \   },
   \ }
-" For some reason this doesn't work, have to use special methodcall
+" For some reason this doesn't work
 " \     'pattern': ['\<[_a-zA-Z0-9.]*(', ')'],
 " \     'select-a': 'aF',
 " \     'select-i': 'iF',
-" Tried doing this, got weird error, whatevs
+" Tried doing this, got weird error
 " \     'move-p': 'gC',
 " \     'move-n': 'gc',
 
@@ -155,10 +155,8 @@ let s:tex_textobjs_dict={
 function! Strip(text)
   return substitute(a:text, '^\s*\(.\{-}\)\s*$', '\1', '')
 endfunction
-function! Comment(...)
-  if &ft == '' || &commentstring == '' "the
-    return ''
-  elseif &commentstring =~ '%s'
+function! Comment()
+  if &ft != '' && &commentstring =~ '%s'
     return Strip(split(&commentstring, '%s')[0])
   else
     return ''
