@@ -352,7 +352,7 @@ function! s:texsurround()
   call s:symbol('j', '_{}<Left>')
   call s:symbol('K', '^\mathrm{}<Left>')
   call s:symbol('J', '_\mathrm{}<Left>')
-  call s:target('E', '\times10^{}<Left>') "more like a symbol conceptually
+  call s:symbol('E', '\times10^{}<Left>') "more like a symbol conceptually
   call s:symbol(',', '\,')
   call s:symbol('.', '\cdot')
 
