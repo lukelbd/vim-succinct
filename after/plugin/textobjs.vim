@@ -152,12 +152,12 @@ let s:tex_textobjs_dict={
 " Helper functions
 "------------------------------------------------------------------------------"
 "Returns comments
-function! Strip(text)
+function! s:strip(text)
   return substitute(a:text, '^\s*\(.\{-}\)\s*$', '\1', '')
 endfunction
-function! Comment()
+function! s:comment()
   if &ft != '' && &commentstring =~ '%s'
-    return Strip(split(&commentstring, '%s')[0])
+    return s:strip(split(&commentstring, '%s')[0])
   else
     return ''
   endif
@@ -220,8 +220,8 @@ endfunction
 "And the commented line stuff
 function! s:uncommented_lines()
   normal! 0l
-  let nnb = search('^\s*'.Comment().'.*\zs$', 'Wnc')
-  let pnb = search('^\ze\s*'.Comment().'.*$', 'Wncb')
+  let nnb = search('^\s*'.s:comment().'.*\zs$', 'Wnc')
+  let pnb = search('^\ze\s*'.s:comment().'.*$', 'Wncb')
   if pnb==line('.')
     return 0
   endif
