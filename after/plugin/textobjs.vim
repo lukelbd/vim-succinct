@@ -110,13 +110,13 @@ let s:universal_textobjs_dict={
 let s:tex_textobjs_dict={
   \   'environment': {
   \     'pattern': ['\\begin{[^}]\+}.*\n', '\\end{[^}]\+}.*$'],
-  \     'select-a': 'aL',
-  \     'select-i': 'iL',
+  \     'select-a': 'a.',
+  \     'select-i': 'i.',
   \   },
   \  'command': {
   \     'pattern': ['\\\S\+{', '}'],
-  \     'select-a': 'al',
-  \     'select-i': 'il',
+  \     'select-a': 'a,',
+  \     'select-i': 'i,',
   \   },
   \  'bracket-math': {
   \     'pattern': ['\\\[', '\\\]'],

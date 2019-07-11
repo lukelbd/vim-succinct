@@ -49,7 +49,6 @@ nmap yS. ySis
 function! s:target(map,start,end,...) "if final argument passed, this is buffer-local
   if a:0 "surprisingly, below is standard vim script syntax
     let b:surround_{char2nr(a:map)}=a:start."\r".a:end
-    " silent! unlet g:surround_{char2nr(a:map)}
   else
     let g:surround_{char2nr(a:map)}=a:start."\r".a:end
   endif
@@ -307,7 +306,7 @@ function! s:texsurround()
   call s:symbol('L', '\Lambda')
   call s:symbol('m', '\mu')
   call s:symbol('n', '\nabla')
-  call s:symbol('N', '\nu')
+  call s:symbol('v', '\nu')
   call s:symbol('e', '\epsilon')
   call s:symbol('h', '\eta')
   call s:symbol('p', '\pi')
@@ -353,8 +352,11 @@ function! s:texsurround()
   call s:symbol('K', '^\mathrm{}<Left>')
   call s:symbol('J', '_\mathrm{}<Left>')
   call s:symbol('E', '\times10^{}<Left>') "more like a symbol conceptually
-  call s:symbol(',', '\,')
   call s:symbol('.', '\cdot')
+
+  "Spaces
+  call s:symbol(',', '\,')
+  call s:symbol(' ', '\quad')
 
   "Insert a line (feel free to modify width), will prompt user for fraction of page
   "Note centering fails inside itemize environments, so use begin/end center instead
