@@ -8,32 +8,32 @@
 " Some ideas for future:
 " https://github.com/kana/vim-textobj-lastpat/tree/master/plugin/textobj (similar to my d/ and d? commands!)
 "------------------------------------------------------------------------------"
-"This fucking stupid plugin doesn't fucking support buffer-local
-"mappings, an incredibly simple feature, because it fucking sucks
+" This fucking stupid plugin doesn't fucking support buffer-local
+" mappings, an incredibly simple feature, because it fucking sucks
 if !exists('*textobj#user#plugin')
   echom "Warning: vim-textools requires vim-textobj-user, disabling some features."
   finish
 endif
 
-"Autocommand
+" Autocommand
 augroup textobj_tex
   au!
   au BufEnter * call s:textobj_setup()
 augroup END
-"Sets text objects for certain filetypes
+" Sets text objects for certain filetypes
 function! s:textobj_setup()
   call textobj#user#plugin('universal', s:universal_textobjs_dict)
-  if &ft=='tex' "this will overwrite some default ones, quote-related
+  if &ft=='tex' " this will overwrite some default ones, quote-related
     call textobj#user#plugin('latex', s:tex_textobjs_dict)
   endif
 endfunction
 
 "------------------------------------------------------------------------------"
-"Universal object definitions
+" Universal object definitions
 "------------------------------------------------------------------------------"
-"Highlight current line, to match 'yss' vim-surround syntax
-"Also functions and arrays; use keyword chars, i.e. what is considered
-"a 'word' by '*', 'gd/gD', et cetera
+" Highlight current line, to match 'yss' vim-surround syntax
+" Also functions and arrays; use keyword chars, i.e. what is considered
+" a 'word' by '*', 'gd/gD', et cetera
 let s:universal_textobjs_dict = {
   \   'line': {
   \     'sfile': expand('<sfile>:p'),
@@ -103,9 +103,9 @@ let s:universal_textobjs_dict = {
 " \     'move-n': 'gc',
 
 "------------------------------------------------------------------------------"
-"TeX plugin definitions
-"Copied from: https://github.com/rbonvall/vim-textobj-latex/blob/master/ftplugin/tex/textobj-latex.vim
-"so the names could be changed
+" TeX plugin definitions
+" Copied from: https://github.com/rbonvall/vim-textobj-latex/blob/master/ftplugin/tex/textobj-latex.vim
+" so the names could be changed
 "------------------------------------------------------------------------------"
 let s:tex_textobjs_dict = {
   \   'environment': {
@@ -151,7 +151,7 @@ let s:tex_textobjs_dict = {
 "------------------------------------------------------------------------------"
 " Helper functions
 "------------------------------------------------------------------------------"
-"Returns comments
+" Returns comments
 function! s:strip(text)
   return substitute(a:text, '^\s*\(.\{-}\)\s*$', '\1', '')
 endfunction
@@ -163,15 +163,15 @@ function! s:comment()
   endif
 endfunction
 
-"Motion functions
-"Had hard time getting stuff to work in textobj
+" Motion functions
+" Had hard time getting stuff to work in textobj
 function! s:search(regex,forward)
   let motion = (a:forward ? '' : 'b')
   let result = search(a:regex, 'Wn'.motion)
   return (result==0 ? line('.') : result)
 endfunction
 
-"Functions for current line stuff
+" Functions for current line stuff
 function! s:current_line_a()
   normal! 0
   let head_pos = getpos('.')
@@ -188,7 +188,7 @@ function! s:current_line_i()
   return (non_blank_char_exists_p ? ['v', head_pos, tail_pos] : 0)
 endfunction
 
-"Functions for blank line stuff
+" Functions for blank line stuff
 function! s:helper(pnb, nnb)
   let start_line = (a:pnb == 0) ? 1         : a:pnb + 1
   let end_line   = (a:nnb == 0) ? line('$') : a:nnb - 1
@@ -200,24 +200,24 @@ function! s:blank_lines()
   normal! 0
   let pnb = prevnonblank(line('.'))
   let nnb = nextnonblank(line('.'))
-  if pnb==line('.') "also will be true for nextnonblank, if on nonblank
+  if pnb==line('.') " also will be true for nextnonblank, if on nonblank
     return 0
   endif
   return s:helper(pnb,nnb)
 endfunction
 
-"Functions for new and improved paragraph stuff
+" Functions for new and improved paragraph stuff
 function! s:nonblank_lines()
   normal! 0l
-  let nnb = search('^\s*\zs$', 'Wnc') "the c means accept current position
-  let pnb = search('^\ze\s*$', 'Wnbc') "won't work for backwards search unless to right of first column
+  let nnb = search('^\s*\zs$', 'Wnc') " the c means accept current position
+  let pnb = search('^\ze\s*$', 'Wnbc') " won't work for backwards search unless to right of first column
   if pnb==line('.')
     return 0
   endif
   return s:helper(pnb,nnb)
 endfunction
 
-"And the commented line stuff
+" And the commented line stuff
 function! s:uncommented_lines()
   normal! 0l
   let nnb = search('^\s*'.s:comment().'.*\zs$', 'Wnc')
@@ -228,7 +228,7 @@ function! s:uncommented_lines()
   return s:helper(pnb,nnb)
 endfunction
 
-"Method calls
+" Method calls
 function! s:methodcall_a()
    return s:methodcall('a')
 endfunction
@@ -249,7 +249,7 @@ function! s:methodcall(motion)
    return ['v', head_pos, tail_pos]
 endfunction
 
-"Chained methodcall command
+" Chained methodcall command
 function! s:methoddef_i()
    return s:methoddef('i')
 endfunction
