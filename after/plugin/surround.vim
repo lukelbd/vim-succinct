@@ -13,10 +13,10 @@ if !g:loaded_surround
 endif
 "Tools
 if !exists('g:textools_surround_prefix')
-  let g:textools_surround_prefix='<C-s>'
+  let g:textools_surround_prefix = '<C-s>'
 endif
 if !exists('g:textools_symbol_prefix')
-  let g:textools_symbol_prefix='<C-z>'
+  let g:textools_symbol_prefix = '<C-z>'
 endif
 "Remap surround.vim defaults
 "Make the visual-mode map same as insert-mode map; by default it is capital S
@@ -48,9 +48,9 @@ nmap yS. ySis
 "ys<target>, yS<target>, visual-mode S, insert-mode <C-s>, et cetera
 function! s:target(map,start,end,...) "if final argument passed, this is buffer-local
   if a:0 "surprisingly, below is standard vim script syntax
-    let b:surround_{char2nr(a:map)}=a:start."\r".a:end
+    let b:surround_{char2nr(a:map)} = a:start."\r".a:end
   else
-    let g:surround_{char2nr(a:map)}=a:start."\r".a:end
+    let g:surround_{char2nr(a:map)} = a:start."\r".a:end
   endif
 endfunction
 "And this function is for declaring symbol maps
@@ -71,7 +71,7 @@ endfunction
 "* Note double quotes are required, because surround-vim wants
 "  the literal \r return character.
 "c for curly brace
-" let g:surround_{char2nr('c')}="{\r}"
+" let g:surround_{char2nr('c')} = "{\r}"
 call s:target('c', '{', '}')
 nmap dsc dsB
 nmap csc csB
@@ -99,17 +99,21 @@ function! s:texsurround()
   " First the delimiters
   "----------------------------------------------------------------------------"
   "',' for commands
-  call s:target(',', "\\\1command: \1{", '}')
-  nmap <buffer> ds, F{F\dt{dsB
-  nmap <buffer> <expr> cs, 'F{F\lct{'.input('command: ').'<Esc>F\'
+  call s:target('t', "\\\1command: \1{", '}')
+  nmap <buffer> <expr> cst 'F{F\lct{'.input('command: ').'<Esc>F\'
+  nnoremap <buffer> ds( ?\\left(<CR>df/\\right)<CR>df)
+  nnoremap <buffer> ds[ ?\\left[<CR>df/\\right]<CR>df)
+  nnoremap <buffer> ds{ ?\\left{<CR>df/\\right}<CR>df)
+  nnoremap <buffer> ds< ?\\left<<CR>df/\\right><CR>df)
+  nnoremap <buffer> dst F{F\dt{dsB
 
   "'.' for environments
   "Note uppercase registers *append* to previous contents
-  call s:target('.', "\\begin{\1\\begin{\1}", "\n"."\\end{\1\1}")
-  nnoremap <buffer> ds. :let @/='\\end{[^}]\+}.*\n'<CR>dgn:let @/='\\begin{[^}]\+}.*\n'<CR>dgN
-  nnoremap <expr> <buffer> cs. ':let @/="\\\\end{\\zs[^}]\\+\\ze}"<CR>cgn'
+  call s:target('T', "\\begin{\1\\begin{\1}", "\n"."\\end{\1\1}")
+  nnoremap <buffer> dsT :let @/ = '\\end{[^}]\+}.*\n'<CR>dgn:let @/ = '\\begin{[^}]\+}.*\n'<CR>dgN
+  nnoremap <expr> <buffer> csT ':let @/ = "\\\\end{\\zs[^}]\\+\\ze}"<CR>cgn'
            \ .input('\begin{')
-           \ .'<Esc>h:let @z="<C-r><C-w>"<CR>:let @/="\\\\begin{\\zs[^}]\\+\\ze}"<CR>cgN<C-r>z<Esc>'
+           \ .'<Esc>h:let @z = "<C-r><C-w>"<CR>:let @/ = "\\\\begin{\\zs[^}]\\+\\ze}"<CR>cgN<C-r>z<Esc>'
   " nmap <buffer> dsL /\\end{<CR>:noh<CR><Up>V<Down>^%<Down>dp<Up>V<Up>d
   " nmap <buffer> <expr> csL '/\\end{<CR>:noh<CR>A!!!<Esc>^%f{<Right>ciB'
   " \.input('\begin{').'<Esc>/!!!<CR>:noh<CR>A {<C-r>.}<Esc>2F{dt{'
@@ -147,7 +151,7 @@ function! s:texsurround()
   call s:target('O', '\mathbf{',     '}', 1)
   call s:target('m', '\mathrm{',     '}', 1)
   call s:target('M', '\mathbb{',     '}', 1) "usually for denoting sets of numbers
-  call s:target('z', '\mathcal{',    '}', 1)
+  call s:target('L', '\mathcal{',    '}', 1)
 
   "Verbatim
   call s:target('y', '\texttt{',     '}', 1) "typewriter text
@@ -168,48 +172,38 @@ function! s:texsurround()
   call s:target('X', '\fbox{\parbox{\textwidth}{', '}}\medskip', 1)
 
   "Simple enivronments, exponents, etc.
-  call s:target('\', '\sqrt{',       '}',   1)
-  call s:target('$', '$',            '$',   1)
   " call s:target('k', '^\mathrm{',           '}',   1)
   " call s:target('j', '_\mathrm{',           '}',   1)
+  call s:target('\', '\sqrt{',       '}',   1)
+  call s:target('$', '$',            '$',   1)
   call s:target('k', '\overset{}{',  '}',   1)
   call s:target('j', '\underset{}{', '}',   1)
-  call s:target('/', '\frac{',      '}{}', 1)
+  call s:target('/', '\frac{',       '}{}', 1)
   call s:target('?', '\dfrac{',      '}{}', 1)
 
   "Sections and titles
-  call s:target('~', '\title{',     '}',   1)
-  call s:target('1', '\section{',        '}',   1)
-  call s:target('2', '\subsection{',     '}',   1)
-  call s:target('3', '\subsubsection{',  '}',   1)
-  call s:target('4', '\section*{',       '}',   1)
-  call s:target('5', '\subsection*{',    '}',   1)
-  call s:target('6', '\subsubsection*{', '}',   1)
+  call s:target('~', '\title{',          '}', 1)
+  call s:target('1', '\section{',        '}', 1)
+  call s:target('2', '\subsection{',     '}', 1)
+  call s:target('3', '\subsubsection{',  '}', 1)
+  call s:target('4', '\section*{',       '}', 1)
+  call s:target('5', '\subsection*{',    '}', 1)
+  call s:target('6', '\subsubsection*{', '}', 1)
 
   "Beamer
-  call s:target('n', '\pdfcomment{', '}', 1) "not sure what this is used for
+  call s:target('n', '\pdfcomment{'."\n", "\n}", 1) "not sure what this is used for
   call s:target('!', '\frametitle{', '}', 1)
-  call s:target('l', '\begin{column}{0.5\textwidth}',  "\n".'\end{column}', 1) "l for column
-  call s:target('L', '\begin{columns}', "\n".'\end{columns}')
   " call s:target('c', '\begin{column}{',  "}\n".'\end{column}', 1)
   " call s:target('C', '\begin{columns}[', ']\end{columns}',     1)
   " call s:target('z', '\note{',    '}', 1) "notes are for beamer presentations, appear in separate slide
 
   "Shortcuts for citations and such
-  call s:target('7', '\ref{',     '}', 1) "just the number
-  call s:target('8', '\autoref{', '}', 1) "name and number; autoref is part of hyperref package
-  call s:target('9', '\label{',   '}', 1) "declare labels that ref and autoref point to
-  call s:target('0', '\tag{',     '}', 1) "change the default 1-2-3 ordering; common to use *
-  call s:target('a', '\caption{', '}', 1) "amazingly 'a' not used yet
+  call s:target('7', '\ref{',               '}', 1) "just the number
+  call s:target('8', '\autoref{',           '}', 1) "name and number; autoref is part of hyperref package
+  call s:target('9', '\label{',             '}', 1) "declare labels that ref and autoref point to
+  call s:target('0', '\tag{',               '}', 1) "change the default 1-2-3 ordering; common to use *
+  call s:target('a', '\caption{',           '}', 1) "amazingly 'a' not used yet
   call s:target('A', '\captionof{figure}{', '}', 1) "alternative
-
-  "Other stuff like citenum/citep (natbib) and textcite/authorcite (biblatex) must be done manually
-  "NOTE: Now use Zotero citation thing, do not need these.
-  " call s:target('n', '\cite{',   '}',     1) "second most common one
-  " call s:target('N', '\citenum{',    '}', 1) "most common
-  " call s:target('m', '\citep{',   '}',    1) "second most common one
-  " call s:target('M', '\citet{', '}',      1) "most common
-  " call s:target('G', '\vcenteredhbox{\includegraphics[width=\textwidth]{', '}}', 1) "use in beamer talks
 
   "The next enfironments will also insert *newlines*
   "Frame; fragile option makes verbatim possible (https://tex.stackexchange.com/q/136240/73149)
@@ -217,24 +211,26 @@ function! s:texsurround()
   "Slide with 'w'hite frame is the w map
   call s:target('g', '\includegraphics[width=\textwidth]{', '}', 1) "center across margins
   call s:target('G', '\makebox[\textwidth][c]{\includegraphics[width=\textwidth]{', '}}', 1) "center across margins
-  call s:target('s', '\begin{frame}',                          "\n".'\end{frame}' , 1)
-  call s:target('S', '\begin{frame}[fragile]',                 "\n".'\end{frame}' , 1)
   call s:target('w', '{\usebackgroundtemplate{}\begin{frame}', "\n".'\end{frame}}', 1)
+  call s:target('s', '\begin{frame}',                          "\n".'\end{frame}',  1)
+  call s:target('S', '\begin{frame}[fragile]',                 "\n".'\end{frame}',  1)
+  call s:target('z', '\begin{column}{0.5\textwidth}',          "\n".'\end{column}', 1) "l for column
+  call s:target('Z', '\begin{columns}',                        "\n".'\end{columns}', 1)
+  call s:target('>', '\uncover<X>{%',                          "\n".'}', 1)
+  call s:target('<', '\uncover<X>{\item ',                     '}',                                  1)
 
   "Figure environments, and pages
-  call s:target('P', '\begin{minipage}{\linewidth}', "\n".'\end{minipage}', 1) "not sure what this is used for
+  " call s:target('F', '\begin{subfigure}{.5\textwidth}'."\n".'\centering'."\n".'\includegraphics{', "}\n".'\end{subfigure}', 1)
   call s:target('f', '\begin{center}'."\n".'\centering'."\n".'\includegraphics{', "}\n".'\end{center}', 1)
   call s:target('F', '\begin{figure}'."\n".'\centering'."\n".'\includegraphics{', "}\n".'\end{figure}', 1)
+  call s:target('P', '\begin{minipage}{\linewidth}', "\n".'\end{minipage}', 1) "not sure what this is used for
   call s:target('W', '\begin{wrapfigure}{r}{.5\textwidth}'."\n".'\centering'."\n".'\includegraphics{', "}\n".'\end{wrapfigure}', 1)
-  " call s:target('F', '\begin{subfigure}{.5\textwidth}'."\n".'\centering'."\n".'\includegraphics{', "}\n".'\end{subfigure}', 1)
 
   "Equations
   call s:target('%', '\begin{align*}', "\n".'\end{align*}', 1) "because it is next to the '$' key
   call s:target('^', '\begin{equation*}', "\n".'\end{equation*}', 1)
-  call s:target('t', '\begin{tabular}{', "}\n".'\end{tabular}', 1)
-  call s:target('T', '\begin{table}'."\n".'\centering'."\n".'\caption{}'."\n".'\begin{tabular}{', "}\n".'\end{tabular}'."\n".'\end{table}', 1)
-  call s:target('>', '\uncover<X>{%', "\n".'}', 1)
-  call s:target('<', '\uncover<X>{\item ',                '}', 1)
+  call s:target(',', '\begin{tabular}{', "}\n".'\end{tabular}', 1)
+  call s:target('.', '\begin{table}'."\n".'\centering'."\n".'\caption{}'."\n".'\begin{tabular}{', "}\n".'\end{tabular}'."\n".'\end{table}', 1)
 
   "Itemize environments
   call s:target('*', '\begin{itemize}',                  "\n".'\end{itemize}', 1)
@@ -281,7 +277,7 @@ function! s:texsurround()
   call s:symbol('>', '\Rightarrow')
   call s:symbol('<', '\Longrightarrow')
   "Misc symbotls, want quick access
-  call s:symbol(';', '\item')
+  call s:symbol('*', '\item')
   call s:symbol('/', '\pause')
   "Math symbols
   call s:symbol('a', '\alpha')
@@ -324,10 +320,10 @@ function! s:texsurround()
   call s:symbol('z', '\zeta')
 
   "Needed for pdfcomment newlines
-  call s:symbol('M', '\textCR<CR>')
+  call s:symbol('M', ' \textCR<CR>')
 
   "Derivatives
-  call s:symbol(':', '\partial')
+  call s:symbol('o', '\partial')
   call s:symbol("'", '\mathrm{d}')
   call s:symbol('"', '\mathrm{D}')
 
@@ -342,9 +338,9 @@ function! s:texsurround()
   "3 levels of differentiation; each one stronger
   call s:symbol('-', '${-}$')
   call s:symbol('+', '\sum')
-  call s:symbol('*', '\prod')
   call s:symbol('x', '\times')
-  call s:symbol('o', '$^\circ$')
+  call s:symbol('X', '\prod')
+  call s:symbol('O', '$^\circ$')
   call s:symbol('=', '\equiv')
   call s:symbol('~', '{\sim}')
   call s:symbol('k', '^{}<Left>')
@@ -355,8 +351,10 @@ function! s:texsurround()
   call s:symbol('.', '\cdot')
 
   "Spaces
-  call s:symbol(',', '\,')
-  call s:symbol(' ', '\quad')
+  call s:symbol(',', '\, ')
+  call s:symbol(':', '\: ')
+  call s:symbol(';', '\; ')
+  call s:symbol('q', '\quad ')
 
   "Insert a line (feel free to modify width), will prompt user for fraction of page
   "Note centering fails inside itemize environments, so use begin/end center instead

@@ -34,13 +34,13 @@ endfunction
 "Highlight current line, to match 'yss' vim-surround syntax
 "Also functions and arrays; use keyword chars, i.e. what is considered
 "a 'word' by '*', 'gd/gD', et cetera
-let s:universal_textobjs_dict={
+let s:universal_textobjs_dict = {
   \   'line': {
   \     'sfile': expand('<sfile>:p'),
   \     'select-a-function': 's:current_line_a',
-  \     'select-a': 'as',
+  \     'select-a': 'al',
   \     'select-i-function': 's:current_line_i',
-  \     'select-i': 'is',
+  \     'select-i': 'il',
   \   },
   \   'blanklines': {
   \     'sfile': expand('<sfile>:p'),
@@ -107,16 +107,16 @@ let s:universal_textobjs_dict={
 "Copied from: https://github.com/rbonvall/vim-textobj-latex/blob/master/ftplugin/tex/textobj-latex.vim
 "so the names could be changed
 "------------------------------------------------------------------------------"
-let s:tex_textobjs_dict={
+let s:tex_textobjs_dict = {
   \   'environment': {
   \     'pattern': ['\\begin{[^}]\+}.*\n', '\\end{[^}]\+}.*$'],
-  \     'select-a': 'a.',
-  \     'select-i': 'i.',
+  \     'select-a': 'aT',
+  \     'select-i': 'iT',
   \   },
   \  'command': {
   \     'pattern': ['\\\S\+{', '}'],
-  \     'select-a': 'a,',
-  \     'select-i': 'i,',
+  \     'select-a': 'at',
+  \     'select-i': 'it',
   \   },
   \  'bracket-math': {
   \     'pattern': ['\\\[', '\\\]'],
@@ -166,8 +166,8 @@ endfunction
 "Motion functions
 "Had hard time getting stuff to work in textobj
 function! s:search(regex,forward)
-  let motion=(a:forward ? '' : 'b')
-  let result=search(a:regex, 'Wn'.motion)
+  let motion = (a:forward ? '' : 'b')
+  let result = search(a:regex, 'Wn'.motion)
   return (result==0 ? line('.') : result)
 endfunction
 

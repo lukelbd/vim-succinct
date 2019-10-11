@@ -8,13 +8,13 @@ if !g:loaded_delimitMate
 endif
 "Map to 'ctrl-.' which is remapped to <F2> in my iTerm session
 if !exists('g:textools_delimjump_regex')
-  let g:textools_delimjump_regex="[()\\[\\]{}<>]" "list of 'outside' delimiters for jk matching
+  let g:textools_delimjump_regex = "[()\\[\\]{}<>]" "list of 'outside' delimiters for jk matching
 endif
 if !exists('g:textools_prevdelim_map')
-  let g:textools_prevdelim_map='<F1>'
+  let g:textools_prevdelim_map = '<F1>'
 endif
 if !exists('g:textools_nextdelim_map')
-  let g:textools_nextdelim_map='<F2>'
+  let g:textools_nextdelim_map = '<F2>'
 endif
 "Make mapping
 exe 'imap '.g:textools_prevdelim_map.' <Plug>textools-prevdelim'
@@ -28,13 +28,13 @@ function! s:prevdelim(n)
   "Why up to two places to left of current position (col('.')-1)? there is delimiter to our left, want to ignore that
   "If delimiter is to left of cursor, we are at a 'next to
   "the cursor' position; want to test line even further to the left
-  let string=getline('.')[:col('.')-3]
-  let string=join(reverse(split(string, '.\zs')), '') "search the *reversed* string
-  let pos=0
+  let string = getline('.')[:col('.')-3]
+  let string = join(reverse(split(string, '.\zs')), '') "search the *reversed* string
+  let pos = 0
   for i in range(a:n)
-    let result=match(string, g:textools_delimjump_regex, pos) "get info on *first* match
+    let result = match(string, g:textools_delimjump_regex, pos) "get info on *first* match
     if result==-1 | break | endif
-    let pos=result + 1 "go to next one
+    let pos = result + 1 "go to next one
   endfor
   if pos==0 "relative position is zero, i.e. don't move
     return ""
@@ -45,15 +45,15 @@ endfunction
 function! s:nextdelim(n)
   "Why starting from current position? Even if cursor is
   "on delimiter, want to find it and move to the right of it
-  let string=getline('.')[col('.')-1:]
-  let pos=0
+  let string = getline('.')[col('.')-1:]
+  let pos = 0
   for i in range(a:n)
-    let result=match(string, g:textools_delimjump_regex, pos) "get info on *first* match
+    let result = match(string, g:textools_delimjump_regex, pos) "get info on *first* match
     if result==-1 | break | endif
-    let pos=result + 1 "go to next one
+    let pos = result + 1 "go to next one
   endfor
   if mode()!~#'[rRiI]' && pos+col('.')>=col('$') "want to put cursor at end-of-line, but can't because not in insert mode
-    let pos=col('$')-col('.')-1
+    let pos = col('$')-col('.')-1
   endif
   if pos==0 "relative position is zero, i.e. don't move
     return ""
@@ -64,7 +64,7 @@ endfunction
 "Helper function, harmless but does nothing for most users
 "See https://github.com/lukelbd/dotfiles/blob/master/.vimrc
 function! s:tab_reset()
-  let b:menupos=0 | return ''
+  let b:menupos = 0 | return ''
 endfunction
 "Define the maps, with special consideration for whether
 "popup menu is open (accept the entry if user has scrolled
