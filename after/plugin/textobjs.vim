@@ -168,7 +168,7 @@ endfunction
 function! s:search(regex,forward)
   let motion = (a:forward ? '' : 'b')
   let result = search(a:regex, 'Wn'.motion)
-  return (result==0 ? line('.') : result)
+  return (result == 0 ? line('.') : result)
 endfunction
 
 " Functions for current line stuff
@@ -200,7 +200,7 @@ function! s:blank_lines()
   normal! 0
   let pnb = prevnonblank(line('.'))
   let nnb = nextnonblank(line('.'))
-  if pnb==line('.') " also will be true for nextnonblank, if on nonblank
+  if pnb == line('.') " also will be true for nextnonblank, if on nonblank
     return 0
   endif
   return s:helper(pnb,nnb)
@@ -211,7 +211,7 @@ function! s:nonblank_lines()
   normal! 0l
   let nnb = search('^\s*\zs$', 'Wnc') " the c means accept current position
   let pnb = search('^\ze\s*$', 'Wnbc') " won't work for backwards search unless to right of first column
-  if pnb==line('.')
+  if pnb == line('.')
     return 0
   endif
   return s:helper(pnb,nnb)
@@ -222,7 +222,7 @@ function! s:uncommented_lines()
   normal! 0l
   let nnb = search('^\s*'.s:comment().'.*\zs$', 'Wnc')
   let pnb = search('^\ze\s*'.s:comment().'.*$', 'Wncb')
-  if pnb==line('.')
+  if pnb == line('.')
     return 0
   endif
   return s:helper(pnb,nnb)

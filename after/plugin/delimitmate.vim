@@ -36,7 +36,7 @@ function! s:prevdelim(n)
     if result==-1 | break | endif
     let pos = result + 1 " go to next one
   endfor
-  if pos==0 " relative position is zero, i.e. don't move
+  if pos == 0 " relative position is zero, i.e. don't move
     return ""
   else
     return repeat("\<Left>", pos)
@@ -52,10 +52,10 @@ function! s:nextdelim(n)
     if result==-1 | break | endif
     let pos = result + 1 " go to next one
   endfor
-  if mode()!~#'[rRiI]' && pos+col('.')>=col('$') " want to put cursor at end-of-line, but can't because not in insert mode
+  if mode()!~#'[rRiI]' && pos+col('.') >= col('$') " want to put cursor at end-of-line, but can't because not in insert mode
     let pos = col('$')-col('.')-1
   endif
-  if pos==0 " relative position is zero, i.e. don't move
+  if pos == 0 " relative position is zero, i.e. don't move
     return ""
   else
     return repeat("\<Right>", pos)
@@ -71,8 +71,8 @@ endfunction
 " into the menu).
 " See https://github.com/lukelbd/dotfiles/blob/master/.vimrc
 inoremap <expr> <Plug>textools-prevdelim !pumvisible() ? <sid>prevdelim(1)
-  \ : b:menupos==0 ? "\<C-e>".<sid>tab_reset().<sid>prevdelim(1)
+  \ : b:menupos == 0 ? "\<C-e>".<sid>tab_reset().<sid>prevdelim(1)
   \ : " \<C-y>".<sid>tab_reset().<sid>prevdelim(1)
 inoremap <expr> <Plug>textools-nextdelim !pumvisible() ? <sid>nextdelim(1)
-  \ : b:menupos==0 ? "\<C-e>".<sid>tab_reset().<sid>nextdelim(1)
+  \ : b:menupos == 0 ? "\<C-e>".<sid>tab_reset().<sid>nextdelim(1)
   \ : " \<C-y>".<sid>tab_reset().<sid>nextdelim(1)
