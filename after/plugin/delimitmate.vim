@@ -17,8 +17,8 @@ if !exists('g:textools_nextdelim_map')
   let g:textools_nextdelim_map = '<F2>'
 endif
 " Make mapping
-exe 'imap '.g:textools_prevdelim_map.' <Plug>textools-prevdelim'
-exe 'imap '.g:textools_nextdelim_map.' <Plug>textools-nextdelim'
+exe 'imap ' . g:textools_prevdelim_map . ' <Plug>textools-prevdelim'
+exe 'imap ' . g:textools_nextdelim_map . ' <Plug>textools-nextdelim'
 
 " Simple functions put cursor to the right of closing braces and quotes
 " ( [ [ ( "  "  asdfad) sdf    ]  sdfad   ]  asdfasdf) hello   asdfas)

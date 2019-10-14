@@ -21,11 +21,11 @@ endif
 " Remap surround.vim defaults
 " Make the visual-mode map same as insert-mode map; by default it is capital S
 " Note: Lowercase Isurround surrounds words, ISurround surrounds lines.
-exe 'vmap '.g:textools_surround_prefix.' <Plug>VSurround'
-exe 'imap '.g:textools_surround_prefix.' <Plug>Isurround'
+exe 'vmap ' . g:textools_surround_prefix . ' <Plug>VSurround'
+exe 'imap ' . g:textools_surround_prefix . ' <Plug>Isurround'
 " Cancellation
-exe 'imap '.g:textools_surround_prefix.'<Esc> <Nop>'
-exe 'imap '.g:textools_symbol_prefix.'<Esc> <Nop>'
+exe 'imap ' . g:textools_surround_prefix . '<Esc> <Nop>'
+exe 'imap ' . g:textools_symbol_prefix . '<Esc> <Nop>'
 
 "------------------------------------------------------------------------------"
 " Define additional shortcuts like ys's' for the non-whitespace part
