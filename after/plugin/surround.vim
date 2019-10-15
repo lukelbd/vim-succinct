@@ -8,7 +8,6 @@
 "------------------------------------------------------------------------------"
 " Dependencies
 if !g:loaded_surround
-  echom "Warning: vim-textools requires vim-surround, disabling some features."
   finish
 endif
 " Tools
@@ -18,6 +17,11 @@ endif
 if !exists('g:textools_symbol_prefix')
   let g:textools_symbol_prefix = '<C-z>'
 endif
+" Delimiters
+augroup tex_delimit
+  au!
+  au FileType tex call s:texsurround()
+augroup END
 " Remap surround.vim defaults
 " Make the visual-mode map same as insert-mode map; by default it is capital S
 " Note: Lowercase Isurround surrounds words, ISurround surrounds lines.
@@ -28,83 +32,31 @@ exe 'imap ' . g:textools_surround_prefix . '<Esc> <Nop>'
 exe 'imap ' . g:textools_symbol_prefix . '<Esc> <Nop>'
 
 "------------------------------------------------------------------------------"
-" Define additional shortcuts like ys's' for the non-whitespace part
-" of this line -- use 'w' for <cword>, 'W' for <CWORD>, 'p' for current paragraph
-"------------------------------------------------------------------------------"
-nmap ysw ysiw
-nmap ysW ysiW
-nmap ysp ysip
-nmap ys. ysis
-nmap ySw ySiw
-nmap ySW ySiW
-nmap ySp ySip
-nmap yS. ySis
-
-"------------------------------------------------------------------------------"
 " Function for adding fancy multiple character delimiters
 "------------------------------------------------------------------------------"
 " These will only be 'placed', never detected; for example, will never work in
 " da<target>, ca<target>, cs<target><other>, etc. commands; only should be used for
 " ys<target>, yS<target>, visual-mode S, insert-mode <C-s>, et cetera
-function! s:target(map,start,end,...) " if final argument passed, this is buffer-local
-  if a:0 " surprisingly, below is standard vim script syntax
-    let b:surround_{char2nr(a:map)} = a:start."\r".a:end
-  else
-    let g:surround_{char2nr(a:map)} = a:start."\r".a:end
-  endif
+function! s:target(map, start, end) " if final argument passed, this is buffer-local
+  let b:surround_{char2nr(a:map)} = a:start . "\r" . a:end
 endfunction
 " And this function is for declaring symbol maps
-function! s:symbol(map,value)
-  exe 'inoremap <buffer> '.g:textools_symbol_prefix.a:map.' '.a:value
+function! s:symbol(map, value)
+  exe 'inoremap <buffer> ' . g:textools_symbol_prefix . a:map . ' ' . a:value
 endfunction
-
-"------------------------------------------------------------------------------"
-" Define global, *insertable* vim-surround targets
-" Multichar Delims: Surround can 'put' them, but cannot 'find' them
-" e.g. in a ds<custom-target> or cs<custom-target><other-target> command.
-" Single Delims: Delims *can* be 'found' if they are single character, but
-" setting g:surround_does not do so -- instead, just map commands
-"------------------------------------------------------------------------------"
-" * Hit ga to get ASCII code (leftmost number; not the HEX code!)
-" * Note that if you just enter some uncoded character, will
-"  use that as a delimiter -- e.g. yss` surrounds with backticks
-" * Note double quotes are required, because surround-vim wants
-"  the literal \r return character.
-" c for curly brace
-" let g:surround_{char2nr('c')} = "{\r}"
-call s:target('c', '{', '}')
-nmap dsc dsB
-nmap csc csB
-" \ for \" escaped quotes \"
-call s:target('\', '\"', '\"')
-nmap ds\ /\\"<CR>xxdN
-nmap cs\ /\\"<CR>xNx
-" p for print
-" then just use dsf, csf, et cetera to delete
-call s:target('p', 'print(', ')')
-" f for functions, with user prompting
-call s:target('f', "\1function: \1(", ')') "initial part is for prompt, needs double quotes
-nnoremap dsf mzF(bdt(xf)x`z
-nnoremap <expr> csf 'F(hciw'.input('function: ').'<Esc>'
 
 "------------------------------------------------------------------------------"
 " LaTeX-specific 'delimiters' and shortcuts
 "------------------------------------------------------------------------------"
-augroup tex_delimit
-  au!
-  au FileType tex call s:texsurround()
-augroup END
 function! s:texsurround()
-  "----------------------------------------------------------------------------"
   " First the delimiters
-  "----------------------------------------------------------------------------"
   " ',' for commands
   call s:target('t', "\\\1command: \1{", '}')
   nmap <buffer> <expr> cst 'F{F\lct{'.input('command: ').'<Esc>F\'
-  nnoremap <buffer> ds( ?\\left(<CR>df/\\right)<CR>df)
-  nnoremap <buffer> ds[ ?\\left[<CR>df/\\right]<CR>df)
-  nnoremap <buffer> ds{ ?\\left{<CR>df/\\right}<CR>df)
-  nnoremap <buffer> ds< ?\\left<<CR>df/\\right><CR>df)
+  nnoremap <buffer> ds( ?\\left(<CR>d/\\right)<CR>df)
+  nnoremap <buffer> ds[ ?\\left[<CR>d/\\right]<CR>df]
+  nnoremap <buffer> ds{ ?\\left{<CR>d/\\right}<CR>df}
+  nnoremap <buffer> ds< ?\\left<<CR>d/\\right><CR>df>
   nnoremap <buffer> dst F{F\dt{dsB
 
   " '.' for environments
@@ -117,17 +69,17 @@ function! s:texsurround()
   " nmap <buffer> dsL /\\end{<CR>:noh<CR><Up>V<Down>^%<Down>dp<Up>V<Up>d
   " nmap <buffer> <expr> csL '/\\end{<CR>:noh<CR>A!!!<Esc>^%f{<Right>ciB'
   " \.input('\begin{').'<Esc>/!!!<CR>:noh<CR>A {<C-r>.}<Esc>2F{dt{'
-  " Quotations
-  call s:target('q', '`',  "'",  1)
-  call s:target('Q', '``', "''", 1)
-  nnoremap <buffer> dsq f'xF`x
-  nnoremap <buffer> dsQ 2f'F'2x2F`2x
 
+  " Quotations
+  call s:target("'", '`',  "'",  1)
+  call s:target('"', '``', "''", 1)
+  nnoremap <buffer> ds' f'xF`x
+  nnoremap <buffer> ds" 2f'F'2x2F`2x
   " Curly quotations
-  call s:target("'", '‘', '’', 1)
-  call s:target('"', '“', '”', 1)
-  nnoremap <buffer> ds' f’xF‘x
-  nnoremap <buffer> ds" f”xF“x
+  call s:target('q', '‘', '’', 1)
+  call s:target('Q', '“', '”', 1)
+  nnoremap <buffer> dsq f’xF‘x
+  nnoremap <buffer> dsQ f”xF“x
 
   " Next delimiters generally not requiring new lines
   " Math mode brackets
@@ -209,6 +161,8 @@ function! s:texsurround()
   " Frame; fragile option makes verbatim possible (https://tex.stackexchange.com/q/136240/73149)
   " note that fragile make compiling way slower
   " Slide with 'w'hite frame is the w map
+  " call s:target('<', '\uncover<X>{\item ', '}', 1)
+  call s:target('>', '\uncover<X>{%', "\n".'}', 1)
   call s:target('g', '\includegraphics[width=\textwidth]{', '}', 1) " center across margins
   call s:target('G', '\makebox[\textwidth][c]{\includegraphics[width=\textwidth]{', '}}', 1) " center across margins
   call s:target('w', '{\usebackgroundtemplate{}\begin{frame}', "\n".'\end{frame}}', 1)
@@ -216,8 +170,6 @@ function! s:texsurround()
   call s:target('S', '\begin{frame}[fragile]',                 "\n".'\end{frame}',  1)
   call s:target('z', '\begin{column}{0.5\textwidth}',          "\n".'\end{column}', 1) "l for column
   call s:target('Z', '\begin{columns}',                        "\n".'\end{columns}', 1)
-  call s:target('>', '\uncover<X>{%',                          "\n".'}', 1)
-  call s:target('<', '\uncover<X>{\item ',                     '}',                                  1)
 
   " Figure environments, and pages
   " call s:target('F', '\begin{subfigure}{.5\textwidth}'."\n".'\centering'."\n".'\includegraphics{', "}\n".'\end{subfigure}', 1)
@@ -252,10 +204,7 @@ function! s:texsurround()
   " call s:target(',v', '\begin{verbatim}',                 '\end{verbatim}')
   " call s:target(',V', '\begin{code}',                     '\end{code}')
 
-  "------------------------------------------------------------------------------"
   " Shortcuts
-  "------------------------------------------------------------------------------"
-  " Basics
   call s:symbol('[', '[]<Left>')
   call s:symbol('(', '()<Left>')
   call s:symbol('<', '<><Left>')
@@ -274,8 +223,8 @@ function! s:texsurround()
   call s:symbol('0', '\Huge')
 
   " First arrows, most commonly used ones anyway
-  call s:symbol('>', '\Rightarrow')
-  call s:symbol('<', '\Longrightarrow')
+  " call s:symbol('<', '\Longrightarrow')
+  call s:symbol('>', '\Longrightarrow')
   " Misc symbotls, want quick access
   call s:symbol('*', '\item')
   call s:symbol('/', '\pause')
@@ -360,29 +309,5 @@ function! s:texsurround()
   " Note centering fails inside itemize environments, so use begin/end center instead
   " _ '{\centering\noindent\rule{'.input('fraction: ').'\textwidth}{0.7pt}}'
   " call s:symbol('_', "'\begin{center}\noindent\rule{'.input('fraction: ').'\textwidth}{0.7pt}\end{center}'")
-endfunction
-
-"------------------------------------------------------------------------------"
-" HTML macros
-"------------------------------------------------------------------------------"
-" For now pretty empty, but we should add to this
-" Note that tag delimiters are *built in* to vim-surround
-" Just use the target 't', and prompt will ask for description
-augroup html_delimit
-  au!
-  au FileType html call s:htmlmacros()
-augroup END
-function! s:htmlmacros()
-  call s:target('h', '<head>',   '</head>',   1)
-  call s:target('o', '<body>',   '</body>',   1)
-  call s:target('t', '<title>',  '</title>',  1)
-  call s:target('e', '<em>',     '</em>',     1)
-  call s:target('t', '<strong>', '</strong>', 1)
-  call s:target('p', '<p>',      '</p>',      1)
-  call s:target('1', '<h1>',     '</h1>',     1)
-  call s:target('2', '<h2>',     '</h2>',     1)
-  call s:target('3', '<h3>',     '</h3>',     1)
-  call s:target('4', '<h4>',     '</h4>',     1)
-  call s:target('5', '<h5>',     '</h5>',     1)
 endfunction
 

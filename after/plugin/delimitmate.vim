@@ -3,7 +3,6 @@
 "------------------------------------------------------------------------------"
 " Dependencies
 if !g:loaded_delimitMate
-  echom "Warning: vim-textools requires delimitMate, disabling some features."
   finish
 endif
 " Map to 'ctrl-.' which is remapped to <F2> in my iTerm session
@@ -61,11 +60,13 @@ function! s:nextdelim(n)
     return repeat("\<Right>", pos)
   endif
 endfunction
+
 " Helper function, harmless but does nothing for most users
 " See https://github.com/lukelbd/dotfiles/blob/master/.vimrc
 function! s:tab_reset()
   let b:menupos = 0 | return ''
 endfunction
+
 " Define the maps, with special consideration for whether
 " popup menu is open (accept the entry if user has scrolled
 " into the menu).
