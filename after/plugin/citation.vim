@@ -23,7 +23,7 @@ function! s:citation_maps()
   nnoremap <silent> <buffer> <Leader>B :BibtexToggle<CR>
 
   " Citation mappings
-  for s:pair in {'c':'', 't':'t', 'p':'p', 'n':'num'}
+  for s:pair in items({'c':'', 't':'t', 'p':'p', 'n':'num'})
     exe 'inoremap <silent> <buffer> ' . g:textools_citation_prefix
       \ . s:pair[0] . ' <Esc>:call <sid>citation_vim_run("'
       \ . s:pair[1] . '", g:citation_vim_opts)<CR>'

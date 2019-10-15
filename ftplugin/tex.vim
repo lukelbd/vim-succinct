@@ -24,7 +24,7 @@ let g:tex_no_error = 1
 " Typesetting LaTeX and displaying PDF viewer
 " Copied s:vim8 from autoreload/plug.vim file
 let s:vim8 = has('patch-8.0.0039') && exists('*job_start')
-let s:script = expand('%:p:h')
+let s:path = expand('<sfile>:p:h')
 function! s:latex_background(...)
   if !s:vim8
     echom "Error: Latex compilation requires vim >= 8.0"
@@ -50,7 +50,8 @@ function! s:latex_background(...)
   endif
   " Run job in realtime
   let num = bufnr(logfile)
-  let g:tex_job = job_start(s:script . '../latexmk ' . texfile . opts,
+  echom s:path . '/../latexmk'
+  let g:tex_job = job_start(s:path . '/../latexmk ' . texfile . opts,
       \ { 'out_io': 'buffer', 'out_buf': num })
 endfunction
 
