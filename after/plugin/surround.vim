@@ -35,7 +35,7 @@ exe 'imap ' . g:textools_snippet_prefix . '<Esc> <Nop>'
 " Helper functions
 "-----------------------------------------------------------------------------"
 " Custom delimiter inserts
-function! s:delimit(map, start, end, ...) " if final argument passed, this is global
+function! s:delim(map, start, end, ...) " if final argument passed, this is global
   if a:0 && a:1
     let g:surround_{char2nr(a:map)} = a:start . "\r" . a:end
   else
@@ -73,9 +73,17 @@ function! s:surround_delete(left, right, ...)
   endif
   " NOTE: For some reason cannot use -ve indexing for strings, only lists
   call search(a:right, '')
-  exe 'normal! df' . a:right[len(a:right)-1]
+  if len(a:right) == 1
+    exe 'normal! x'
+  else
+    exe 'normal! df' . a:right[len(a:right)-1]
+  endif
   call search(a:left, 'b')
-  exe 'normal! df' . a:left[len(a:left)-1]
+  if len(a:left) == 1
+    exe 'normal! x'
+  else
+    exe 'normal! df' . a:left[len(a:left)-1]
+  endif
 endfunction
 
 " Replace delims func
@@ -114,9 +122,19 @@ function! s:surround_change(left, right, replace, ...)
   endif
   " Replace
   call search(a:right, '')
-  exe 'normal! cf' . a:right[len(a:right)-1] . right
+  if len(a:right) == 1
+    let cmd = 'cf' . a:right[len(a:right)-1]
+  else
+    let cmd = 'cl'
+  endif
+  exe 'normal! ' . cmd . right
   call search(a:left, 'b')
-  exe 'normal! cf' . a:left[len(a:left)-1] . left
+  if len(a:left) == 1
+    let cmd = 'cf' . a:left[len(a:left)-1]
+  else
+    let cmd = 'cl'
+  endif
+  exe 'normal! ' . cmd . left
 endfunction
 
 "------------------------------------------------------------------------------"
@@ -125,53 +143,53 @@ endfunction
 " Define global *insertable* vim-surround targets
 nmap dsc dsB
 nmap csc csB
-call s:delimit('c', '{', '}', 1)
-call s:delimit('b', '(', ')', 1)
-call s:delimit('r', '[', ']', 1)
-call s:delimit('a', '<', '>', 1)
+call s:delim('c', '{', '}', 1)
+call s:delim('b', '(', ')', 1)
+call s:delim('r', '[', ']', 1)
+call s:delim('a', '<', '>', 1)
 
 " Escaped quotes
-call s:delimit('\', '\"', '\"', 1)
+call s:delim('\', '\"', '\"', 1)
 nnoremap <silent> ds\ :call <sid>surround_delete('\\["'."']", '\\["'."']")<CR>
 
 " Function and print statement
-call s:delimit('p', 'print(', ')', 1)
-call s:delimit('f', "\1function: \1(", ')', 1) "initial part is for prompt, needs double quotes
+call s:delim('p', 'print(', ')', 1)
+call s:delim('f', "\1function: \1(", ')', 1) "initial part is for prompt, needs double quotes
 nnoremap <silent> dsf :call <sid>surround_delete('\w*(', ')')<CR>
 nnoremap <silent> csf :call <sid>surround_change('\(\w*\)(', ')', input('function: '))<CR>
 
 " Next function that declares maps
 function! s:tex_surround()
   " Latex commands
-  call s:delimit('t', "\\\1command: \1{", '}')
+  call s:delim('t', "\\\1command: \1{", '}')
   nnoremap <buffer> <silent> dst :call <sid>surround_delete(
     \ '\\\w*{', '}')<CR>
   nnoremap <buffer> <silent> cst :call <sid>surround_change(
     \ '\\\(\w*\){', '}', input('command: '))<CR>
   " Latex environments
-  call s:delimit('T', "\\begin{\1\\begin{\1}", "\n"."\\end{\1\1}")
+  call s:delim('T', "\\begin{\1\\begin{\1}", "\n"."\\end{\1\1}")
   nnoremap <buffer> <silent> dsT :call <sid>surround_delete(
     \ '\\begin{[^}]\+}\_s*', '\_s*\\end{[^}]\+}', 1)
   nnoremap <buffer> <silent> csT :call <sid>surround_change(
     \ '\\begin{\([^}]\+\)}', '\\end{\([^}]\)\+}', input('\begin{'), 1)
 
   " Quotations
-  call s:delimit("'", '`',  "'")
-  call s:delimit('"', '``', "''")
+  call s:delim("'", '`',  "'")
+  call s:delim('"', '``', "''")
   nnoremap <buffer> ds' :call <sid>surround_delete("`", "'")<CR>
   nnoremap <buffer> ds" :call <sid>surround_delete("``", "''")<CR>
   " Curly quotations
-  call s:delimit('q', '‘', '’')
-  call s:delimit('Q', '“', '”')
+  call s:delim('q', '‘', '’')
+  call s:delim('Q', '“', '”')
   nnoremap <buffer> dsq :call <sid>surround_delete("‘", "’")<CR>
   nnoremap <buffer> dsQ :call <sid>surround_delete("“", "”")<CR>
 
   " Math mode brackets
-  call s:delimit('|', '\left\|', '\right\|')
-  call s:delimit('{', '\left\{', '\right\}')
-  call s:delimit('(', '\left(',  '\right)')
-  call s:delimit('[', '\left[',  '\right]')
-  call s:delimit('<', '\left<',  '\right>')
+  call s:delim('|', '\left\|', '\right\|')
+  call s:delim('{', '\left\{', '\right\}')
+  call s:delim('(', '\left(',  '\right)')
+  call s:delim('[', '\left[',  '\right]')
+  call s:delim('<', '\left<',  '\right>')
   nnoremap <buffer> <silent> ds( :call <sid>surround_delete('\\left(', '\\right)')<CR>
   nnoremap <buffer> <silent> ds[ :call <sid>surround_delete('\\left\[', '\\right\]')<CR>
   nnoremap <buffer> <silent> ds{ :call <sid>surround_delete('\\left\\{', '\\right\\}')<CR>
@@ -182,107 +200,107 @@ function! s:tex_surround()
   nnoremap <buffer> <silent> cs< :call <sid>surround_change('\\left<', '\\right>', '')<CR>
 
   " Arrays and whatnot; analagous to above, just point to right
-  call s:delimit('}', '\left\{\begin{array}{ll}', "\n".'\end{array}\right.')
-  call s:delimit(')', '\begin{pmatrix}',          "\n".'\end{pmatrix}')
-  call s:delimit(']', '\begin{bmatrix}',          "\n".'\end{bmatrix}')
+  call s:delim('}', '\left\{\begin{array}{ll}', "\n".'\end{array}\right.')
+  call s:delim(')', '\begin{pmatrix}',          "\n".'\end{pmatrix}')
+  call s:delim(']', '\begin{bmatrix}',          "\n".'\end{bmatrix}')
 
   " Font types
-  call s:delimit('e', '\emph{'  ,     '}')
-  call s:delimit('E', '{\color{red}', '}') " e for red, needs \usepackage[colorlinks]{hyperref}
-  call s:delimit('u', '\underline{',  '}')
-  call s:delimit('i', '\textit{',     '}')
-  call s:delimit('o', '\textbf{',     '}') " o for bold
-  call s:delimit('O', '\mathbf{',     '}')
-  call s:delimit('m', '\mathrm{',     '}')
-  call s:delimit('M', '\mathbb{',     '}') " usually for denoting sets of numbers
-  call s:delimit('L', '\mathcal{',    '}')
+  call s:delim('e', '\emph{'  ,     '}')
+  call s:delim('E', '{\color{red}', '}') " e for red, needs \usepackage[colorlinks]{hyperref}
+  call s:delim('u', '\underline{',  '}')
+  call s:delim('i', '\textit{',     '}')
+  call s:delim('o', '\textbf{',     '}') " o for bold
+  call s:delim('O', '\mathbf{',     '}')
+  call s:delim('m', '\mathrm{',     '}')
+  call s:delim('M', '\mathbb{',     '}') " usually for denoting sets of numbers
+  call s:delim('L', '\mathcal{',    '}')
 
   " Verbatim
-  call s:delimit('y', '\texttt{',     '}') " typewriter text
-  call s:delimit('Y', '\pyth$',       '$') " python verbatim
-  call s:delimit('V', '\verb$',       '$') " verbatim
+  call s:delim('y', '\texttt{',     '}') " typewriter text
+  call s:delim('Y', '\pyth$',       '$') " python verbatim
+  call s:delim('V', '\verb$',       '$') " verbatim
 
   " Math modifiers for symbols
-  call s:delimit('v', '\vec{',        '}')
-  call s:delimit('d', '\dot{',        '}')
-  call s:delimit('D', '\ddot{',       '}')
-  call s:delimit('h', '\hat{',        '}')
-  call s:delimit('`', '\tilde{',      '}')
-  call s:delimit('-', '\overline{',   '}')
-  call s:delimit('_', '\cancelto{}{', '}')
+  call s:delim('v', '\vec{',        '}')
+  call s:delim('d', '\dot{',        '}')
+  call s:delim('D', '\ddot{',       '}')
+  call s:delim('h', '\hat{',        '}')
+  call s:delim('`', '\tilde{',      '}')
+  call s:delim('-', '\overline{',   '}')
+  call s:delim('_', '\cancelto{}{', '}')
 
   " Boxes; the second one allows stuff to extend into margins, possibly
-  call s:delimit('x', '\boxed{',      '}')
-  call s:delimit('X', '\fbox{\parbox{\textwidth}{', '}}\medskip')
+  call s:delim('x', '\boxed{',      '}')
+  call s:delim('X', '\fbox{\parbox{\textwidth}{', '}}\medskip')
 
   " Simple enivronments, exponents, etc.
-  call s:delimit('\', '\sqrt{',       '}')
-  call s:delimit('$', '$',            '$')
-  call s:delimit('/', '\frac{',       '}{}')
-  call s:delimit('?', '\dfrac{',      '}{}')
-  call s:delimit('k', '^{',    '}')
-  call s:delimit('j', '_{',    '}')
-  call s:delimit('K', '\overset{}{',  '}')
-  call s:delimit('J', '\underset{}{', '}')
+  call s:delim('\', '\sqrt{',       '}')
+  call s:delim('$', '$',            '$')
+  call s:delim('/', '\frac{',       '}{}')
+  call s:delim('?', '\dfrac{',      '}{}')
+  call s:delim('k', '^{',    '}')
+  call s:delim('j', '_{',    '}')
+  call s:delim('K', '\overset{}{',  '}')
+  call s:delim('J', '\underset{}{', '}')
 
   " Sections and titles
-  call s:delimit('~', '\title{',          '}')
-  call s:delimit('1', '\section{',        '}')
-  call s:delimit('2', '\subsection{',     '}')
-  call s:delimit('3', '\subsubsection{',  '}')
-  call s:delimit('4', '\section*{',       '}')
-  call s:delimit('5', '\subsection*{',    '}')
-  call s:delimit('6', '\subsubsection*{', '}')
+  call s:delim('~', '\title{',          '}')
+  call s:delim('1', '\section{',        '}')
+  call s:delim('2', '\subsection{',     '}')
+  call s:delim('3', '\subsubsection{',  '}')
+  call s:delim('4', '\section*{',       '}')
+  call s:delim('5', '\subsection*{',    '}')
+  call s:delim('6', '\subsubsection*{', '}')
 
   " Beamer
-  call s:delimit('n', '\pdfcomment{'."\n", "\n}") "not sure what this is used for
-  call s:delimit('!', '\frametitle{', '}')
+  call s:delim('n', '\pdfcomment{'."\n", "\n}") "not sure what this is used for
+  call s:delim('!', '\frametitle{', '}')
 
   " Shortcuts for citations and such
-  call s:delimit('7', '\ref{',               '}') " just the number
-  call s:delimit('8', '\autoref{',           '}') " name and number; autoref is part of hyperref package
-  call s:delimit('9', '\label{',             '}') " declare labels that ref and autoref point to
-  call s:delimit('0', '\tag{',               '}') " change the default 1-2-3 ordering; common to use *
-  call s:delimit('a', '\caption{',           '}') " amazingly 'a' not used yet
-  call s:delimit('A', '\captionof{figure}{', '}') " alternative
+  call s:delim('7', '\ref{',               '}') " just the number
+  call s:delim('8', '\autoref{',           '}') " name and number; autoref is part of hyperref package
+  call s:delim('9', '\label{',             '}') " declare labels that ref and autoref point to
+  call s:delim('0', '\tag{',               '}') " change the default 1-2-3 ordering; common to use *
+  call s:delim('a', '\caption{',           '}') " amazingly 'a' not used yet
+  call s:delim('A', '\captionof{figure}{', '}') " alternative
 
   " Beamer slides and stuff
-  call s:delimit('>', '\uncover<X>{%', "\n".'}')
-  call s:delimit('g', '\includegraphics[width=\textwidth]{', '}') " center across margins
-  call s:delimit('G', '\makebox[\textwidth][c]{\includegraphics[width=\textwidth]{', '}}') " center across margins
-  call s:delimit('w', '{\usebackgroundtemplate{}\begin{frame}', "\n".'\end{frame}}') " white frame
-  call s:delimit('s', '\begin{frame}',                 "\n".'\end{frame}')
-  call s:delimit('S', '\begin{frame}[fragile]',        "\n".'\end{frame}')
-  call s:delimit('z', '\begin{column}{0.5\textwidth}', "\n".'\end{column}') "l for column
-  call s:delimit('Z', '\begin{columns}',               "\n".'\end{columns}')
+  call s:delim('>', '\uncover<X>{%', "\n".'}')
+  call s:delim('g', '\includegraphics[width=\textwidth]{', '}') " center across margins
+  call s:delim('G', '\makebox[\textwidth][c]{\includegraphics[width=\textwidth]{', '}}') " center across margins
+  call s:delim('w', '{\usebackgroundtemplate{}\begin{frame}', "\n".'\end{frame}}') " white frame
+  call s:delim('s', '\begin{frame}',                 "\n".'\end{frame}')
+  call s:delim('S', '\begin{frame}[fragile]',        "\n".'\end{frame}')
+  call s:delim('z', '\begin{column}{0.5\textwidth}', "\n".'\end{column}') "l for column
+  call s:delim('Z', '\begin{columns}',               "\n".'\end{columns}')
 
   " Figure environments, and pages
-  " call s:delimit('F', '\begin{subfigure}{.5\textwidth}'."\n".'\centering'."\n".'\includegraphics{', "}\n".'\end{subfigure}')
-  call s:delimit('f', '\begin{center}'."\n".'\centering'."\n".'\includegraphics{', "}\n".'\end{center}')
-  call s:delimit('F', '\begin{figure}'."\n".'\centering'."\n".'\includegraphics{', "}\n".'\end{figure}')
-  call s:delimit('P', '\begin{minipage}{\linewidth}', "\n".'\end{minipage}') "not sure what this is used for
-  call s:delimit('W', '\begin{wrapfigure}{r}{.5\textwidth}'."\n".'\centering'."\n".'\includegraphics{', "}\n".'\end{wrapfigure}')
+  " call s:delim('F', '\begin{subfigure}{.5\textwidth}'."\n".'\centering'."\n".'\includegraphics{', "}\n".'\end{subfigure}')
+  call s:delim('f', '\begin{center}'."\n".'\centering'."\n".'\includegraphics{', "}\n".'\end{center}')
+  call s:delim('F', '\begin{figure}'."\n".'\centering'."\n".'\includegraphics{', "}\n".'\end{figure}')
+  call s:delim('P', '\begin{minipage}{\linewidth}', "\n".'\end{minipage}') "not sure what this is used for
+  call s:delim('W', '\begin{wrapfigure}{r}{.5\textwidth}'."\n".'\centering'."\n".'\includegraphics{', "}\n".'\end{wrapfigure}')
 
   " Equations
-  call s:delimit('%', '\begin{align*}', "\n".'\end{align*}') "because it is next to the '$' key
-  call s:delimit('^', '\begin{equation*}', "\n".'\end{equation*}')
-  call s:delimit(',', '\begin{tabular}{', "}\n".'\end{tabular}')
-  call s:delimit('.', '\begin{table}'."\n".'\centering'."\n".'\caption{}'."\n".'\begin{tabular}{', "}\n".'\end{tabular}'."\n".'\end{table}')
+  call s:delim('%', '\begin{align*}', "\n".'\end{align*}') "because it is next to the '$' key
+  call s:delim('^', '\begin{equation*}', "\n".'\end{equation*}')
+  call s:delim(',', '\begin{tabular}{', "}\n".'\end{tabular}')
+  call s:delim('.', '\begin{table}'."\n".'\centering'."\n".'\caption{}'."\n".'\begin{tabular}{', "}\n".'\end{tabular}'."\n".'\end{table}')
 
   " Itemize environments
-  call s:delimit('*', '\begin{itemize}', "\n".'\end{itemize}')
-  call s:delimit('&', '\begin{description}', "\n".'\end{description}') "d is now open
-  call s:delimit('#', '\begin{enumerate}', "\n".'\end{enumerate}')
-  call s:delimit('@', '\begin{enumerate}[label=\alph*.]', "\n".'\end{enumerate}') "because ampersand looks like alpha
+  call s:delim('*', '\begin{itemize}', "\n".'\end{itemize}')
+  call s:delim('&', '\begin{description}', "\n".'\end{description}') "d is now open
+  call s:delim('#', '\begin{enumerate}', "\n".'\end{enumerate}')
+  call s:delim('@', '\begin{enumerate}[label=\alph*.]', "\n".'\end{enumerate}') "because ampersand looks like alpha
 
   " Not currently used
-  " call s:delimit(':', '\newpage\hspace{0pt}\vfill', "\n".'\vfill\hspace{0pt}\newpage')
-  " call s:delimit(';', '\begin{center}',       "\n".'\end{center}')
-  " call s:delimit('y', '\begin{python}',       "\n".'\end{python}')
-  " call s:delimit('b', '\begin{block}{}',      "\n".'\end{block}')
-  " call s:delimit('B', '\begin{alertblock}{}', "\n".'\end{alertblock}')
-  " call s:delimit('v', '\begin{verbatim}',     "\n".'\end{verbatim}')
-  " call s:delimit('V', '\begin{code}',         "\n".'\end{code}')
+  " call s:delim(':', '\newpage\hspace{0pt}\vfill', "\n".'\vfill\hspace{0pt}\newpage')
+  " call s:delim(';', '\begin{center}',       "\n".'\end{center}')
+  " call s:delim('y', '\begin{python}',       "\n".'\end{python}')
+  " call s:delim('b', '\begin{block}{}',      "\n".'\end{block}')
+  " call s:delim('B', '\begin{alertblock}{}', "\n".'\end{alertblock}')
+  " call s:delim('v', '\begin{verbatim}',     "\n".'\end{verbatim}')
+  " call s:delim('V', '\begin{code}',         "\n".'\end{code}')
 
   " Font sizing
   call s:snippet('1', '\tiny')
