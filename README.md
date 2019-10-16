@@ -64,8 +64,8 @@ This set of tools is complex and would take quite a while to document. For now I
 ## Functions
 | Function | Description |
 | ---- | ---- |
-| `textools#delete_delims` | Deletes arbitrary delimiters around the cursor, detected on this line or on all lines in the file. Arguments are a left delimiter regex and a right delimiter regex. This is best used in a normal mode mapping that looks like `ds<key>`. |
-| `textools#change_delims` | Changes arbitrary delimiters, detected on this line or on all lines in the file. Arguments are a left delimiter regex, right delimiter regex, and a replacement indicator. This can be a non-empty string, used for both left and right delimiters, or an empty string, in which case the function reads the next character pressed by the user and uses the corresponding delimiter. This is best used in a normal mode mapping that looks like `cs<key>`. |
+| `textools#delete_delims` | Deletes arbitrary delimiters around the cursor. Arguments are a left delimiter regex and a right delimiter regex. This is best used in a normal mode mapping that looks like `ds<key>`. |
+| `textools#change_delims` | Changes arbitrary delimiters. Arguments are a left delimiter regex, right delimiter regex, and a replacement indicator. This can be a non-empty string, used for both left and right delimiters, or an empty string, in which case the function reads the next character pressed by the user and uses the corresponding delimiter. This is best used in a normal mode mapping that looks like `cs<key>`. |
 
 # Installation
 Install with your favorite [plugin manager](https://vi.stackexchange.com/questions/388/what-is-the-difference-between-the-vim-plugin-managers).
