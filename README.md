@@ -47,18 +47,18 @@ This set of tools is complex and would take quite a while to document. For now I
 | `<Leader>Z` | Invokes `:Latexmk` with the `--doc` flag. |
 | `<Leader>b` | Invokes `:BibtexToggle`. |
 | `<F1>`, `<F2>` | In insert mode, jumps to the right of the previous or next delimiter, i.e. any of the characters `[]<>(){}`. This is handy when the cursor is inside a complex next of varying types of delimiters, a common difficulty when writing LaTeX equations. It stands in contrast to delimitMate's `<Plug>delimitMateJumpMany` map, which jumps to the far outside of nested delimiters. |
-| `<C-s><key>` | New `surround.vim` delimiter mappings. These are custom delimiters integrated with the `surround.vim` plugin, introducing a series of insert, visual, and normal mode maps (see [surround.vim](after/plugin/surround.vim) for details). Example usage includes making a visual selection in a LaTeX document then pressing `<C-s>*` to surround with a `\begin{itemize}` `\end{itemize}` environment, or running `yswb` in normal mode to surround the word under the cursor with a `\textbf{}` command.
-| `<C-z><key>` | New symbol insert mappings. These are maps for inserting text snippets in insert mode (see [surround.vim](after/plugin/surround.vim) for details).  Example usage includes running `<C-z>a` in a LaTeX document to insert the LaTeX alpha character `\alpha`. |
-| `[vycd]a<key>`, `[vycd]i<key>` | New text object mappings. These are custom delimiters integrated with the `vim-textobj-user` plugin for selecting, yanking, changing, and deleting blocks of text with `va<key>`, `ya<key>`, etc (see [textobjs.vim](after/plugin/textobjs.vim) for details). Example usage includes selecting a LaTeX `\begin{}` `\end{}` environment with `vaT`, or changing text inside a LaTeX command with `cit`. |
 | `<C-b>[ctpn]` | New citation insert mappings. These insert citations from a local bibliography or from your Zotero sqlite database (see [citation.vim](after/plugin/citation.vim) for details). Adds ability to use bibliographies local to specific buffers. |
+| `<C-z><key>` | These are maps for inserting text snippets in insert mode (see [surround.vim](after/plugin/surround.vim) for details).  Example usage includes running `<C-z>a` in a LaTeX document to insert the LaTeX alpha character `\alpha`. |
+| `<C-s><key>`, `ys<obj><key>`, ... | New `surround.vim` delimiter mappings. These are custom delimiters integrated with the `surround.vim` plugin, introducing a series of insert, visual, and normal mode maps (see [surround.vim](after/plugin/surround.vim) for details). Example usage includes making a visual selection in a LaTeX document then pressing `<C-s>*` to surround with a `\begin{itemize}` `\end{itemize}` environment, or running `yswb` in normal mode to surround the word under the cursor with a `\textbf{}` command.
+| `va<key>`, `vi<key>`, ... | New text object mappings. These are custom delimiters integrated with the `vim-textobj-user` plugin for selecting, yanking, changing, and deleting blocks of text with `va<key>`, `ya<key>`, etc (see [textobjs.vim](after/plugin/textobjs.vim) for details). Example usage includes selecting a LaTeX `\begin{}` `\end{}` environment with `vaT`, or changing text inside a LaTeX command with `cit`. |
 
 ## Options
 
 | Option | Description |
 | ---- | ---- |
 | `g:textools_prevdelim_map`, `g:textools_nextdelim_map` | Alternate definitions for the `<F1>` and `<F2>` maps. `<F1>` and `<F2>` are the default because I configure iTerm2 to map the normally impossible key combinations `<C-,>` and `<C-.>` to FN key presses. This is done by creating maps in Preferences that send the `<F1>` and `<F2>` ASCII HEX codes `0x1b 0x4f 0x50` and `0x1b 0x4f 0x51`, respectively. |
-| `g:textools_surround_prefix` | Alternate key for the `<C-s>` mappings. Note the `<C-s>` mapping may require running `bind -r '"\C-s"'` in your terminal or adding it to your `~/.bashrc` or `~/.bash_profile`. |
-| `g:textools_symbol_prefix` | Alternate key for the `<C-z>` mappings. If you use the default, I suggest adding `noremap <C-z> <Nop>` to your `.vimrc`, to prevent accidentally sending your vim session to the background of your terminal session. |
+| `g:textools_delim_prefix` | Alternate key for the `<C-s>` mappings. Note the `<C-s>` mapping may require running `bind -r '"\C-s"'` in your terminal or adding it to your `~/.bashrc` or `~/.bash_profile`. |
+| `g:textools_snippet_prefix` | Alternate key for the `<C-z>` mappings. If you use the default, I suggest adding `noremap <C-z> <Nop>` to your `.vimrc`, to prevent accidentally sending your vim session to the background of your terminal session. |
 | `g:textools_citation_prefix` | Alternate key for the `<C-b>` mappings. |
 
 # Installation

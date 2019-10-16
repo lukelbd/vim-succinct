@@ -11,7 +11,7 @@ endif
 " Declare text objects
 " NOTE: Somewhat hidden feature is you can make maps buffer local by just
 " prepending the option to the mapping name.
-augroup textobj_tex
+augroup tex_textobjs
   au!
   au FileType tex call textobj#user#plugin('latex', s:tex_textobjs_dict)
 augroup END
@@ -49,6 +49,11 @@ let s:tex_textobjs_dict = {
   \     'pattern': ['\\left<', '\\right>'],
   \     'select-a': '<buffer> a<',
   \     'select-i': '<buffer> i<',
+  \   },
+  \  'abs-math': {
+  \     'pattern': ['\\left\\|', '\\right\\|'],
+  \     'select-a': '<buffer> a\|',
+  \     'select-i': '<buffer> i\|',
   \   },
   \  'dollar-math-a': {
   \     'pattern': '[$][^$]*[$]',

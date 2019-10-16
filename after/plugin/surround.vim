@@ -11,198 +11,278 @@ if !g:loaded_surround
   finish
 endif
 " Tools
-if !exists('g:textools_surround_prefix')
-  let g:textools_surround_prefix = '<C-s>'
+if !exists('g:textools_delim_prefix')
+  let g:textools_delim_prefix = '<C-s>'
 endif
-if !exists('g:textools_symbol_prefix')
-  let g:textools_symbol_prefix = '<C-z>'
+if !exists('g:textools_snippet_prefix')
+  let g:textools_snippet_prefix = '<C-z>'
 endif
 " Delimiters
-augroup tex_delimit
+augroup tex_surround
   au!
-  au FileType tex call s:texsurround()
+  au FileType tex call s:tex_surround()
 augroup END
 " Remap surround.vim defaults
 " Make the visual-mode map same as insert-mode map; by default it is capital S
 " Note: Lowercase Isurround surrounds words, ISurround surrounds lines.
-exe 'vmap ' . g:textools_surround_prefix . ' <Plug>VSurround'
-exe 'imap ' . g:textools_surround_prefix . ' <Plug>Isurround'
+exe 'vmap ' . g:textools_delim_prefix . ' <Plug>VSurround'
+exe 'imap ' . g:textools_delim_prefix . ' <Plug>Isurround'
 " Cancellation
-exe 'imap ' . g:textools_surround_prefix . '<Esc> <Nop>'
-exe 'imap ' . g:textools_symbol_prefix . '<Esc> <Nop>'
+exe 'imap ' . g:textools_delim_prefix . '<Esc> <Nop>'
+exe 'imap ' . g:textools_snippet_prefix . '<Esc> <Nop>'
 
-"------------------------------------------------------------------------------"
-" Function for adding fancy multiple character delimiters
-"------------------------------------------------------------------------------"
-" These will only be 'placed', never detected; for example, will never work in
-" da<target>, ca<target>, cs<target><other>, etc. commands; only should be used for
-" ys<target>, yS<target>, visual-mode S, insert-mode <C-s>, et cetera
-function! s:target(map, start, end) " if final argument passed, this is buffer-local
-  let b:surround_{char2nr(a:map)} = a:start . "\r" . a:end
+"-----------------------------------------------------------------------------"
+" Helper functions
+"-----------------------------------------------------------------------------"
+" Custom delimiter inserts
+function! s:delimit(map, start, end, ...) " if final argument passed, this is global
+  if a:0 && a:1
+    let g:surround_{char2nr(a:map)} = a:start . "\r" . a:end
+  else
+    let b:surround_{char2nr(a:map)} = a:start . "\r" . a:end
+  endif
 endfunction
-" And this function is for declaring symbol maps
-function! s:snippet(map, value)
-  exe 'inoremap <buffer> ' . g:textools_symbol_prefix . a:map . ' ' . a:value
+
+" Inserting snippets
+function! s:snippet(map, value, ...)
+  if a:0 && a:1
+    let noremap = 'inoremap'
+  else
+    let noremap = 'inoremap <buffer>'
+  endif
+  exe noremap . ' ' . g:textools_snippet_prefix . a:map . ' ' . a:value
+endfunction
+
+" Delete delims function
+" Unfortunately vim-surround does not support the 'dsX' and 'csX' maps for
+" custom delimiters, only insertion. We make our own maps.
+" Pass extra argument '1' to search multiple lines
+" NOTE: This is fairly primitive as it relies on last character of each
+" delimiter occurs once, and is not part of a regex e.g. \w! Prevents us from
+" having to directly manipulate lines as strings.
+function! s:surround_delete(left, right, ...)
+  if a:0 && a:1
+    let l1 = 1
+    let l2 = line('$')
+  else
+    let l1 = line('.') " search only current line
+    let l2 = l1
+  endif
+  if search(a:right, 'n', l2) == 0 || search(a:left, 'nb', l1) == 0
+    return
+  endif
+  " NOTE: For some reason cannot use -ve indexing for strings, only lists
+  call search(a:right, '')
+  exe 'normal! df' . a:right[len(a:right)-1]
+  call search(a:left, 'b')
+  exe 'normal! df' . a:left[len(a:left)-1]
+endfunction
+
+" Replace delims func
+" Pass extra argument '1' to search multiple lines
+" NOTE: If replace is empty, we look for left and right delims from existing
+" surround variables! Useful for \left(\right) delims!
+function! s:surround_change(left, right, replace, ...)
+  if a:0 && a:1
+    let l1 = 1
+    let l2 = line('$')
+  else
+    let l1 = line('.') " search only current line
+    let l2 = l1
+  endif
+  if search(a:right, 'n', l2) == 0 || search(a:left, 'nb', l1) == 0
+    return
+  endif
+  " Get replacement strings
+  if a:replace != ''
+    let group = '\\(.*\\)' " match for group
+    let left = substitute(a:left, group, a:replace, '')
+    let right = substitute(a:right, group, a:replace, '')
+  else
+    let cnum = getchar()
+    if exists('b:surround_' . cnum)
+      let [left, right] = split(b:surround_{cnum}, "\r")
+    elseif exists('g:surround_' . cnum)
+      let [left, right] = split(g:surround_{cnum}, "\r")
+    else
+      echohl WarningMsg
+      echom 'Warning: Replacement delim code "' . nr2char(cnum) . '" not found.'
+      echohl None
+      return
+    endif
+    echo "hi! " . cnum . ' ' . left . ' ' . right
+  endif
+  " Replace
+  call search(a:right, '')
+  exe 'normal! cf' . a:right[len(a:right)-1] . right
+  call search(a:left, 'b')
+  exe 'normal! cf' . a:left[len(a:left)-1] . left
 endfunction
 
 "------------------------------------------------------------------------------"
 " LaTeX-specific 'delimiters' and shortcuts
 "------------------------------------------------------------------------------"
-function! s:texsurround()
-  " First the delimiters
-  " ',' for commands
-  call s:target('t', "\\\1command: \1{", '}')
-  nmap <buffer> <expr> cst 'F{F\lct{'.input('command: ').'<Esc>F\'
-  nnoremap <buffer> ds( ?\\left(<CR>d/\\right)<CR>df)
-  nnoremap <buffer> ds[ ?\\left[<CR>d/\\right]<CR>df]
-  nnoremap <buffer> ds{ ?\\left{<CR>d/\\right}<CR>df}
-  nnoremap <buffer> ds< ?\\left<<CR>d/\\right><CR>df>
-  nnoremap <buffer> dst F{F\dt{dsB
+" Define global *insertable* vim-surround targets
+nmap dsc dsB
+nmap csc csB
+call s:delimit('c', '{', '}', 1)
+call s:delimit('b', '(', ')', 1)
+call s:delimit('r', '[', ']', 1)
+call s:delimit('a', '<', '>', 1)
 
-  " '.' for environments
-  " Note uppercase registers *append* to previous contents
-  call s:target('T', "\\begin{\1\\begin{\1}", "\n"."\\end{\1\1}")
-  nnoremap <buffer> dsT :let @/ = '\\end{[^}]\+}.*\n'<CR>dgn:let @/ = '\\begin{[^}]\+}.*\n'<CR>dgN
-  nnoremap <expr> <buffer> csT ':let @/ = "\\\\end{\\zs[^}]\\+\\ze}"<CR>cgn'
-           \ .input('\begin{')
-           \ .'<Esc>h:let @z = "<C-r><C-w>"<CR>:let @/ = "\\\\begin{\\zs[^}]\\+\\ze}"<CR>cgN<C-r>z<Esc>'
-  " nmap <buffer> dsL /\\end{<CR>:noh<CR><Up>V<Down>^%<Down>dp<Up>V<Up>d
-  " nmap <buffer> <expr> csL '/\\end{<CR>:noh<CR>A!!!<Esc>^%f{<Right>ciB'
-  " \.input('\begin{').'<Esc>/!!!<CR>:noh<CR>A {<C-r>.}<Esc>2F{dt{'
+" Escaped quotes
+call s:delimit('\', '\"', '\"', 1)
+nnoremap <silent> ds\ :call <sid>surround_delete('\\["'."']", '\\["'."']")<CR>
+
+" Function and print statement
+call s:delimit('p', 'print(', ')', 1)
+call s:delimit('f', "\1function: \1(", ')', 1) "initial part is for prompt, needs double quotes
+nnoremap <silent> dsf :call <sid>surround_delete('\w*(', ')')<CR>
+nnoremap <silent> csf :call <sid>surround_change('\(\w*\)(', ')', input('function: '))<CR>
+
+" Next function that declares maps
+function! s:tex_surround()
+  " Latex commands
+  call s:delimit('t', "\\\1command: \1{", '}')
+  nnoremap <buffer> <silent> dst :call <sid>surround_delete(
+    \ '\\\w*{', '}')<CR>
+  nnoremap <buffer> <silent> cst :call <sid>surround_change(
+    \ '\\\(\w*\){', '}', input('command: '))<CR>
+  " Latex environments
+  call s:delimit('T', "\\begin{\1\\begin{\1}", "\n"."\\end{\1\1}")
+  nnoremap <buffer> <silent> dsT :call <sid>surround_delete(
+    \ '\\begin{[^}]\+}\_s*', '\_s*\\end{[^}]\+}', 1)
+  nnoremap <buffer> <silent> csT :call <sid>surround_change(
+    \ '\\begin{\([^}]\+\)}', '\\end{\([^}]\)\+}', input('\begin{'), 1)
 
   " Quotations
-  call s:target("'", '`',  "'")
-  call s:target('"', '``', "''")
-  nnoremap <buffer> ds' f'xF`x
-  nnoremap <buffer> ds" 2f'F'2x2F`2x
+  call s:delimit("'", '`',  "'")
+  call s:delimit('"', '``', "''")
+  nnoremap <buffer> ds' :call <sid>surround_delete("`", "'")<CR>
+  nnoremap <buffer> ds" :call <sid>surround_delete("``", "''")<CR>
   " Curly quotations
-  call s:target('q', '‘', '’')
-  call s:target('Q', '“', '”')
-  nnoremap <buffer> dsq f’xF‘x
-  nnoremap <buffer> dsQ f”xF“x
+  call s:delimit('q', '‘', '’')
+  call s:delimit('Q', '“', '”')
+  nnoremap <buffer> dsq :call <sid>surround_delete("‘", "’")<CR>
+  nnoremap <buffer> dsQ :call <sid>surround_delete("“", "”")<CR>
 
-  " Next delimiters generally not requiring new lines
   " Math mode brackets
-  call s:target('|', '\left\|', '\right\|')
-  call s:target('{', '\left\{', '\right\}')
-  call s:target('(', '\left(',  '\right)')
-  call s:target('[', '\left[',  '\right]')
-  call s:target('<', '\left<',  '\right>')
+  call s:delimit('|', '\left\|', '\right\|')
+  call s:delimit('{', '\left\{', '\right\}')
+  call s:delimit('(', '\left(',  '\right)')
+  call s:delimit('[', '\left[',  '\right]')
+  call s:delimit('<', '\left<',  '\right>')
+  nnoremap <buffer> <silent> ds( :call <sid>surround_delete('\\left(', '\\right)')<CR>
+  nnoremap <buffer> <silent> ds[ :call <sid>surround_delete('\\left\[', '\\right\]')<CR>
+  nnoremap <buffer> <silent> ds{ :call <sid>surround_delete('\\left\\{', '\\right\\}')<CR>
+  nnoremap <buffer> <silent> ds< :call <sid>surround_delete('\\left<', '\\right>')<CR>
+  nnoremap <buffer> <silent> cs( :call <sid>surround_change('\\left(', '\\right)', '')<CR>
+  nnoremap <buffer> <silent> cs[ :call <sid>surround_change('\\left\[', '\\right\]', '')<CR>
+  nnoremap <buffer> <silent> cs{ :call <sid>surround_change('\\left\\{', '\\right\\}', '')<CR>
+  nnoremap <buffer> <silent> cs< :call <sid>surround_change('\\left<', '\\right>', '')<CR>
 
   " Arrays and whatnot; analagous to above, just point to right
-  call s:target('}', '\left\{\begin{array}{ll}', "\n".'\end{array}\right.')
-  call s:target(')', '\begin{pmatrix}',          "\n".'\end{pmatrix}')
-  call s:target(']', '\begin{bmatrix}',          "\n".'\end{bmatrix}')
+  call s:delimit('}', '\left\{\begin{array}{ll}', "\n".'\end{array}\right.')
+  call s:delimit(')', '\begin{pmatrix}',          "\n".'\end{pmatrix}')
+  call s:delimit(']', '\begin{bmatrix}',          "\n".'\end{bmatrix}')
 
   " Font types
-  call s:target('e', '\emph{'  ,     '}')
-  call s:target('E', '{\color{red}', '}') " e for red, needs \usepackage[colorlinks]{hyperref}
-  call s:target('u', '\underline{',  '}')
-  call s:target('i', '\textit{',     '}')
-  call s:target('o', '\textbf{',     '}') " o for bold
-  call s:target('O', '\mathbf{',     '}')
-  call s:target('m', '\mathrm{',     '}')
-  call s:target('M', '\mathbb{',     '}') " usually for denoting sets of numbers
-  call s:target('L', '\mathcal{',    '}')
+  call s:delimit('e', '\emph{'  ,     '}')
+  call s:delimit('E', '{\color{red}', '}') " e for red, needs \usepackage[colorlinks]{hyperref}
+  call s:delimit('u', '\underline{',  '}')
+  call s:delimit('i', '\textit{',     '}')
+  call s:delimit('o', '\textbf{',     '}') " o for bold
+  call s:delimit('O', '\mathbf{',     '}')
+  call s:delimit('m', '\mathrm{',     '}')
+  call s:delimit('M', '\mathbb{',     '}') " usually for denoting sets of numbers
+  call s:delimit('L', '\mathcal{',    '}')
 
   " Verbatim
-  call s:target('y', '\texttt{',     '}') " typewriter text
-  call s:target('Y', '\pyth$',       '$') " python verbatim
-  call s:target('V', '\verb$',       '$') " verbatim
+  call s:delimit('y', '\texttt{',     '}') " typewriter text
+  call s:delimit('Y', '\pyth$',       '$') " python verbatim
+  call s:delimit('V', '\verb$',       '$') " verbatim
 
   " Math modifiers for symbols
-  call s:target('v', '\vec{',        '}')
-  call s:target('d', '\dot{',        '}')
-  call s:target('D', '\ddot{',       '}')
-  call s:target('h', '\hat{',        '}')
-  call s:target('`', '\tilde{',      '}')
-  call s:target('-', '\overline{',   '}')
-  call s:target('_', '\cancelto{}{', '}')
+  call s:delimit('v', '\vec{',        '}')
+  call s:delimit('d', '\dot{',        '}')
+  call s:delimit('D', '\ddot{',       '}')
+  call s:delimit('h', '\hat{',        '}')
+  call s:delimit('`', '\tilde{',      '}')
+  call s:delimit('-', '\overline{',   '}')
+  call s:delimit('_', '\cancelto{}{', '}')
 
   " Boxes; the second one allows stuff to extend into margins, possibly
-  call s:target('x', '\boxed{',      '}')
-  call s:target('X', '\fbox{\parbox{\textwidth}{', '}}\medskip')
+  call s:delimit('x', '\boxed{',      '}')
+  call s:delimit('X', '\fbox{\parbox{\textwidth}{', '}}\medskip')
 
   " Simple enivronments, exponents, etc.
-  " call s:target('k', '^\mathrm{',           '}')
-  " call s:target('j', '_\mathrm{',           '}')
-  call s:target('\', '\sqrt{',       '}')
-  call s:target('$', '$',            '$')
-  call s:target('k', '\overset{}{',  '}')
-  call s:target('j', '\underset{}{', '}')
-  call s:target('/', '\frac{',       '}{}')
-  call s:target('?', '\dfrac{',      '}{}')
+  call s:delimit('\', '\sqrt{',       '}')
+  call s:delimit('$', '$',            '$')
+  call s:delimit('/', '\frac{',       '}{}')
+  call s:delimit('?', '\dfrac{',      '}{}')
+  call s:delimit('k', '^{',    '}')
+  call s:delimit('j', '_{',    '}')
+  call s:delimit('K', '\overset{}{',  '}')
+  call s:delimit('J', '\underset{}{', '}')
 
   " Sections and titles
-  call s:target('~', '\title{',          '}')
-  call s:target('1', '\section{',        '}')
-  call s:target('2', '\subsection{',     '}')
-  call s:target('3', '\subsubsection{',  '}')
-  call s:target('4', '\section*{',       '}')
-  call s:target('5', '\subsection*{',    '}')
-  call s:target('6', '\subsubsection*{', '}')
+  call s:delimit('~', '\title{',          '}')
+  call s:delimit('1', '\section{',        '}')
+  call s:delimit('2', '\subsection{',     '}')
+  call s:delimit('3', '\subsubsection{',  '}')
+  call s:delimit('4', '\section*{',       '}')
+  call s:delimit('5', '\subsection*{',    '}')
+  call s:delimit('6', '\subsubsection*{', '}')
 
   " Beamer
-  call s:target('n', '\pdfcomment{'."\n", "\n}") "not sure what this is used for
-  call s:target('!', '\frametitle{', '}')
-  " call s:target('c', '\begin{column}{',  "}\n".'\end{column}')
-  " call s:target('C', '\begin{columns}[', ']\end{columns}')
-  " call s:target('z', '\note{',    '}') "notes are for beamer presentations, appear in separate slide
+  call s:delimit('n', '\pdfcomment{'."\n", "\n}") "not sure what this is used for
+  call s:delimit('!', '\frametitle{', '}')
 
   " Shortcuts for citations and such
-  call s:target('7', '\ref{',               '}') " just the number
-  call s:target('8', '\autoref{',           '}') " name and number; autoref is part of hyperref package
-  call s:target('9', '\label{',             '}') " declare labels that ref and autoref point to
-  call s:target('0', '\tag{',               '}') " change the default 1-2-3 ordering; common to use *
-  call s:target('a', '\caption{',           '}') " amazingly 'a' not used yet
-  call s:target('A', '\captionof{figure}{', '}') " alternative
+  call s:delimit('7', '\ref{',               '}') " just the number
+  call s:delimit('8', '\autoref{',           '}') " name and number; autoref is part of hyperref package
+  call s:delimit('9', '\label{',             '}') " declare labels that ref and autoref point to
+  call s:delimit('0', '\tag{',               '}') " change the default 1-2-3 ordering; common to use *
+  call s:delimit('a', '\caption{',           '}') " amazingly 'a' not used yet
+  call s:delimit('A', '\captionof{figure}{', '}') " alternative
 
-  " The next enfironments will also insert *newlines*
-  " Frame; fragile option makes verbatim possible (https://tex.stackexchange.com/q/136240/73149)
-  " note that fragile make compiling way slower
-  " Slide with 'w'hite frame is the w map
-  " call s:target('<', '\uncover<X>{\item ', '}')
-  call s:target('>', '\uncover<X>{%', "\n".'}')
-  call s:target('g', '\includegraphics[width=\textwidth]{', '}') " center across margins
-  call s:target('G', '\makebox[\textwidth][c]{\includegraphics[width=\textwidth]{', '}}') " center across margins
-  call s:target('w', '{\usebackgroundtemplate{}\begin{frame}', "\n".'\end{frame}}')
-  call s:target('s', '\begin{frame}',                 "\n".'\end{frame}')
-  call s:target('S', '\begin{frame}[fragile]',        "\n".'\end{frame}')
-  call s:target('z', '\begin{column}{0.5\textwidth}', "\n".'\end{column}') "l for column
-  call s:target('Z', '\begin{columns}',               "\n".'\end{columns}')
+  " Beamer slides and stuff
+  call s:delimit('>', '\uncover<X>{%', "\n".'}')
+  call s:delimit('g', '\includegraphics[width=\textwidth]{', '}') " center across margins
+  call s:delimit('G', '\makebox[\textwidth][c]{\includegraphics[width=\textwidth]{', '}}') " center across margins
+  call s:delimit('w', '{\usebackgroundtemplate{}\begin{frame}', "\n".'\end{frame}}') " white frame
+  call s:delimit('s', '\begin{frame}',                 "\n".'\end{frame}')
+  call s:delimit('S', '\begin{frame}[fragile]',        "\n".'\end{frame}')
+  call s:delimit('z', '\begin{column}{0.5\textwidth}', "\n".'\end{column}') "l for column
+  call s:delimit('Z', '\begin{columns}',               "\n".'\end{columns}')
 
   " Figure environments, and pages
-  " call s:target('F', '\begin{subfigure}{.5\textwidth}'."\n".'\centering'."\n".'\includegraphics{', "}\n".'\end{subfigure}')
-  call s:target('f', '\begin{center}'."\n".'\centering'."\n".'\includegraphics{', "}\n".'\end{center}')
-  call s:target('F', '\begin{figure}'."\n".'\centering'."\n".'\includegraphics{', "}\n".'\end{figure}')
-  call s:target('P', '\begin{minipage}{\linewidth}', "\n".'\end{minipage}') "not sure what this is used for
-  call s:target('W', '\begin{wrapfigure}{r}{.5\textwidth}'."\n".'\centering'."\n".'\includegraphics{', "}\n".'\end{wrapfigure}')
+  " call s:delimit('F', '\begin{subfigure}{.5\textwidth}'."\n".'\centering'."\n".'\includegraphics{', "}\n".'\end{subfigure}')
+  call s:delimit('f', '\begin{center}'."\n".'\centering'."\n".'\includegraphics{', "}\n".'\end{center}')
+  call s:delimit('F', '\begin{figure}'."\n".'\centering'."\n".'\includegraphics{', "}\n".'\end{figure}')
+  call s:delimit('P', '\begin{minipage}{\linewidth}', "\n".'\end{minipage}') "not sure what this is used for
+  call s:delimit('W', '\begin{wrapfigure}{r}{.5\textwidth}'."\n".'\centering'."\n".'\includegraphics{', "}\n".'\end{wrapfigure}')
 
   " Equations
-  call s:target('%', '\begin{align*}', "\n".'\end{align*}') "because it is next to the '$' key
-  call s:target('^', '\begin{equation*}', "\n".'\end{equation*}')
-  call s:target(',', '\begin{tabular}{', "}\n".'\end{tabular}')
-  call s:target('.', '\begin{table}'."\n".'\centering'."\n".'\caption{}'."\n".'\begin{tabular}{', "}\n".'\end{tabular}'."\n".'\end{table}')
+  call s:delimit('%', '\begin{align*}', "\n".'\end{align*}') "because it is next to the '$' key
+  call s:delimit('^', '\begin{equation*}', "\n".'\end{equation*}')
+  call s:delimit(',', '\begin{tabular}{', "}\n".'\end{tabular}')
+  call s:delimit('.', '\begin{table}'."\n".'\centering'."\n".'\caption{}'."\n".'\begin{tabular}{', "}\n".'\end{tabular}'."\n".'\end{table}')
 
   " Itemize environments
-  call s:target('*', '\begin{itemize}', "\n".'\end{itemize}')
-  call s:target('&', '\begin{description}', "\n".'\end{description}') "d is now open
-  call s:target('#', '\begin{enumerate}', "\n".'\end{enumerate}')
-  call s:target('@', '\begin{enumerate}[label=\alph*.]', "\n".'\end{enumerate}') "because ampersand looks like alpha
+  call s:delimit('*', '\begin{itemize}', "\n".'\end{itemize}')
+  call s:delimit('&', '\begin{description}', "\n".'\end{description}') "d is now open
+  call s:delimit('#', '\begin{enumerate}', "\n".'\end{enumerate}')
+  call s:delimit('@', '\begin{enumerate}[label=\alph*.]', "\n".'\end{enumerate}') "because ampersand looks like alpha
 
-  " Versions of the above, but this time puting them on own lines
-  " TODO: fix these
-  " * The onlytextwidth option keeps two-columns (any arbitrary widths) aligned
-  "   with default single column; see: https://tex.stackexchange.com/a/366422/73149
-  " * Use command \rule{\textwidth}{<any height>} to visualize blocks/spaces in document
-  " call s:target(',;', '\begin{center}',             '\end{center}')               "because ; was available
-  " call s:target(',:', '\newpage\hspace{0pt}\vfill', '\vfill\hspace{0pt}\newpage') "vertically centered page
-  " call s:target(',y', '\begin{python}',             '\end{python}')
-  "   "not sure what these args are for; c will vertically center
-  " call s:target(',b', '\begin{block}{}',                  '\end{block}')
-  " call s:target(',B', '\begin{alertblock}{}',             '\end{alertblock}')
-  " call s:target(',v', '\begin{verbatim}',                 '\end{verbatim}')
-  " call s:target(',V', '\begin{code}',                     '\end{code}')
+  " Not currently used
+  " call s:delimit(':', '\newpage\hspace{0pt}\vfill', "\n".'\vfill\hspace{0pt}\newpage')
+  " call s:delimit(';', '\begin{center}',       "\n".'\end{center}')
+  " call s:delimit('y', '\begin{python}',       "\n".'\end{python}')
+  " call s:delimit('b', '\begin{block}{}',      "\n".'\end{block}')
+  " call s:delimit('B', '\begin{alertblock}{}', "\n".'\end{alertblock}')
+  " call s:delimit('v', '\begin{verbatim}',     "\n".'\end{verbatim}')
+  " call s:delimit('V', '\begin{code}',         "\n".'\end{code}')
 
   " Font sizing
   call s:snippet('1', '\tiny')
@@ -216,24 +296,22 @@ function! s:texsurround()
   call s:snippet('9', '\huge')
   call s:snippet('0', '\Huge')
 
-  " First arrows, most commonly used ones anyway
+  " Misc symbols and stuff
   " call s:snippet('<', '\Longrightarrow')
   call s:snippet('>', '\Longrightarrow')
-  " Misc symbotls, want quick access
   call s:snippet('*', '\item')
   call s:snippet('/', '\pause')
-  " Math symbols
-  call s:snippet('a', '\alpha')
-  call s:snippet('b', '\beta')
-  call s:snippet('c', '\xi')
-  " Weird curly one
-  " the upper case looks like 3 lines
-  call s:snippet('C', '\Xi')
-  " Looks like an x so want to use this map
-  " pronounced 'zi', the 'i' in 'tide'
-  call s:snippet('x', '\chi')
+  call s:snippet('o', '\partial')
+  call s:snippet("'", '\mathrm{d}')
+  call s:snippet('"', '\mathrm{D}')
+  call s:snippet('U', '${-}$') " the u is for unary
+  call s:snippet('u', '${+}$')
 
   " Greek letters
+  call s:snippet('a', '\alpha')
+  call s:snippet('b', '\beta')
+  call s:snippet('c', '\xi') " the weird curly one, pronounced 'zai'
+  call s:snippet('C', '\Xi')
   call s:snippet('d', '\delta')
   call s:snippet('D', '\Delta')
   call s:snippet('f', '\phi')
@@ -256,29 +334,16 @@ function! s:texsurround()
   call s:snippet('s', '\sigma')
   call s:snippet('S', '\Sigma')
   call s:snippet('t', '\tau')
+  call s:snippet('x', '\chi') " looks like an x, pronounced 'kai'
   call s:snippet('y', '\psi')
   call s:snippet('Y', '\Psi')
   call s:snippet('w', '\omega')
   call s:snippet('W', '\Omega')
   call s:snippet('z', '\zeta')
 
-  " Needed for pdfcomment newlines
-  call s:snippet('M', ' \textCR<CR>')
-
-  " Derivatives
-  call s:snippet('o', '\partial')
-  call s:snippet("'", '\mathrm{d}')
-  call s:snippet('"', '\mathrm{D}')
-
-  " u is for unary
-  call s:snippet('U', '${-}$')
-  call s:snippet('u', '${+}$')
-
-  " Integration
+  " Mathematical operations
   call s:snippet('i', '\int')
   call s:snippet('I', '\iint')
-
-  " 3 levels of differentiation; each one stronger
   call s:snippet('-', '${-}$')
   call s:snippet('+', '\sum')
   call s:snippet('x', '\times')
@@ -286,10 +351,8 @@ function! s:texsurround()
   call s:snippet('O', '$^\circ$')
   call s:snippet('=', '\equiv')
   call s:snippet('~', '{\sim}')
-  call s:snippet('k', '^{}<Left>')
-  call s:snippet('j', '_{}<Left>')
-  call s:snippet('K', '^\mathrm{}<Left>')
-  call s:snippet('J', '_\mathrm{}<Left>')
+  call s:snippet('k', '^')
+  call s:snippet('j', '_')
   call s:snippet('E', '\times10^{}<Left>') " more like a symbol conceptually
   call s:snippet('.', '\cdot')
 
@@ -298,10 +361,10 @@ function! s:texsurround()
   call s:snippet(':', '\: ')
   call s:snippet(';', '\; ')
   call s:snippet('q', '\quad ')
+  call s:snippet('M', ' \textCR<CR>') " for pdfcomment newlines
 
-  " Insert a line (feel free to modify width), will prompt user for fraction of page
-  " Note centering fails inside itemize environments, so use begin/end center instead
-  " _ '{\centering\noindent\rule{'.input('fraction: ').'\textwidth}{0.7pt}}'
-  " call s:snippet('_', "'\begin{center}\noindent\rule{'.input('fraction: ').'\textwidth}{0.7pt}\end{center}'")
+  " Complex snippets
+  " TODO: Why does this still raise error?
+  " exe "inoremap <buffer> <expr> " . g:textools_snippet_prefix . "_ '\begin{center}\noindent\rule{' . input('fraction: ') . '\textwidth}{0.7pt}\end{center}'"
 endfunction
 

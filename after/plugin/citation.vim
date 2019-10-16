@@ -12,10 +12,12 @@ if !exists('g:textools_surround_prefix')
 endif
 
 " Activate maps
-augroup citation_tex
+augroup tex_citation
   au!
   au FileType tex call s:citation_maps()
 augroup END
+
+" Citations function
 function! s:citation_maps()
   " Toggle bibtex
   let b:citation_vim_mode = 'bibtex'
@@ -29,10 +31,6 @@ function! s:citation_maps()
       \ . s:pair[1] . '", g:citation_vim_opts)<CR>'
       \ . '")'
   endfor
-
-" Regex that filters out useless bibtex entries
-  nnoremap <silent> <buffer> \x :%s/^\s*\(abstract\\|file\\|url\\|urldate\\|copyright\\|keywords\\|annotate\\|note\\|shorttitle\)\s*=\s*{\_.\{-}},\?\n//gc<CR>
-  nnoremap <silent> <buffer> \X :%s/^\s*\(abstract\\|language\\|file\\|doi\\|url\\|urldate\\|copyright\\|keywords\\|annotate\\|note\\|shorttitle\)\s*=\s*{\_.\{-}},\?\n//gc<CR>
 endfunction
 
 " Bibtex and Zotero INTEGRATION

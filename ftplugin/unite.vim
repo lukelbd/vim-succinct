@@ -17,5 +17,5 @@ imap <buffer> <Tab> i_<Plug>(unite_choose_action)a
 " Disable some normal insert mode features
 " Basically make popup menu behave more like FZF
 " silent! iunmap <buffer> <C-c>
-inoremap <buffer> <C-c> <Esc>:q<CR>
-inoremap <buffer> <Esc> <Esc>:q<CR>
+" inoremap <silent> <buffer> <C-c> <Esc>:q<CR>
+" inoremap <silent> <buffer> <Esc> <Esc>:q<CR>
