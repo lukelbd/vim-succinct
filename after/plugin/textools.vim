@@ -14,7 +14,7 @@ endif
 exe 'imap ' . g:textools_prevdelim_map . ' <Plug>textools-prevdelim'
 exe 'imap ' . g:textools_nextdelim_map . ' <Plug>textools-nextdelim'
 
-" Move to left of previous delim
+" Move to right of previous delim
 " ( [ [ ( "  "  asdfad) sdf    ]  sdfad   ]  asdfasdf) hello   asdfas)
 " Note: matchstrpos is relatively new/less portable, e.g. fails on midway
 " Used to use matchstrpos, now just use match(); much simpler
@@ -37,7 +37,7 @@ function! s:prevdelim(n)
   endif
 endfunction
 
-" Move to left of right delim
+" Move to right of next delim
 " Why starting from current position? Even if cursor is
 " on delimiter, want to find it and move to the right of it
 function! s:nextdelim(n)
@@ -62,8 +62,8 @@ endfunction
 " open. See: https://github.com/lukelbd/dotfiles/blob/master/.vimrc
 function! s:popup_close()
   if !pumvisible()
-    return
-  elseif b:menupos = 0 " exit
+    return ""
+  elseif b:menupos == 0 " exit
     return "\<C-e>"
   else
     let b:menupos = 0 " approve and exit
