@@ -42,30 +42,29 @@ This set of tools is complex and would take quite a while to document. For now I
 
 | Mapping | Description |
 | ---- | ---- |
-| `<C-z>` | Invokes `:Latexmk` with no flags. |
-| `<Leader>z` | Invokes `:Latexmk` with the `--diff` flag. |
-| `<Leader>Z` | Invokes `:Latexmk` with the `--doc` flag. |
-| `<Leader>b` | Invokes `:BibtexToggle`. |
-| `<C-h>`, `<C-l>` | In insert mode, jumps to the right of the previous, next "delimiter" -- that is, any of the characters `[]<>(){}`. This is handy when the cursor is inside a complex next of varying types of delimiters, a common difficulty when writing LaTeX equations. It stands in contrast to delimitMate's `<Plug>delimitMateJumpMany` map, which jumps to the far outside of nested delimiters. |
-| `<C-b>[ctpn]` | New citation insert mappings. These insert citations from a local bibliography or from your Zotero sqlite database (see [citation.vim](after/plugin/citation.vim) for details). Adds ability to use bibliographies local to specific buffers. |
 | `<C-z><key>` | These are maps for inserting text snippets in insert mode (see [surround.vim](after/plugin/surround.vim) for details).  Example usage includes running `<C-z>a` in a LaTeX document to insert the LaTeX alpha character `\alpha`. |
 | `<C-s><key>`, `ys<obj><key>`, ... | New `surround.vim` delimiter mappings. These are custom delimiters integrated with the `surround.vim` plugin, introducing a series of insert, visual, and normal mode maps (see [surround.vim](after/plugin/surround.vim) for details). Example usage includes making a visual selection in a LaTeX document then pressing `<C-s>*` to surround with a `\begin{itemize}` `\end{itemize}` environment, or running `yswb` in normal mode to surround the word under the cursor with a `\textbf{}` command.
 | `va<key>`, `vi<key>`, ... | New text object mappings. These are custom delimiters integrated with the `vim-textobj-user` plugin for selecting, yanking, changing, and deleting blocks of text with `va<key>`, `ya<key>`, etc (see [textobjs.vim](after/plugin/textobjs.vim) for details). Example usage includes selecting a LaTeX `\begin{}` `\end{}` environment with `vaT`, or changing text inside a LaTeX command with `cit`. |
-
-## Options
-
-| Option | Description |
-| ---- | ---- |
-| `g:textools_prevdelim_map`, `g:textools_nextdelim_map` | Alternate definitions for the `<C-h>` and `<C-l>` insert mode maps. |
-| `g:textools_delim_prefix` | Alternate key for the `<C-s>` mappings. Note the `<C-s>` mapping may require running `bind -r '"\C-s"'` in your terminal or adding it to your `~/.bashrc` or `~/.bash_profile`. |
-| `g:textools_snippet_prefix` | Alternate key for the `<C-z>` mappings. If you use the default, I suggest adding `noremap <C-z> <Nop>` to your `.vimrc`, to prevent accidentally sending your vim session to the background of your terminal session. |
-| `g:textools_citation_prefix` | Alternate key for the `<C-b>` mappings. |
+| `<C-b><key>` | New citation insert mappings. These insert citations from a local bibliography or from your Zotero sqlite database (see [citation.vim](after/plugin/citation.vim) for details). Adds ability to use bibliographies local to specific buffers. |
+| `<C-h>`, `<C-l>` | Jumps to the right of the previous, next bracket in insert mode (i.e. any of the characters `[]<>(){}`). This is handy when the cursor is inside a complex next of varying types of delimiters, a common difficulty when writing LaTeX equations. It stands in contrast to delimitMate's `<Plug>delimitMateJumpMany` map, which jumps to the far outside of nested delimiters. |
 
 ## Functions
 | Function | Description |
 | ---- | ---- |
 | `textools#delete_delims` | Deletes arbitrary delimiters around the cursor. Arguments are a left delimiter regex and a right delimiter regex. This is best used in a normal mode mapping that looks like `ds<key>`. |
 | `textools#change_delims` | Changes arbitrary delimiters. Arguments are a left delimiter regex, right delimiter regex, and a replacement indicator. This can be a non-empty string, used for both left and right delimiters, or an empty string, in which case the function reads the next character pressed by the user and uses the corresponding delimiter. This is best used in a normal mode mapping that looks like `cs<key>`. |
+
+## Customization
+
+| Option | Description |
+| ---- | ---- |
+| `g:textools_delim_prefix` | Alternate prefix for the `<C-s>` macros. Note that if you use the default `<C-s>` you may need to add `bind -r '"\C-s"'` to your `~/.bashrc` or `~/.bash_profile`. |
+| `g:textools_snippet_prefix` | Alternate prefix for the `<C-z>` macros. |
+| `g:textools_citation_prefix` | Alternate prefix for the `<C-b>` macros. |
+| `g:textools_citation_maps` | Dictionary of `<C-b>` suffixes and LaTeX cite commands. The default is `let g:textools_citation_maps = {'c':'', 't':'t', 'p':'p', 'n':'num'}`, which inserts `\cite{ref}` when `<C-b>c` is pressed, `\citet{ref}` when `<C-b>t` is pressed, etc. |
+| `g:textools_prevdelim_map`, `g:textools_nextdelim_map` | Alternate insert mode mappings for the `<C-h>` and `<C-l>` macros. |
+| `g:textools_latexmk_maps` | Dictionary of normal mode mappings and flags for the `:Latexmk`. This is empty by default. For example, use `let g:textools_latexmk_maps = {'<C-x>':'', '<Leader>x':'--diff'}` adds maps that call `:Latexmk` with no flags and with the `--diff` flag. |
+| `g:textools_bibtextoggle_map` | Normal mode mapping for the `:BibtexToggle` command. This is unset by default. |
 
 # Installation
 Install with your favorite [plugin manager](https://vi.stackexchange.com/questions/388/what-is-the-difference-between-the-vim-plugin-managers).

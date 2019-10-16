@@ -11,8 +11,6 @@ endif
 if !exists('g:textools_nextdelim_map')
   let g:textools_nextdelim_map = '<C-l>'
 endif
-exe 'imap ' . g:textools_prevdelim_map . ' <Plug>textools-prevdelim'
-exe 'imap ' . g:textools_nextdelim_map . ' <Plug>textools-nextdelim'
 
 " Move to right of previous delim
 " ( [ [ ( "  "  asdfad) sdf    ]  sdfad   ]  asdfasdf) hello   asdfas)
@@ -21,11 +19,11 @@ exe 'imap ' . g:textools_nextdelim_map . ' <Plug>textools-nextdelim'
 " Note: Why up to two places to left of current position (col('.')-1)? there is delimiter to our left, want to ignore that
 " If delimiter is to left of cursor, we are at a 'next to
 " the cursor' position; want to test line even further to the left
-function! s:prevdelim(n)
+function! s:prevdelim()
   let string = getline('.')[:col('.')-3]
   let string = join(reverse(split(string, '.\zs')), '') " search the *reversed* string
   let pos = 0
-  for i in range(a:n)
+  for i in range(max([v:count,1]))
     let result = match(string, g:textools_delimjump_regex, pos) " get info on *first* match
     if result==-1 | break | endif
     let pos = result + 1 " go to next one
@@ -40,10 +38,10 @@ endfunction
 " Move to right of next delim
 " Why starting from current position? Even if cursor is
 " on delimiter, want to find it and move to the right of it
-function! s:nextdelim(n)
+function! s:nextdelim()
   let string = getline('.')[col('.')-1:]
   let pos = 0
-  for i in range(a:n)
+  for i in range(max([v:count,1]))
     let result = match(string, g:textools_delimjump_regex, pos) " get info on *first* match
     if result==-1 | break | endif
     let pos = result + 1 " go to next one
@@ -70,8 +68,10 @@ function! s:popup_close()
     return "\<C-y>"
   endif
 endfunction
-inoremap <expr> <Plug>textools-prevdelim <sid>popup_close().<sid>prevdelim(1)
-inoremap <expr> <Plug>textools-nextdelim <sid>popup_close().<sid>nextdelim(1)
+" Why not define these as <Plug> maps? For consistency in documentation
+" and with the snippet and citation maps ftplugin/tex.vim
+exe 'inoremap <expr> ' . g:textools_prevdelim_map . ' <sid>popup_close().<sid>prevdelim()'
+exe 'inoremap <expr> ' . g:textools_nextdelim_map . ' <sid>popup_close().<sid>nextdelim()'
 
 "-----------------------------------------------------------------------------"
 " Prompt user to choose from a list of templates (located in ~/latex folder)

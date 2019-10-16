@@ -59,9 +59,11 @@ endfunction
 
 " Latex compiling maps
 command! -nargs=* Latexmk call s:latex_background(<q-args>)
-noremap <silent> <buffer> <C-z> :call <sid>latex_background()<CR>
-noremap <silent> <buffer> <Leader>z :call <sid>latex_background(' --diff')<CR>
-noremap <silent> <buffer> <Leader>Z :call <sid>latex_background(' --word')<CR>
+if exists('g:textools_latexmk_maps')
+  for [s:map,s:flag] in items(g:textools_latexmk_maps)
+    exe 'noremap <silent> <buffer> ' . s:map . ' :Latexmk ' . s:flag . '<CR>'
+  endfor
+endif
 
 "-----------------------------------------------------------------------------"
 " Text objects
@@ -415,15 +417,6 @@ if g:loaded_unite && &rtp =~ 'citation.vim\/'
   let b:citation_vim_mode = 'bibtex'
   let b:citation_vim_bibtex_file = ''
 
-  " Citation maps
-  nnoremap <silent> <buffer> <Leader>B :BibtexToggle<CR>
-  for s:pair in items({'c':'', 't':'t', 'p':'p', 'n':'num'})
-    exe 'inoremap <silent> <buffer> ' . g:textools_citation_prefix
-      \ . s:pair[0] . ' <Esc>:call <sid>citation_vim_run("'
-      \ . s:pair[1] . '", g:citation_vim_opts)<CR>'
-      \ . '")'
-  endfor
-
   " Global settings
   " Local settings are applied as global variables before calling cite command,
   " and note they are always defined since this is an ftplugin file!
@@ -500,4 +493,18 @@ if g:loaded_unite && &rtp =~ 'citation.vim\/'
     endif
   endfunction
   command! BibtexToggle call <sid>bibtex_toggle()
+
+  " Citation maps
+  if exists('g:textools_bibtextoggle_map')
+    exe 'nnoremap <silent> <buffer> ' . g:textools_bibtextoggle_map . ' :BibtexToggle<CR>'
+  endif
+  if !exists('g:textools_citation_maps')
+    let g:textools_citation_maps = {'c':'', 't':'t', 'p':'p', 'n':'num'}
+  endif
+  for [s:map, s:tex] in items(g:textools_citation_maps)
+    exe 'inoremap <silent> <buffer> ' . g:textools_citation_prefix
+      \ . s:map . ' <Esc>:call <sid>citation_vim_run("'
+      \ . s:tex . '", g:citation_vim_opts)<CR>'
+      \ . '")'
+  endfor
 endif
