@@ -58,11 +58,12 @@ This set of tools is complex and would take quite a while to document. For now I
 
 | Option | Description |
 | ---- | ---- |
-| `g:textools_delim_prefix` | Alternate prefix for the insert mode and visual mode vim-surround mappings. The default is `<C-s>`, which is intuitive but requires adding `bind -r '"\C-s"'` to your `~/.bashrc` or `~/.bash_profile`. |
-| `g:textools_snippet_prefix` | Alternate prefix for the snippet insert mappings. The default is `<C-z>`. |
-| `g:textools_citation_prefix` | Alternate prefix for the citation insert mappings. The default is `<C-b>`. |
+| `g:textools_delim_prefix` | Prefix for the insert mode and visual mode vim-surround mappings. The default is `<C-s>`, which is intuitive but requires adding `bind -r '"\C-s"'` to your `~/.bashrc` or `~/.bash_profile`. |
+| `g:textools_snippet_prefix` | Prefix for the snippet insert mappings. The default is `<C-z>`. |
+| `g:textools_citation_prefix` | Prefix for the citation insert mappings. The default is `<C-b>`. |
 | `g:textools_citation_maps` | Dictionary of citation insert mapping suffixes and LaTeX cite commands. The default is `let g:textools_citation_maps = {'c':'', 't':'t', 'p':'p', 'n':'num'}`, which inserts `\cite{ref}` when `<C-b>c` is pressed, `\citet{ref}` when `<C-b>t` is pressed, etc. |
-| `g:textools_prevdelim_map`, `g:textools_nextdelim_map` | Alternate insert mode mappings for the `<C-h>` and `<C-l>` macros. |
+| `g:textools_nextdelim_map` | Insert mode mapping for jumping to the previous bracket. The default is `<C-h>`. |
+| `g:textools_nextdelim_map` | Insert mode mapping for jumping to the previous bracket. The default is `<C-l>`. |
 | `g:textools_latexmk_maps` | Dictionary of normal mode mappings and flags for the `:Latexmk`. This is empty by default. For example, use `let g:textools_latexmk_maps = {'<C-x>':'', '<Leader>x':'--diff'}` adds maps that call `:Latexmk` with no flags and with the `--diff` flag. |
 | `g:textools_bibtextoggle_map` | Normal mode mapping for the `:BibtexToggle` command. This is unset by default. |
 
