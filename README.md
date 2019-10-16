@@ -61,6 +61,12 @@ This set of tools is complex and would take quite a while to document. For now I
 | `g:textools_snippet_prefix` | Alternate key for the `<C-z>` mappings. If you use the default, I suggest adding `noremap <C-z> <Nop>` to your `.vimrc`, to prevent accidentally sending your vim session to the background of your terminal session. |
 | `g:textools_citation_prefix` | Alternate key for the `<C-b>` mappings. |
 
+## Functions
+| Function | Description |
+| ---- | ---- |
+| `DeleteDelims` | Deletes arbitrary delimiters around the cursor, detected on this line or on all lines in the file. Takes two regex strings as arguments. This is best used in a normal mode mapping that looks like `ds<key>`. |
+| `ChangeDelims` | Changes arbitrary delimiters, detected on this line or on all lines in the file. Takes two regex strings as arguments and a replacement string, used for both left and right delimiters, or an empty string, in which case the function reads the next keystroke by the user and looks up the corresponding vim-surround delimiter. This is best used in a normal mode mapping that looks like `cs<key>`. |
+
 # Installation
 Install with your favorite [plugin manager](https://vi.stackexchange.com/questions/388/what-is-the-difference-between-the-vim-plugin-managers).
 I highly recommend the [`vim-plug`](https://github.com/junegunn/vim-plug) manager,
