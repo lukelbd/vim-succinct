@@ -239,39 +239,29 @@ if exists('g:loaded_surround') && g:loaded_surround
     exe 'inoremap <buffer> ' . g:textools_snippet_prefix . a:map . ' ' . a:value
   endfunction
 
-  " Define bracket insert targets so that users can switch between
-  " \left and \right style braces and ordinary ones
-  nmap <buffer> dsc dsB
-  nmap <buffer> csc csB
-  call s:add_delim('b', '(', ')')
-  call s:add_delim('c', '{', '}')
-  call s:add_delim('B', '{', '}')
-  call s:add_delim('r', '[', ']')
-  call s:add_delim('a', '<', '>')
-
   " Latex commands
   call s:add_delim('t', "\\\1command: \1{", '}')
-  nnoremap <buffer> <silent> dst :call DeleteDelims(
+  nnoremap <buffer> <silent> dst :call textools#delete_delims(
     \ '\\\w*{', '}')<CR>
-  nnoremap <buffer> <silent> cst :call ChangeDelims(
+  nnoremap <buffer> <silent> cst :call textools#change_delims(
     \ '\\\(\w*\){', '}', input('command: '))<CR>
   " Latex environments
   call s:add_delim('T', "\\begin{\1\\begin{\1}", "\n"."\\end{\1\1}")
-  nnoremap <buffer> <silent> dsT :call DeleteDelims(
-    \ '\\begin{[^}]\+}\_s*', '\_s*\\end{[^}]\+}', 1)
-  nnoremap <buffer> <silent> csT :call ChangeDelims(
-    \ '\\begin{\([^}]\+\)}', '\\end{\([^}]\)\+}', input('\begin{'), 1)
+  nnoremap <buffer> <silent> dsT :call textools#delete_delims(
+    \ '\\begin{[^}]\+}\_s*', '\_s*\\end{[^}]\+}')
+  nnoremap <buffer> <silent> csT :call textools#change_delims(
+    \ '\\begin{\([^}]\+\)}', '\\end{\([^}]\)\+}', input('\begin{'))
 
   " Quotations
   call s:add_delim("'", '`',  "'")
   call s:add_delim('"', '``', "''")
-  nnoremap <buffer> ds' :call DeleteDelims("`", "'")<CR>
-  nnoremap <buffer> ds" :call DeleteDelims("``", "''")<CR>
+  nnoremap <buffer> <silent> ds' :call textools#delete_delims("`", "'")<CR>
+  nnoremap <buffer> <silent> ds" :call textools#delete_delims("``", "''")<CR>
   " Curly quotations
   call s:add_delim('q', '‘', '’')
   call s:add_delim('Q', '“', '”')
-  nnoremap <buffer> dsq :call DeleteDelims("‘", "’")<CR>
-  nnoremap <buffer> dsQ :call DeleteDelims("“", "”")<CR>
+  nnoremap <buffer> <silent> dsq :call textools#delete_delims("‘", "’")<CR>
+  nnoremap <buffer> <silent> dsQ :call textools#delete_delims("“", "”")<CR>
 
   " Math mode brackets
   call s:add_delim('{', '\left\{', '\right\}')
@@ -279,21 +269,44 @@ if exists('g:loaded_surround') && g:loaded_surround
   call s:add_delim('[', '\left[',  '\right]')
   call s:add_delim('<', '\left<',  '\right>')
   call s:add_delim('|', '\left\|', '\right\|')
-  nnoremap <buffer> <silent> ds( :call DeleteDelims('\\left(', '\\right)')<CR>
-  nnoremap <buffer> <silent> ds[ :call DeleteDelims('\\left\[', '\\right\]')<CR>
-  nnoremap <buffer> <silent> ds{ :call DeleteDelims('\\left\\{', '\\right\\}')<CR>
-  nnoremap <buffer> <silent> ds< :call DeleteDelims('\\left<', '\\right>')<CR>
-  nnoremap <buffer> <silent> ds\| :call DeleteDelims('\\left\\|', '\\right\\|')<CR>
-  nnoremap <buffer> <silent> cs( :call ChangeDelims('\\left(', '\\right)', '')<CR>
-  nnoremap <buffer> <silent> cs[ :call ChangeDelims('\\left\[', '\\right\]', '')<CR>
-  nnoremap <buffer> <silent> cs{ :call ChangeDelims('\\left\\{', '\\right\\}', '')<CR>
-  nnoremap <buffer> <silent> cs< :call ChangeDelims('\\left<', '\\right>', '')<CR>
-  nnoremap <buffer> <silent> cs\| :call ChangeDelims('\\left\\|', '\\right\\|', '')<CR>
+  nnoremap <buffer> <silent> ds( :call textools#delete_delims('\\left(', '\\right)')<CR>
+  nnoremap <buffer> <silent> ds[ :call textools#delete_delims('\\left\[', '\\right\]')<CR>
+  nnoremap <buffer> <silent> ds{ :call textools#delete_delims('\\left\\{', '\\right\\}')<CR>
+  nnoremap <buffer> <silent> ds< :call textools#delete_delims('\\left<', '\\right>')<CR>
+  nnoremap <buffer> <silent> ds\| :call textools#delete_delims('\\left\\|', '\\right\\|')<CR>
+  nnoremap <buffer> <silent> cs( :call textools#change_delims('\\left(', '\\right)', '')<CR>
+  nnoremap <buffer> <silent> cs[ :call textools#change_delims('\\left\[', '\\right\]', '')<CR>
+  nnoremap <buffer> <silent> cs{ :call textools#change_delims('\\left\\{', '\\right\\}', '')<CR>
+  nnoremap <buffer> <silent> cs< :call textools#change_delims('\\left<', '\\right>', '')<CR>
+  nnoremap <buffer> <silent> cs\| :call textools#change_delims('\\left\\|', '\\right\\|', '')<CR>
 
-  " Arrays and whatnot; analagous to above, just point to right
+  " Define bracket insert targets so that users can switch between
+  " \left and \right style braces and ordinary ones
+  call s:add_delim('b', '(', ')')
+  call s:add_delim('c', '{', '}')
+  call s:add_delim('B', '{', '}')
+  call s:add_delim('r', '[', ']')
+  call s:add_delim('a', '<', '>')
+  nnoremap <buffer> <silent> dsb :call textools#delete_delims('(', ')')<CR>
+  nnoremap <buffer> <silent> dsc :call textools#delete_delims('{', '}')<CR>
+  nnoremap <buffer> <silent> dsB :call textools#delete_delims('{', '}')<CR>
+  nnoremap <buffer> <silent> dsr :call textools#delete_delims('\[', '\]')<CR>
+  nnoremap <buffer> <silent> dsa :call textools#delete_delims('<', '>')<CR>
+  nnoremap <buffer> <silent> csb :call textools#change_delims('(', ')', '')<CR>
+  nnoremap <buffer> <silent> csc :call textools#change_delims('{', '}', '')<CR>
+  nnoremap <buffer> <silent> csB :call textools#change_delims('{', '}', '')<CR>
+  nnoremap <buffer> <silent> csr :call textools#change_delims('\[', '\]', '')<CR>
+  nnoremap <buffer> <silent> csa :call textools#change_delims('<', '>', '')<CR>
+
+  " Arrays and whatnot, analagous to above but point to right
   call s:add_delim('}', '\left\{\begin{array}{ll}', "\n".'\end{array}\right.')
   call s:add_delim(')', '\begin{pmatrix}',          "\n".'\end{pmatrix}')
   call s:add_delim(']', '\begin{bmatrix}',          "\n".'\end{bmatrix}')
+
+  " Verbatim
+  call s:add_delim('y', '\texttt{',     '}') " typewriter text
+  call s:add_delim('Y', '\pyth$',       '$') " python verbatim
+  call s:add_delim('V', '\verb$',       '$') " verbatim
 
   " Font types
   call s:add_delim('e', '\emph{'  ,     '}')
@@ -306,11 +319,6 @@ if exists('g:loaded_surround') && g:loaded_surround
   call s:add_delim('M', '\mathbb{',     '}') " usually for denoting sets of numbers
   call s:add_delim('L', '\mathcal{',    '}')
 
-  " Verbatim
-  call s:add_delim('y', '\texttt{',     '}') " typewriter text
-  call s:add_delim('Y', '\pyth$',       '$') " python verbatim
-  call s:add_delim('V', '\verb$',       '$') " verbatim
-
   " Math modifiers for symbols
   call s:add_delim('v', '\vec{',        '}')
   call s:add_delim('d', '\dot{',        '}')
@@ -320,7 +328,7 @@ if exists('g:loaded_surround') && g:loaded_surround
   call s:add_delim('-', '\overline{',   '}')
   call s:add_delim('_', '\cancelto{}{', '}')
 
-  " Boxes; the second one allows stuff to extend into margins, possibly
+  " Boxes, the second one allows stuff to extend into margins
   call s:add_delim('x', '\boxed{',      '}')
   call s:add_delim('X', '\fbox{\parbox{\textwidth}{', '}}\medskip')
 
