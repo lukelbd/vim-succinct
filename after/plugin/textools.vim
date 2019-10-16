@@ -6,10 +6,10 @@ if !exists('g:textools_delimjump_regex')
   let g:textools_delimjump_regex = "[()\\[\\]{}<>]" "list of 'outside' delimiters for jk matching
 endif
 if !exists('g:textools_prevdelim_map')
-  let g:textools_prevdelim_map = '<F1>'
+  let g:textools_prevdelim_map = '<C-h>'
 endif
 if !exists('g:textools_nextdelim_map')
-  let g:textools_nextdelim_map = '<F2>'
+  let g:textools_nextdelim_map = '<C-l>'
 endif
 exe 'imap ' . g:textools_prevdelim_map . ' <Plug>textools-prevdelim'
 exe 'imap ' . g:textools_nextdelim_map . ' <Plug>textools-nextdelim'
