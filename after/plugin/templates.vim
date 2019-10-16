@@ -18,7 +18,7 @@ augroup END
 " Function that reads in a template from the line shown be tex_templates
 function! s:texselect(item)
   if len(a:item)
-    execute "0r ~/latex/".a:item
+    execute "0r ~/latex/" . a:item
   endif
 endfunction
 
@@ -27,6 +27,6 @@ endfunction
 " where TexTemplates was a function TexTemplates(A,L,P) that returned a list of
 " possible choices given the prefix A of what user typed so far
 function! s:tex_templates()
-  let templates = map(split(globpath('~/latex/', '*.tex'),"\n"), 'fnamemodify(v:val, ":t")')
+  let templates = map(split(globpath('~/latex/', '*.tex'), "\n"), 'fnamemodify(v:val, ":t")')
   return [''] + templates " add blank entry as default choice
 endfunction

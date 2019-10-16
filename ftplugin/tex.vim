@@ -64,6 +64,85 @@ noremap <silent> <buffer> <Leader>z :call <sid>latex_background(' --diff')<CR>
 noremap <silent> <buffer> <Leader>Z :call <sid>latex_background(' --word')<CR>
 
 "-----------------------------------------------------------------------------"
+" Delimitmate additions
+"-----------------------------------------------------------------------------"
+" Dependencies
+if exists('g:loaded_delimitMate') && g:loaded_delimitMate
+  " Map to 'ctrl-.' which is remapped to <F2> in my iTerm session
+  if !exists('g:textools_delimjump_regex')
+    let g:textools_delimjump_regex = "[()\\[\\]{}<>]" "list of 'outside' delimiters for jk matching
+  endif
+  if !exists('g:textools_prevdelim_map')
+    let g:textools_prevdelim_map = '<F1>'
+  endif
+  if !exists('g:textools_nextdelim_map')
+    let g:textools_nextdelim_map = '<F2>'
+  endif
+  " Make mapping
+  exe 'imap ' . g:textools_prevdelim_map . ' <Plug>textools-prevdelim'
+  exe 'imap ' . g:textools_nextdelim_map . ' <Plug>textools-nextdelim'
+
+  " Simple functions put cursor to the right of closing braces and quotes
+  " ( [ [ ( "  "  asdfad) sdf    ]  sdfad   ]  asdfasdf) hello   asdfas)
+  " Note: matchstrpos is relatively new/less portable, e.g. fails on midway
+  " Used to use matchstrpos, now just use match(); much simpler
+  function! s:prevdelim(n)
+    " Why up to two places to left of current position (col('.')-1)? there is delimiter to our left, want to ignore that
+    " If delimiter is to left of cursor, we are at a 'next to
+    " the cursor' position; want to test line even further to the left
+    let string = getline('.')[:col('.')-3]
+    let string = join(reverse(split(string, '.\zs')), '') " search the *reversed* string
+    let pos = 0
+    for i in range(a:n)
+      let result = match(string, g:textools_delimjump_regex, pos) " get info on *first* match
+      if result==-1 | break | endif
+      let pos = result + 1 " go to next one
+    endfor
+    if pos == 0 " relative position is zero, i.e. don't move
+      return ""
+    else
+      return repeat("\<Left>", pos)
+    endif
+  endfunction
+  function! s:nextdelim(n)
+    " Why starting from current position? Even if cursor is
+    " on delimiter, want to find it and move to the right of it
+    let string = getline('.')[col('.')-1:]
+    let pos = 0
+    for i in range(a:n)
+      let result = match(string, g:textools_delimjump_regex, pos) " get info on *first* match
+      if result==-1 | break | endif
+      let pos = result + 1 " go to next one
+    endfor
+    if mode()!~#'[rRiI]' && pos+col('.') >= col('$') " want to put cursor at end-of-line, but can't because not in insert mode
+      let pos = col('$')-col('.')-1
+    endif
+    if pos == 0 " relative position is zero, i.e. don't move
+      return ""
+    else
+      return repeat("\<Right>", pos)
+    endif
+  endfunction
+
+  " Helper function, harmless but does nothing for most users
+  " See https://github.com/lukelbd/dotfiles/blob/master/.vimrc
+  function! s:tab_reset()
+    let b:menupos = 0 | return ''
+  endfunction
+
+  " Define the maps, with special consideration for whether
+  " popup menu is open (accept the entry if user has scrolled
+  " into the menu).
+  " See https://github.com/lukelbd/dotfiles/blob/master/.vimrc
+  inoremap <expr> <Plug>textools-prevdelim !pumvisible() ? <sid>prevdelim(1)
+    \ : b:menupos == 0 ? "\<C-e>".<sid>tab_reset().<sid>prevdelim(1)
+    \ : " \<C-y>".<sid>tab_reset().<sid>prevdelim(1)
+  inoremap <expr> <Plug>textools-nextdelim !pumvisible() ? <sid>nextdelim(1)
+    \ : b:menupos == 0 ? "\<C-e>".<sid>tab_reset().<sid>nextdelim(1)
+    \ : " \<C-y>".<sid>tab_reset().<sid>nextdelim(1)
+endif
+
+"-----------------------------------------------------------------------------"
 " Text objects
 "-----------------------------------------------------------------------------"
 if exists('*textobj#user#plugin')
@@ -132,9 +211,9 @@ endif
 
 
 "-----------------------------------------------------------------------------"
-" vim-surround integration
+" Vim-surround integration
 "-----------------------------------------------------------------------------"
-if g:loaded_surround
+if exists('g:loaded_surround') && g:loaded_surround
   " Tools
   if !exists('g:textools_delim_prefix')
     let g:textools_delim_prefix = '<C-s>'
@@ -371,25 +450,21 @@ if g:loaded_surround
 
   " Misc floating environments and blocks
   " call s:add_delim('F', '\begin{subfigure}{.5\textwidth}'."\n".'\centering'."\n".'\includegraphics{', "}\n".'\end{subfigure}')
-  " call s:add_delim(':', '\newpage\hspace{0pt}\vfill', "\n".'\vfill\hspace{0pt}\newpage')
-  " call s:add_delim(';', '\begin{center}',       "\n".'\end{center}')
   " call s:add_delim('y', '\begin{python}',       "\n".'\end{python}')
   " call s:add_delim('b', '\begin{block}{}',      "\n".'\end{block}')
   " call s:add_delim('B', '\begin{alertblock}{}', "\n".'\end{alertblock}')
   " call s:add_delim('v', '\begin{verbatim}',     "\n".'\end{verbatim}')
-  " call s:add_delim('V', '\begin{code}',         "\n".'\end{code}')
   call s:add_delim('f', '\begin{center}'."\n".'\centering'."\n".'\includegraphics{', "}\n".'\end{center}')
   call s:add_delim('F', '\begin{figure}'."\n".'\centering'."\n".'\includegraphics{', "}\n".'\end{figure}')
   call s:add_delim('P', '\begin{minipage}{\linewidth}', "\n".'\end{minipage}') "not sure what this is used for
   call s:add_delim('W', '\begin{wrapfigure}{r}{.5\textwidth}'."\n".'\centering'."\n".'\includegraphics{', "}\n".'\end{wrapfigure}')
 
-  " Equations
+  " Equations tables and lists
+  " call s:add_delim(':', '\newpage\hspace{0pt}\vfill', "\n".'\vfill\hspace{0pt}\newpage')
   call s:add_delim('%', '\begin{align*}', "\n".'\end{align*}') "because it is next to the '$' key
   call s:add_delim('^', '\begin{equation*}', "\n".'\end{equation*}')
   call s:add_delim(',', '\begin{tabular}{', "}\n".'\end{tabular}')
   call s:add_delim('.', '\begin{table}'."\n".'\centering'."\n".'\caption{}'."\n".'\begin{tabular}{', "}\n".'\end{tabular}'."\n".'\end{table}')
-
-  " Itemize environments
   call s:add_delim('*', '\begin{itemize}', "\n".'\end{itemize}')
   call s:add_delim('&', '\begin{description}', "\n".'\end{description}') "d is now open
   call s:add_delim('#', '\begin{enumerate}', "\n".'\end{enumerate}')
@@ -479,3 +554,106 @@ if g:loaded_surround
   " exe "inoremap <buffer> <expr> " . g:textools_snippet_prefix . "_ '\begin{center}\noindent\rule{' . input('fraction: ') . '\textwidth}{0.7pt}\end{center}'"
 endif
 
+"-----------------------------------------------------------------------------"
+" Citation vim integration
+"-----------------------------------------------------------------------------"
+" Requires pybtex and bibtexparser python modules, and unite.vim plugin
+" NOTE: Set up with macports. By default the +python vim was compiled with
+" is not on path; access with port select --set pip <pip36|python36>. To
+" install module dependencies, use that pip. Can also install most packages
+" with 'port install py36-module_name' but often get error 'no module
+" named pkg_resources'; see this thread: https://stackoverflow.com/a/10538412/4970632
+if g:loaded_unite && &rtp =~ 'citation.vim\/'
+  " Default settings
+  if !exists('g:textools_surround_prefix')
+    let g:textools_citation_prefix = '<C-b>'
+  endif
+  let b:citation_vim_mode = 'bibtex'
+  let b:citation_vim_bibtex_file = ''
+
+  " Citation maps
+  nnoremap <silent> <buffer> <Leader>B :BibtexToggle<CR>
+  for s:pair in items({'c':'', 't':'t', 'p':'p', 'n':'num'})
+    exe 'inoremap <silent> <buffer> ' . g:textools_citation_prefix
+      \ . s:pair[0] . ' <Esc>:call <sid>citation_vim_run("'
+      \ . s:pair[1] . '", g:citation_vim_opts)<CR>'
+      \ . '")'
+  endfor
+
+  " Global settings
+  " Local settings are applied as global variables before calling cite command,
+  " and note they are always defined since this is an ftplugin file!
+  let g:unite_data_directory = '~/.unite'
+  let g:citation_vim_cache_path = '~/.unite'
+  let g:citation_vim_outer_prefix = ''
+  let g:citation_vim_inner_prefix = ''
+  let g:citation_vim_suffix = '}'
+  let g:citation_vim_et_al_limit = 3 " show et al if more than 2 authors
+  let g:citation_vim_zotero_path = '~/Zotero' " location of .sqlite file
+  let g:citation_vim_zotero_version = 5
+  let g:citation_vim_opts = '-start-insert -buffer-name=citation -ignorecase -default-action=append citation/key'
+
+  " Where to search for stuff
+  " This uses allow buffer-local settings
+  function! s:citation_vim_run(suffix, opts)
+    if b:citation_vim_mode == 'bibtex' && b:citation_vim_bibtex_file == ''
+      let b:citation_vim_bibtex_file = s:citation_vim_bibfile()
+    endif
+    let g:citation_vim_mode = b:citation_vim_mode
+    let g:citation_vim_outer_prefix = '\cite' . a:suffix . '{'
+    let g:citation_vim_bibtex_file = b:citation_vim_bibtex_file
+    call unite#helper#call_unite('Unite', a:opts, line('.'), line('.'))
+    normal! a
+    return ''
+  endfunction
+
+  " Ask user to select bibliography files from list
+  " Requires special completion function for selecting bibfiles
+  function! s:citation_vim_bibfile()
+    let cwd = expand('%:h')
+    let refs = split(glob(cwd . '/*.bib'), "\n")
+    if len(refs) == 1
+      let ref = refs[0]
+    elseif len(refs)
+      let items = fzf#run({'source':refs, 'options':'--no-sort', 'down':'~30%'})
+      if len(items)
+        let ref = items[0]
+      else " user cancelled or entered invalid name
+        let ref = refs[0]
+      endif
+    else
+      echohl WarningMsg
+      echom 'Warning: No .bib files found in file directory.'
+      echohl None
+      let ref = ''
+    endif
+    return ref
+  endfunction
+
+  " Toggle func
+  function s:citation_vim_toggle(...)
+    let mode_prev = b:citation_vim_mode
+    let file_prev = b:citation_vim_bibtex_file
+    if a:0
+      let b:citation_vim_mode = (a:1 ? 'bibtex' : 'zotero')
+    elseif b:citation_vim_mode == 'bibtex'
+      let b:citation_vim_mode = 'zotero'
+    else
+      let b:citation_vim_mode = 'bibtex'
+    endif
+    " Toggle
+    if b:citation_vim_mode == 'bibtex'
+      if b:citation_vim_bibtex_file == ''
+        let b:citation_vim_bibtex_file = s:citation_vim_bibfile()
+      endif
+      echom "Using BibTex file: " . expand(b:citation_vim_bibtex_file)
+    else
+      echom "Using Zotero database: " . expand(g:citation_vim_zotero_path)
+    endif
+    " Delete cache
+    if mode_prev != b:citation_vim_mode || file_prev != b:citation_vim_bibtex_file
+      call delete(expand(g:citation_vim_cache_path . '/citation_vim_cache'))
+    endif
+  endfunction
+  command! BibtexToggle call <sid>bibtex_toggle()
+endif
