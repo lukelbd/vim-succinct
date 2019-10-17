@@ -495,9 +495,6 @@ if g:loaded_unite && &rtp =~ 'citation.vim\/'
   command! BibtexToggle call <sid>bibtex_toggle()
 
   " Citation maps
-  if exists('g:textools_bibtextoggle_map')
-    exe 'nnoremap <silent> <buffer> ' . g:textools_bibtextoggle_map . ' :BibtexToggle<CR>'
-  endif
   if !exists('g:textools_citation_maps')
     let g:textools_citation_maps = {'c':'', 't':'t', 'p':'p', 'n':'num'}
   endif
