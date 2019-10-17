@@ -492,7 +492,7 @@ if g:loaded_unite && &rtp =~ 'citation.vim\/'
       call delete(expand(g:citation_vim_cache_path . '/citation_vim_cache'))
     endif
   endfunction
-  command! BibtexToggle call <sid>bibtex_toggle()
+  command! BibtexToggle call <sid>citation_vim_toggle()
 
   " Citation maps
   if !exists('g:textools_citation_maps')
