@@ -173,7 +173,7 @@ if exists('g:loaded_surround') && g:loaded_surround
   nnoremap <buffer> <silent> dsT :call textools#delete_delims(
     \ '\\begin{[^}]\+}\_s*', '\_s*\\end{[^}]\+}')
   nnoremap <buffer> <silent> csT :call textools#change_delims(
-    \ '\\begin{\([^}]\+\)}', '\\end{\([^}]\)\+}', input('\begin{'))
+    \ '\\begin{\([^}]\+\)}', '\\end{\([^}]\)\+}', input('\begin{'))<CR>
 
   " Quotations
   call s:add_delim("'", '`',  "'")
