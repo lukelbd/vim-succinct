@@ -162,7 +162,7 @@ if exists('g:loaded_surround') && g:loaded_surround
   function! s:add_snippet(map, value)
     exe 'inoremap <buffer> ' . g:textools_snippet_prefix . a:map . ' ' . a:value
   endfunction
-  function! s:environ(name) " helper for change begin end
+  function! s:environ(name) " helper for csT
     return '\begin{' . a:name . "}\r" . '\end{' . a:name . '}'
   endfunction
 
@@ -177,7 +177,7 @@ if exists('g:loaded_surround') && g:loaded_surround
   nnoremap <buffer> <silent> dsT :call textools#delete_delims(
     \ '\\begin{[^}]\+}\_s*', '\_s*\\end{[^}]\+}')<CR>
   nnoremap <buffer> <silent> csT :call textools#change_delims(
-    \ '\\begin{\([^}]\+\)}', '\\end{\([^}]\)\+}', <sid>environ(input('\begin{')))<CR>
+    \ '\\begin{[^}]\+}', '\\end{[^}]\+}', <sid>environ(input('\begin{')))<CR>
 
   " Quotations
   call s:add_delim("'", '`',  "'")
