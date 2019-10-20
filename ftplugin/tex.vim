@@ -29,11 +29,11 @@ let s:vim8 = has('patch-8.0.0039') && exists('*job_start')
 let s:path = expand('<sfile>:p:h')
 function! s:latex_background(...)
   if !s:vim8
-    echom "Error: Latex compilation requires vim >= 8.0"
+    echom 'Error: Latex compilation requires vim >= 8.0'
     return 1
   endif
   " Jump to logfile if it is open, else open one
-  " WARNING: Trailing space will be escaped as a flag! So trim it unless
+  " Warning: Trailing space will be escaped as a flag! So trim it unless
   " we have any options
   let opts = trim(a:0 ? a:1 : '') " flags
   if opts != ''
@@ -71,10 +71,11 @@ endif
 if exists('*textobj#user#plugin')
   " TeX plugin definitions
   " Copied from: https://github.com/rbonvall/vim-textobj-latex/blob/master/ftplugin/tex/textobj-latex.vim
-  " so the names could be changed
+  " so the names could be changed. Also changed begin end modes so they make more sense.
+  " 'pattern': ['\\begin{[^}]\+}.*\n\s*', '\n^\s*\\end{[^}]\+}.*$'],
   let s:tex_textobjs_dict = {
     \   'environment': {
-    \     'pattern': ['\\begin{[^}]\+}.*\n', '\\end{[^}]\+}.*$'],
+    \     'pattern': ['\\begin{[^}]\+}.*\n', '\\end{[^}]\+}'],
     \     'select-a': '<buffer> aT',
     \     'select-i': '<buffer> iT',
     \   },
@@ -161,19 +162,22 @@ if exists('g:loaded_surround') && g:loaded_surround
   function! s:add_snippet(map, value)
     exe 'inoremap <buffer> ' . g:textools_snippet_prefix . a:map . ' ' . a:value
   endfunction
+  function! s:environ(name) " helper for change begin end
+    return '\begin{' . a:name . "}\r" . '\end{' . a:name . '}'
+  endfunction
 
   " Latex commands
   call s:add_delim('t', "\\\1command: \1{", '}')
   nnoremap <buffer> <silent> dst :call textools#delete_delims(
     \ '\\\w*{', '}')<CR>
   nnoremap <buffer> <silent> cst :call textools#change_delims(
-    \ '\\\(\w*\){', '}', input('command: '))<CR>
+    \ '\\\w*{', '}', '\' . input('command: ') . "{\r}")<CR>
   " Latex environments
   call s:add_delim('T', "\\begin{\1\\begin{\1}", "\n"."\\end{\1\1}")
   nnoremap <buffer> <silent> dsT :call textools#delete_delims(
-    \ '\\begin{[^}]\+}\_s*', '\_s*\\end{[^}]\+}')
+    \ '\\begin{[^}]\+}\_s*', '\_s*\\end{[^}]\+}')<CR>
   nnoremap <buffer> <silent> csT :call textools#change_delims(
-    \ '\\begin{\([^}]\+\)}', '\\end{\([^}]\)\+}', input('\begin{'))<CR>
+    \ '\\begin{\([^}]\+\)}', '\\end{\([^}]\)\+}', <sid>environ(input('\begin{')))<CR>
 
   " Quotations
   call s:add_delim("'", '`',  "'")
@@ -197,11 +201,11 @@ if exists('g:loaded_surround') && g:loaded_surround
   nnoremap <buffer> <silent> ds{ :call textools#delete_delims('\\left\\{', '\\right\\}')<CR>
   nnoremap <buffer> <silent> ds< :call textools#delete_delims('\\left<', '\\right>')<CR>
   nnoremap <buffer> <silent> ds\| :call textools#delete_delims('\\left\\|', '\\right\\|')<CR>
-  nnoremap <buffer> <silent> cs( :call textools#change_delims('\\left(', '\\right)', '')<CR>
-  nnoremap <buffer> <silent> cs[ :call textools#change_delims('\\left\[', '\\right\]', '')<CR>
-  nnoremap <buffer> <silent> cs{ :call textools#change_delims('\\left\\{', '\\right\\}', '')<CR>
-  nnoremap <buffer> <silent> cs< :call textools#change_delims('\\left<', '\\right>', '')<CR>
-  nnoremap <buffer> <silent> cs\| :call textools#change_delims('\\left\\|', '\\right\\|', '')<CR>
+  nnoremap <buffer> <silent> cs( :call textools#change_delims('\\left(', '\\right)')<CR>
+  nnoremap <buffer> <silent> cs[ :call textools#change_delims('\\left\[', '\\right\]')<CR>
+  nnoremap <buffer> <silent> cs{ :call textools#change_delims('\\left\\{', '\\right\\}')<CR>
+  nnoremap <buffer> <silent> cs< :call textools#change_delims('\\left<', '\\right>')<CR>
+  nnoremap <buffer> <silent> cs\| :call textools#change_delims('\\left\\|', '\\right\\|')<CR>
 
   " Define bracket insert targets so that users can switch between
   " \left and \right style braces and ordinary ones
@@ -215,11 +219,11 @@ if exists('g:loaded_surround') && g:loaded_surround
   nnoremap <buffer> <silent> dsB :call textools#delete_delims('{', '}')<CR>
   nnoremap <buffer> <silent> dsr :call textools#delete_delims('\[', '\]')<CR>
   nnoremap <buffer> <silent> dsa :call textools#delete_delims('<', '>')<CR>
-  nnoremap <buffer> <silent> csb :call textools#change_delims('(', ')', '')<CR>
-  nnoremap <buffer> <silent> csc :call textools#change_delims('{', '}', '')<CR>
-  nnoremap <buffer> <silent> csB :call textools#change_delims('{', '}', '')<CR>
-  nnoremap <buffer> <silent> csr :call textools#change_delims('\[', '\]', '')<CR>
-  nnoremap <buffer> <silent> csa :call textools#change_delims('<', '>', '')<CR>
+  nnoremap <buffer> <silent> csb :call textools#change_delims('(', ')')<CR>
+  nnoremap <buffer> <silent> csc :call textools#change_delims('{', '}')<CR>
+  nnoremap <buffer> <silent> csB :call textools#change_delims('{', '}')<CR>
+  nnoremap <buffer> <silent> csr :call textools#change_delims('\[', '\]')<CR>
+  nnoremap <buffer> <silent> csa :call textools#change_delims('<', '>')<CR>
 
   " Arrays and whatnot, analagous to above but point to right
   call s:add_delim('}', '\left\{\begin{array}{ll}', "\n".'\end{array}\right.')
@@ -251,10 +255,6 @@ if exists('g:loaded_surround') && g:loaded_surround
   call s:add_delim('-', '\overline{',   '}')
   call s:add_delim('_', '\cancelto{}{', '}')
 
-  " Boxes, the second one allows stuff to extend into margins
-  call s:add_delim('x', '\boxed{',      '}')
-  call s:add_delim('X', '\fbox{\parbox{\textwidth}{', '}}\medskip')
-
   " Simple enivronments, exponents, etc.
   call s:add_delim('\', '\sqrt{',       '}')
   call s:add_delim('$', '$',            '$')
@@ -264,6 +264,8 @@ if exists('g:loaded_surround') && g:loaded_surround
   call s:add_delim('j', '_{',    '}')
   call s:add_delim('K', '\overset{}{',  '}')
   call s:add_delim('J', '\underset{}{', '}')
+  call s:add_delim('x', '\boxed{',      '}')
+  call s:add_delim('X', '\fbox{\parbox{\textwidth}{', '}}\medskip') " expand into margin
 
   " Sections and titles
   call s:add_delim('~', '\title{',          '}')
@@ -396,7 +398,7 @@ if exists('g:loaded_surround') && g:loaded_surround
   call s:add_snippet('M', ' \textCR<CR>') " for pdfcomment newlines
 
   " Complex snippets
-  " TODO: Why does this still raise error?
+  " Todo: Why does this still raise error?
   " exe "inoremap <buffer> <expr> " . g:textools_snippet_prefix . "_ '\begin{center}\noindent\rule{' . input('fraction: ') . '\textwidth}{0.7pt}\end{center}'"
 endif
 
@@ -404,7 +406,7 @@ endif
 " Citation vim integration
 "-----------------------------------------------------------------------------"
 " Requires pybtex and bibtexparser python modules, and unite.vim plugin
-" NOTE: Set up with macports. By default the +python vim was compiled with
+" Note: Set up with macports. By default the +python vim was compiled with
 " is not on path; access with port select --set pip <pip36|python36>. To
 " install module dependencies, use that pip. Can also install most packages
 " with 'port install py36-module_name' but often get error 'no module
@@ -483,9 +485,9 @@ if g:loaded_unite && &rtp =~ 'citation.vim\/'
       if b:citation_vim_bibtex_file == ''
         let b:citation_vim_bibtex_file = s:citation_vim_bibfile()
       endif
-      echom "Using BibTex file: " . expand(b:citation_vim_bibtex_file)
+      echom 'Using BibTex file: ' . expand(b:citation_vim_bibtex_file)
     else
-      echom "Using Zotero database: " . expand(g:citation_vim_zotero_path)
+      echom 'Using Zotero database: ' . expand(g:citation_vim_zotero_path)
     endif
     " Delete cache
     if mode_prev != b:citation_vim_mode || file_prev != b:citation_vim_bibtex_file

@@ -5,8 +5,8 @@
 "-----------------------------------------------------------------------------"
 " Driver function, accepts left and right delims, and normal mode commands run
 " from the leftmost character of left and right delims. This function sets
-" the mark 'z to the end of each delim, so e.g. 'd`zx' works
-" NOTE: Mark motion commands only work up until and excluding the mark, so
+" the mark 'z to the end of each delim, so expression can be d`zx
+" Note: Mark motion commands only work up until and excluding the mark, so
 " make sure your command accounts for that!
 function! s:pair_action(left, right, lexpr, rexpr)
   " Check
@@ -22,7 +22,7 @@ function! s:pair_action(left, right, lexpr, rexpr)
     return
   endif
   " Delete or change right delim
-  " NOTE: Right must come first!
+  " Note: Right must come first!
   call cursor(l2, c21)
   let [l2, c22] = searchpos(a:right, 'cen')
   call setpos("'z", [0, l2, c22, 0])
@@ -36,15 +36,13 @@ endfunction
 
 " Delete delims
 function! textools#delete_delims(left, right)
-  call s:pair_action(a:left, a:right, "d`zx", "d`zx")
+  call s:pair_action(a:left, a:right, 'd`zx', 'd`zx')
 endfunction
 
-" Change delims
-function! textools#change_delims(left, right, replace)
-  if a:replace != ''
-    let group = '\\(.*\\)' " match for group
-    let nleft = substitute(a:left, group, a:replace, '')
-    let nright = substitute(a:right, group, a:replace, '')
+" Change delims, use input replacement text or existing surround variable
+function! textools#change_delims(left, right, ...)
+  if a:0
+    let [nleft, nright] = split(a:1, "\r")
   else
     let cnum = getchar()
     if exists('b:surround_' . cnum)
