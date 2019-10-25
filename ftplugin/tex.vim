@@ -184,11 +184,6 @@ if exists('g:loaded_surround') && g:loaded_surround
   call s:add_delim('"', '``', "''")
   nnoremap <buffer> <silent> ds' :call textools#delete_delims("`", "'")<CR>
   nnoremap <buffer> <silent> ds" :call textools#delete_delims("``", "''")<CR>
-  " Curly quotations
-  call s:add_delim('q', '‘', '’')
-  call s:add_delim('Q', '“', '”')
-  nnoremap <buffer> <silent> dsq :call textools#delete_delims("‘", "’")<CR>
-  nnoremap <buffer> <silent> dsQ :call textools#delete_delims("“", "”")<CR>
 
   " Math mode brackets
   call s:add_delim('{', '\left\{', '\right\}')
