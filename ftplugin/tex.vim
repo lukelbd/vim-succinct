@@ -304,8 +304,8 @@ if exists('g:loaded_surround') && g:loaded_surround
 
   " Equations tables and lists
   " call s:add_delim(':', '\newpage\hspace{0pt}\vfill', "\n".'\vfill\hspace{0pt}\newpage')
-  call s:add_delim('%', '\begin{align*}', "\n".'\end{align*}') "because it is next to the '$' key
-  call s:add_delim('^', '\begin{equation*}', "\n".'\end{equation*}')
+  call s:add_delim('%', '\begin{align}', "\n".'\end{align}') "because it is next to the '$' key
+  call s:add_delim('^', '\begin{align*}', "\n".'\end{align*}')
   call s:add_delim(',', '\begin{tabular}{', "}\n".'\end{tabular}')
   call s:add_delim('.', '\begin{table}'."\n".'\centering'."\n".'\caption{}'."\n".'\begin{tabular}{', "}\n".'\end{tabular}'."\n".'\end{table}')
   call s:add_delim('*', '\begin{itemize}', "\n".'\end{itemize}')
