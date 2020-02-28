@@ -40,10 +40,10 @@ function! s:latex_background(...)
     let opts = ' ' . opts
   endif
   let texfile = expand('%')
-  let logfile = expand('%:t:r') . '.log'
+  let logfile = 'latexmk.log'
   let lognum = bufwinnr(logfile)
   if lognum == -1
-    silent! exe string(winheight('.')/4) . 'split ' . logfile
+    silent! exe string(winheight('.') / 4) . 'split ' . logfile
     silent! exe winnr('#') . 'wincmd w'
   else
     silent! exe bufwinnr(logfile) . 'wincmd w'
