@@ -59,6 +59,12 @@ cleanup() {
   echo "Removed files: ${files_rm[*]}"
 }
 
+# Commands
+sed=/usr/bin/sed
+gsed=/usr/local/bin/gsed
+[ -x "$sed" ] || raise "/usr/bin/sed not found. How is that even possible..."
+[ -x "$gsed" ] || raise "/usr/local/bin/gsed not found. Use 'brew install coreutils'."
+
 # Parse args
 trap "cleanup" EXIT  # remove files on exit or interruption!
 shopt -s nullglob  # glob-expand into zero entries
@@ -82,7 +88,6 @@ while [ $# -gt 0 ]; do
 done
 [ -n "$filename" ] || raise "Must pass filename."
 [ -r "$filename" ] || raise "File \"$filename\" does not exist."
-type gsed &>/dev/null || raise "Need gsed installed. Use brew install coreutils."
 
 # Get terminal program
 if [ -z "$TERM_PROGRAM" ]; then
@@ -117,8 +122,8 @@ inbraces() {
 }
 # Show only error messages
 errfilter() {
-  cat - | sed -E '/^! |^l\./!d' | sed $'s/^! /\\\n/g' \
-    | grep -A2 '^$' | sed '/^$/d'
+  cat - | $sed -E '/^! |^l\./!d' | $sed $'s/^! /\\\n/g' \
+    | grep -A2 '^$' | $sed '/^$/d'
 }
 # Run latex comand, first arg is 1 or 0, indicates whether to always print message
 run() {
@@ -132,7 +137,7 @@ run() {
     else
       cmd=errfilter
     fi
-    echo "$res" | $cmd | sed 's/^/  /'
+    echo "$res" | $cmd | $sed 's/^/  /'
   fi
 }
 
@@ -144,7 +149,7 @@ nocomments "$filename" | grep '\\animategraphics' &>/dev/null \
 # The -n flag prevents printing every single line after running command
 # nocomments "$filename" | egrep '\\bibliography{.*}|\\printbibliography|\\nobibliography{.*}' &>/dev/null \
 #   && bibliography=true || bibliography=false
-bibfile=$(nocomments "$filename" | gsed -n 's/^.*\\\(bibliography\|nobibliography\|addbibresource\){\(.*\)}.*$/\2/p')
+bibfile=$(nocomments "$filename" | $gsed -n 's/^.*\\\(bibliography\|nobibliography\|addbibresource\){\(.*\)}.*$/\2/p')
 if [ -z "$bibfile" ]; then
   bibliography=false
 else
@@ -175,11 +180,12 @@ nocomments "$filename" | grep 'documentclass.*{beamer}' &>/dev/null \
 # successively; otherwise can be extremely slow, for some strange reason
 texfind() {
   local ext descrip texlive copied names files
-  [ $# -le 2 ] && return 1
   ext="$1"
   descrip="$2"
-  read -r -a names < <(echo "${*:3}" | tr " " "\n" | sort)
-  read -r -a files < <(kpsewhich "${names[*]/%/.${ext}}")
+  [ $# -le 2 ] && return 1
+  echo "$descrip (${#names[@]}): ${names[@]}"
+  names=("${@:3}")
+  read -r -a files < <(kpsewhich "${names[@]/%/.${ext}}" | xargs)
   for name in "${names[@]}"; do
     file="${name}.${ext}"  # file we want
     # TeX distribution sees file, and it's not in current directory
@@ -215,9 +221,9 @@ classfile=$(kpsewhich "$class.cls")
 [ -n "$classfile" ] || raise "You should never see this error, already checked for $class.cls existence, check code."
 read -r -a required < <( \
   nocomments "$classfile" | grep '^.*\\RequirePackage' \
-  | sed 's/\[[^][]*\]//g' | gsed '/\[\|\]/d' \
-  | sed 's/AtEndOfClass{//g' | gsed '/newcommand\|#/d' \
-  | inbraces \
+  | $sed 's/\[[^][]*\]//g' | $gsed '/\[\|\]/d' \
+  | $sed 's/AtEndOfClass{//g' | $gsed '/newcommand\|#/d' \
+  | inbraces | xargs \
 )
 texfind sty "Class sty dependency" "${required[@]}"
 
@@ -225,29 +231,31 @@ texfind sty "Class sty dependency" "${required[@]}"
 # Will also detect \usepackage{package1,package2} lists
 read -r -a packages < <( \
   nocomments "$filename" | grep -E '^.*\\usepackage|^.*\\templatetype' \
-  | sed 's/\[[^][]*\]//g' | gsed '/\[\|\]/d' \
-  | sed 's/AtEndOfClass{//g' | gsed '/newcommand\|#/d' \
-  | inbraces \
+  | $sed 's/\[[^][]*\]//g' | $gsed '/\[\|\]/d' \
+  | $sed 's/AtEndOfClass{//g' | $gsed '/newcommand\|#/d' \
+  | inbraces | xargs \
 )
 texfind sty "Preamble sty file" "${packages[@]}"
 
 # As above but for .bst file
 read -r -a bibstyle < <( \
-  nocomments "$filename" | grep '^.*\\bibliographystyle' | inbraces \
+  nocomments "$filename" | grep '^.*\\bibliographystyle' | inbraces | xargs \
 )
-texfind bst "Bibstyle file" "${bibstyle[0]}"
+texfind bst "Bibstyle file" "${bibstyle[@]}"
 
 # Next beamer theme
 read -r -a themes < <( \
-  nocomments "$filename" | grep '^.*\\usetheme' | inbraces | sed 's/^/beamertheme/' \
+  nocomments "$filename" | grep '^.*\\usetheme' | inbraces \
+  | $sed 's/^/beamertheme/' | xargs \
 )
-texfind sty "Theme file" "${themes[0]}"
+texfind sty "Theme file" "${themes[@]}"
 
 # And beamer color theme
 read -r -a colorthemes < <( \
-  nocomments "$filename" | grep '^.*\\usecolortheme' | inbraces | sed 's/^/beamercolortheme/'
+  nocomments "$filename" | grep '^.*\\usecolortheme' | inbraces \
+  | $sed 's/^/beamercolortheme/' | xargs
 )
-texfind sty "Color theme file" "${colorthemes[0]}"
+texfind sty "Color theme file" "${colorthemes[@]}"
 
 #------------------------------------------------------------------------------#
 # Compile the document(s) and display them
@@ -310,7 +318,7 @@ if $texdiff; then
           $bibtex "$dfilestem"  #&>/dev/null
         fi
         $latex -draftmode "${flags[@]}" "$dfilestem" &>/dev/null
-        $latex "${flags[@]}" "$dfilestem" | sed -E '/^! |^l\./!d' | sed $'s/^! /\\\n/g' | tail +2
+        $latex "${flags[@]}" "$dfilestem" | $sed -E '/^! |^l\./!d' | $sed $'s/^! /\\\n/g' | tail +2
         ! [ -r "$dfilestem.pdf" ] && echo "Warning: Difference PDF not produced" && texdiff=false
       fi
     fi
