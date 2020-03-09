@@ -1,8 +1,106 @@
 "-----------------------------------------------------------------------------"
-" Surrounding delim modifications
-" Since vim-surround does not support the 'dsX' and 'csX' maps for custom
-" delimiters, we define custom functions that can be mapped to 'dsX' and 'csX'
-" for deleting and changing arbitrary delimiters
+" Running latexmk in background
+"-----------------------------------------------------------------------------"
+let s:vim8 = has('patch-8.0.0039') && exists('*job_start')  " copied from autoreload/plug.vim
+let s:path = expand('<sfile>:p:h')
+function! textools#latex_background(...) abort
+  if !s:vim8
+    echohl WarningMsg
+    echom 'Error: Latex compilation requires vim >= 8.0'
+    echohl None
+    return 1
+  endif
+  " Jump to logfile if it is open, else open one
+  " Warning: Trailing space will be escaped as a flag! So trim it unless
+  " we have any options
+  let opts = trim(a:0 ? a:1 : '') " flags
+  if opts !=# ''
+    let opts = ' ' . opts
+  endif
+  let texfile = expand('%')
+  let logfile = 'latexmk.log'
+  let lognum = bufwinnr(logfile)
+  if lognum == -1
+    silent! exe string(winheight('.') / 4) . 'split ' . logfile
+    silent! exe winnr('#') . 'wincmd w'
+  else
+    silent! exe bufwinnr(logfile) . 'wincmd w'
+    silent! 1,$d
+    silent! exe winnr('#') . 'wincmd w'
+  endif
+  " Run job in realtime
+  let num = bufnr(logfile)
+  echom s:path . '/../latexmk'
+  let g:tex_job = job_start(s:path . '/../latexmk ' . texfile . opts,
+      \ { 'out_io': 'buffer', 'out_buf': num })
+endfunction
+
+"-----------------------------------------------------------------------------"
+" Displaying surround and snippet mappings
+"-----------------------------------------------------------------------------"
+function! s:bindings_table(table) abort
+  " Return a nice displayable list of bindings
+  let nspace = max(map(keys(a:table), 'len(v:val)'))
+  let mspace = max(map(values(a:table), 'type(v:val) == 1 ? len(v:val) : len(v:val[0])'))  " might be just string
+  let bindings = []
+  for [key, value] in items(a:table)
+    " Support for tables with 'value' and ['left', 'right'] values
+    if type(value) == 1  " string
+      let values = [value]
+    elseif type(value) == 3  " list
+      let values = value
+    else
+      echohl WarningMsg
+      echom 'Error: Invalid table dictionary'
+      echohl None
+      return
+    endif
+    " Get key and value strings
+    let keystring = key . ':' . repeat(' ', nspace - len(key) + 1)
+    let valstring = ''
+    for i in range(len(values))
+      let val = substitute(values[i], "\n", '\\n', 'g')
+      let quote = (val =~# "'" ? '"' : "'")
+      let suffix = (i < len(values) - 1 && len(values) > 1 ? ',' : '')
+      let suffix .= (i == 0 ? repeat(' ', mspace - len(val) + 3) : '')
+      let valstring .= quote . val . quote . suffix
+    endfor
+    call add(bindings, keystring . valstring)
+  endfor
+  return join(bindings, "\n")
+endfunction
+
+function! textools#show_bindings(prefix, table) abort
+  " Show the entire table
+  let header = 'Table of ' . a:prefix . "<KEY> bindings:\n"
+  echo header . s:bindings_table(a:table)
+endfunction
+
+function! textools#find_bindings(prefix, table, regex) abort
+  " Find the matching entry/entries
+  let table_filtered = {}
+  for [key, value] in items(a:table)
+    if type(value) == 1
+      let val = value
+    else
+      let val = value[0]
+    endif
+    if val =~# a:regex
+      let table_filtered[key] = val
+    endif
+  endfor
+  if len(table_filtered) == 0
+    echohl WarningMsg
+    echom "Error: No mappings found for regex '" . a:regex . "'"
+    echohl None
+    return
+  endif
+  let header = (len(table_filtered) == 1 ? '' : "Bindings matching regex '" . a:regex . "':\n")
+  echo header . s:bindings_table(table_filtered)
+endfunction
+
+"-----------------------------------------------------------------------------"
+" Changing and deleting surrounding delim
 "-----------------------------------------------------------------------------"
 " Driver function that accepts left and right delims, and normal mode commands
 " run from the leftmost character of left and right delims. This function sets
@@ -56,7 +154,8 @@ function! textools#change_delims(left, right, ...) abort
     else
       echohl WarningMsg
       echom 'Warning: Replacement delim code "' . nr2char(cnum) . '" not found.'
-      echohl None | return
+      echohl None
+      return
     endif
   endif
   call s:pair_action(
@@ -68,19 +167,6 @@ endfunction
 "-----------------------------------------------------------------------------"
 " Citation vim integration
 "-----------------------------------------------------------------------------"
-" Run citation vim and enter insert mode
-function! s:citation_vim_run(suffix, opts) abort
-  if b:citation_vim_mode ==# 'bibtex' && b:citation_vim_bibtex_file ==# ''
-    let b:citation_vim_bibtex_file = s:citation_vim_bibfile()
-  endif
-  let g:citation_vim_mode = b:citation_vim_mode
-  let g:citation_vim_outer_prefix = '\cite' . a:suffix . '{'
-  let g:citation_vim_bibtex_file = b:citation_vim_bibtex_file
-  call unite#helper#call_unite('Unite', a:opts, line('.'), line('.'))
-  silent! normal! a
-  return ''
-endfunction
-
 " Ask user to select bibliography files from list
 " Requires special completion function for selecting bibfiles
 function! s:citation_vim_bibfile() abort
@@ -131,4 +217,17 @@ function! textools#citation_vim_toggle(...) abort
   if mode_prev != b:citation_vim_mode || file_prev != b:citation_vim_bibtex_file
     call delete(expand(g:citation_vim_cache_path . '/citation_vim_cache'))
   endif
+endfunction
+
+" Run citation vim and enter insert mode
+function! textools#citation_vim_run(suffix, opts) abort
+  if b:citation_vim_mode ==# 'bibtex' && b:citation_vim_bibtex_file ==# ''
+    let b:citation_vim_bibtex_file = s:citation_vim_bibfile()
+  endif
+  let g:citation_vim_mode = b:citation_vim_mode
+  let g:citation_vim_outer_prefix = '\cite' . a:suffix . '{'
+  let g:citation_vim_bibtex_file = b:citation_vim_bibtex_file
+  call unite#helper#call_unite('Unite', a:opts, line('.'), line('.'))
+  silent! normal! a
+  return ''
 endfunction

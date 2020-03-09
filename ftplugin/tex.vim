@@ -3,6 +3,28 @@
 " Date:   2018-09-10
 " LaTeX specific settings
 "-----------------------------------------------------------------------------"
+" Map prefixes
+if !exists('g:textools_snippet_prefix')
+  let g:textools_snippet_prefix = '<C-z>'
+endif
+if !exists('g:textools_surround_prefix')
+  let g:textools_surround_prefix = '<C-s>'
+endif
+if !exists('g:textools_citation_maps')
+  let g:textools_citation_maps = {'c': '', 't': 't', 'p': 'p', 'n': 'num'}
+endif
+if !exists('g:textools_citation_prefix')
+  let g:textools_citation_prefix = '<C-b>'
+endif
+
+" Latex compiling maps
+command! -nargs=* Latexmk call textools#latex_background(<q-args>)
+if exists('g:textools_latexmk_maps')
+  for [s:map,s:flag] in items(g:textools_latexmk_maps)
+    exe 'noremap <silent> <buffer> ' . s:map . ' :Latexmk ' . s:flag . '<CR>'
+  endfor
+endif
+
 " Restrict concealmeant to just symbols and stuff
 " a=accents/ligatures
 " b=bold/italics
@@ -22,48 +44,6 @@ let g:tex_fold_enable = 1
 let g:tex_comment_nospell = 1
 let g:tex_verbspell = 0
 let g:tex_no_error = 1
-
-" Typesetting LaTeX and displaying PDF viewer
-" Copied s:vim8 from autoreload/plug.vim file
-let s:vim8 = has('patch-8.0.0039') && exists('*job_start')
-let s:path = expand('<sfile>:p:h')
-function! s:latex_background(...)
-  if !s:vim8
-    echom 'Error: Latex compilation requires vim >= 8.0'
-    return 1
-  endif
-  " Jump to logfile if it is open, else open one
-  " Warning: Trailing space will be escaped as a flag! So trim it unless
-  " we have any options
-  let opts = trim(a:0 ? a:1 : '') " flags
-  if opts !=# ''
-    let opts = ' ' . opts
-  endif
-  let texfile = expand('%')
-  let logfile = 'latexmk.log'
-  let lognum = bufwinnr(logfile)
-  if lognum == -1
-    silent! exe string(winheight('.') / 4) . 'split ' . logfile
-    silent! exe winnr('#') . 'wincmd w'
-  else
-    silent! exe bufwinnr(logfile) . 'wincmd w'
-    silent! 1,$d
-    silent! exe winnr('#') . 'wincmd w'
-  endif
-  " Run job in realtime
-  let num = bufnr(logfile)
-  echom s:path . '/../latexmk'
-  let g:tex_job = job_start(s:path . '/../latexmk ' . texfile . opts,
-      \ { 'out_io': 'buffer', 'out_buf': num })
-endfunction
-
-" Latex compiling maps
-command! -nargs=* Latexmk call s:latex_background(<q-args>)
-if exists('g:textools_latexmk_maps')
-  for [s:map,s:flag] in items(g:textools_latexmk_maps)
-    exe 'noremap <silent> <buffer> ' . s:map . ' :Latexmk ' . s:flag . '<CR>'
-  endfor
-endif
 
 "-----------------------------------------------------------------------------"
 " Text object integration
@@ -129,30 +109,155 @@ if exists('*textobj#user#plugin')
     \   },
     \ }
 
-  " Add maps
+  " Add maps with textobj API
   call textobj#user#plugin('latex', s:tex_textobjs_dict)
 endif
 
 
 "-----------------------------------------------------------------------------"
+" Useful latex snippets
+" Todo: Integrate with some snippets plugin?
+"-----------------------------------------------------------------------------"
+" Snippet dictionary
+" \xi is the weird curly one, pronounced 'zai'
+" \chi looks like an x, pronounced 'kai'
+" the 'u' used for {-} and {+} is for 'unary'
+" '_' '\begin{center}\noindent\rule{' . input('fraction: ') . '\textwidth}{0.7pt}\end{center}'
+" \ 'q': '\quad ',
+let s:textools_snippets = {
+  \ '1': '\tiny',
+  \ '2': '\scriptsize',
+  \ '3': '\footnotesize',
+  \ '4': '\small',
+  \ '5': '\normalsize',
+  \ '6': '\large',
+  \ '7': '\Large',
+  \ '8': '\LARGE',
+  \ '9': '\huge',
+  \ '0': '\Huge',
+  \ '<': '\Longrightarrow',
+  \ '>': '\Longrightarrow',
+  \ '*': '\item',
+  \ '/': '\pause',
+  \ 'o': '\partial',
+  \ "'": '\mathrm{d}',
+  \ '"': '\mathrm{D}',
+  \ 'U': '${-}$',
+  \ 'u': '${+}$',
+  \ 'a': '\alpha',
+  \ 'b': '\beta',
+  \ 'c': '\xi',
+  \ 'C': '\Xi',
+  \ 'd': '\delta',
+  \ 'D': '\Delta',
+  \ 'f': '\phi',
+  \ 'F': '\Phi',
+  \ 'g': '\gamma',
+  \ 'G': '\Gamma',
+  \ 'K': '\kappa',
+  \ 'l': '\lambda',
+  \ 'L': '\Lambda',
+  \ 'm': '\mu',
+  \ 'n': '\nabla',
+  \ 'v': '\nu',
+  \ 'e': '\epsilon',
+  \ 'h': '\eta',
+  \ 'p': '\pi',
+  \ 'P': '\Pi',
+  \ 'q': '\theta',
+  \ 'Q': '\Theta',
+  \ 'r': '\rho',
+  \ 's': '\sigma',
+  \ 'S': '\Sigma',
+  \ 't': '\tau',
+  \ 'T': '\chi',
+  \ 'y': '\psi',
+  \ 'Y': '\Psi',
+  \ 'w': '\omega',
+  \ 'W': '\Omega',
+  \ 'z': '\zeta',
+  \ 'i': '\int',
+  \ 'I': '\iint',
+  \ '-': '${-}$',
+  \ '+': '\sum',
+  \ 'x': '\times',
+  \ 'X': '\prod',
+  \ 'O': '$^\circ$',
+  \ '=': '\equiv',
+  \ '~': '{\sim}',
+  \ 'k': '^',
+  \ 'j': '_',
+  \ 'E': '\times10^{}<Left>',
+  \ '.': '\cdot',
+  \ ',': '\, ',
+  \ ':': '\: ',
+  \ ';': '\; ',
+  \ 'M': ' \textCR<CR>',
+\ }
+
+" Apply snippets mappings
+exe 'inoremap ' . g:textools_snippet_prefix . '<Esc> <Nop>'
+for [s:binding, s:snippet] in items(s:textools_snippets)
+  exe 'inoremap <buffer> ' . g:textools_snippet_prefix . s:binding . ' ' . s:snippet
+endfor
+
+" Table and find
+command! -nargs=0 SnippetShow call textools#show_bindings(g:textools_snippet_prefix, s:textools_snippets)
+command! -nargs=+ SnippetFind call textools#find_bindings(g:textools_snippet_prefix, s:textools_snippets, <q-args>)
+
+"-----------------------------------------------------------------------------"
+" Changing and deleting surrounding stuff
+"-----------------------------------------------------------------------------"
+" Dictionary of bindings. Include bracket insert targets so that users can
+" switch between \left and \right style braces and ordinary ones
+" Todo: Add back \_s* to end of 'T' left delim and sart of right delim?
+" Note: This works best with surround-vim installed, but does still work without.
+function! s:environ(name)  " helper for csT
+  return '\begin{' . a:name . "}\r" . '\end{' . a:name . '}'
+endfunction
+let s:textools_surround_delete_change = {
+  \ 't':  ['\\\w*{',          '}',             '"\\" . input("command: ") . "{\r}"'],
+  \ 'T':  ['\\begin{[^}]\+}', '\\end{[^}]\+}', "<sid>environ(input('\\begin{'))"],
+  \ "'":  ['`',               "'"],
+  \ '"':  ['``',              "''"],
+  \ 'b':  ['(',               ')'],
+  \ 'c':  ['{',               '}'],
+  \ 'B':  ['{',               '}'],
+  \ 'r':  ['\[',              '\]'],
+  \ 'a':  ['<',               '>'],
+  \ '(':  ['\\left(',         '\\right)'],
+  \ '[':  ['\\left\[',        '\\right\]'],
+  \ '{':  ['\\left\\{',       '\\right\\}'],
+  \ '<':  ['\\left<',         '\\right>'],
+  \ '\|': ['\\left\\|',       '\\right\\|'],
+\ }
+
+" Apply surround mappings
+" Note: When 'replacement' value is empty, we wait for user to type
+" in a character and use the corresponding mapped surround delimiter.
+for [s:binding, s:pair] in items(s:textools_surround_delete_change)
+  let [s:left, s:right; s:extra] = s:pair
+  if len(s:extra) == 0
+    let s:replace = ''
+  else
+    let s:replace = ', ' . s:extra[0]  " note extra will be eval'd
+  endif
+  exe 'nnoremap <buffer> <silent> ds' . s:binding . " :call textools#delete_delims('"
+    \ . s:left . "', '" . s:right . "')<CR>"
+  exe 'nnoremap <buffer> <silent> cs' . s:binding . " :call textools#change_delims('"
+    \ . s:left . "', '" . s:right . "'" . s:replace . ')<CR>'
+endfor
+
+
+"-----------------------------------------------------------------------------"
 " Vim-surround integration
 "-----------------------------------------------------------------------------"
-if !exists('g:textools_delim_prefix')
-  let g:textools_delim_prefix = '<C-s>'
-endif
-
-if !exists('g:textools_snippet_prefix')
-  let g:textools_snippet_prefix = '<C-z>'
-endif
-
 if exists('g:loaded_surround') && g:loaded_surround
   " Apply prefix mapping
   " Note: Lowercase Isurround plug inserts delims without newlines. Instead of
   " using ISurround we define special begin end delims with newlines baked in.
-  exe 'vmap ' . g:textools_delim_prefix   . ' <Plug>VSurround'
-  exe 'imap ' . g:textools_delim_prefix   . ' <Plug>Isurround'
-  exe 'imap ' . g:textools_delim_prefix   . '<Esc> <Nop>'
-  exe 'imap ' . g:textools_snippet_prefix . '<Esc> <Nop>'
+  exe 'vmap ' . g:textools_surround_prefix   . ' <Plug>VSurround'
+  exe 'imap ' . g:textools_surround_prefix   . ' <Plug>Isurround'
 
   " Brackets and environments
   " ':': ['\newpage\hspace{0pt}\vfill', "\n".'\vfill\hspace{0pt}\newpage'],
@@ -177,6 +282,7 @@ if exists('g:loaded_surround') && g:loaded_surround
     \ '}': ['\left\{\begin{array}{ll}',         "\n" . '\end{array}\right.'],
     \ ')': ['\begin{pmatrix}',                  "\n" . '\end{pmatrix}'],
     \ ']': ['\begin{bmatrix}',                  "\n" . '\end{bmatrix}'],
+    \ '>': ['\uncover<X>{%',                    "\n" . '}'],
     \ "'": ['`',                                "'"],
     \ '"': ['``',                               "''"],
     \ 'y': ['\texttt{',                         '}'],
@@ -223,7 +329,6 @@ if exists('g:loaded_surround') && g:loaded_surround
     \ '0': ['\tag{',                            '}'],
     \ 'a': ['\caption{',                        '}'],
     \ 'A': ['\captionof{figure}{',              '}'],
-    \ '>': ['\uncover<X>{%',                    "\n" . '}'],
     \ 's': ['\begin{frame}',                    "\n" . '\end{frame}'],
     \ 'S': ['\begin{frame}[fragile]',           "\n" . '\end{frame}'],
     \ 'z': ['\begin{column}{0.5\textwidth}',    "\n" . '\end{column}'],
@@ -236,165 +341,51 @@ if exists('g:loaded_surround') && g:loaded_surround
     \ '#': ['\begin{enumerate}',                "\n" . '\end{enumerate}'],
     \ '@': ['\begin{enumerate}[label=\alph*.]', "\n" . '\end{enumerate}'],
     \ 'g': [
-      \ '\includegraphics[width=\textwidth]{',
-      \ '}'
-      \ ],
+    \   '\includegraphics[width=\textwidth]{',
+    \   '}'
+    \ ],
     \ 'G': [
-      \ '\makebox[\textwidth][c]{\includegraphics[width=\textwidth]{',
-      \ '}}'
-      \ ],
+    \   '\makebox[\textwidth][c]{\includegraphics[width=\textwidth]{',
+    \   '}}'
+    \ ],
     \ 'f': [
-      \ '\begin{center}' . "\n" . '\centering' . "\n" . '\includegraphics{',
-      \ "}\n" . '\end{center}'
-      \ ],
+    \   '\begin{center}' . "\n" . '\centering' . "\n" . '\includegraphics{',
+    \   "}\n" . '\end{center}'
+    \ ],
     \ 'F': [
-      \ '\begin{figure}' . "\n" . '\centering' . "\n" . '\includegraphics{',
-      \ "}\n" . '\end{figure}'
-      \ ],
-    \ 'P': [
-      \ '\begin{minipage}{\linewidth}',
-      \ "\n" . '\end{minipage}'
-      \ ],
+    \   '\begin{figure}' . "\n" . '\centering' . "\n" . '\includegraphics{',
+    \   "}\n" . '\end{figure}'
+    \ ],
     \ 'w': [
-      \ '{\usebackgroundtemplate{}\begin{frame}',
-      \ "\n" . '\end{frame}}'
-      \ ],
+    \   '{\usebackgroundtemplate{}\begin{frame}',
+    \   "\n" . '\end{frame}}'
+    \ ],
     \ 'W': [
-      \ '\begin{wrapfigure}{r}{0.5\textwidth}' . "\n" . '\centering' . "\n" . '\includegraphics{',
-      \ "}\n" . '\end{wrapfigure}'
-      \ ],
+    \   '\begin{wrapfigure}{r}{0.5\textwidth}' . "\n" . '\centering' . "\n" . '\includegraphics{',
+    \   "}\n" . '\end{wrapfigure}'
+    \ ],
+    \ 'p': [
+    \   '\begin{minipage}{\linewidth}',
+    \   "\n" . '\end{minipage}'
+    \ ],
     \ '.': [
-      \ '\begin{table}' . "\n" . '\centering' . "\n" . '\caption{}' . "\n" . '\begin{tabular}{',
-      \ "}\n" . '\end{tabular}' . "\n" . '\end{table}'
-      \ ],
+    \   '\begin{table}' . "\n" . '\centering' . "\n" . '\caption{}' . "\n" . '\begin{tabular}{',
+    \   "}\n" . '\end{tabular}' . "\n" . '\end{table}'
+    \ ],
   \ }
 
-  " Maps for *deleting* and *changing* surrounding stuff
-  " Include bracket insert targets so that users can switch between
-  " \left and \right style braces and ordinary ones
-  " Todo: Add back \_s* to end of 'T' left delim and sart of right delim?
-  function! s:environ(name)  " helper for csT
-    return '\begin{' . a:name . "}\r" . '\end{' . a:name . '}'
-  endfunction
-  let s:textools_surround_delete_change = {
-    \ 't': ['\\\w*{',          '}',             '"\\" . input("command: ") . "{\r}"'],
-    \ 'T': ['\\begin{[^}]\+}', '\\end{[^}]\+}', "<sid>environ(input('\\begin{'))"],
-    \ "'": ['`',               "'"],
-    \ '"': ['``',              "''"],
-    \ 'b': ['(',               ')'],
-    \ 'c': ['{',               '}'],
-    \ 'B': ['{',               '}'],
-    \ 'r': ['\[',              '\]'],
-    \ 'a': ['<',               '>'],
-    \ '(': ['\\left(',         '\\right)'],
-    \ '[': ['\\left\[',        '\\right\]'],
-    \ '{': ['\\left\\{',       '\\right\\}'],
-    \ '<': ['\\left<',         '\\right>'],
-    \ '\|': ['\\left\\|',      '\\right\\|'],
-  \ }
-
-  " Snippet dictionary
-  " \xi is the weird curly one, pronounced 'zai'
-  " \chi looks like an x, pronounced 'kai'
-  " the 'u' used for {-} and {+} is for 'unary'
-  " '_' '\begin{center}\noindent\rule{' . input('fraction: ') . '\textwidth}{0.7pt}\end{center}'
-  " \ 'q': '\quad ',
-  let s:textools_snippets = {
-    \ '1': '\tiny',
-    \ '2': '\scriptsize',
-    \ '3': '\footnotesize',
-    \ '4': '\small',
-    \ '5': '\normalsize',
-    \ '6': '\large',
-    \ '7': '\Large',
-    \ '8': '\LARGE',
-    \ '9': '\huge',
-    \ '0': '\Huge',
-    \ '<': '\Longrightarrow',
-    \ '>': '\Longrightarrow',
-    \ '*': '\item',
-    \ '/': '\pause',
-    \ 'o': '\partial',
-    \ "'": '\mathrm{d}',
-    \ '"': '\mathrm{D}',
-    \ 'U': '${-}$',
-    \ 'u': '${+}$',
-    \ 'a': '\alpha',
-    \ 'b': '\beta',
-    \ 'c': '\xi',
-    \ 'C': '\Xi',
-    \ 'd': '\delta',
-    \ 'D': '\Delta',
-    \ 'f': '\phi',
-    \ 'F': '\Phi',
-    \ 'g': '\gamma',
-    \ 'G': '\Gamma',
-    \ 'K': '\kappa',
-    \ 'l': '\lambda',
-    \ 'L': '\Lambda',
-    \ 'm': '\mu',
-    \ 'n': '\nabla',
-    \ 'v': '\nu',
-    \ 'e': '\epsilon',
-    \ 'h': '\eta',
-    \ 'p': '\pi',
-    \ 'P': '\Pi',
-    \ 'q': '\theta',
-    \ 'Q': '\Theta',
-    \ 'r': '\rho',
-    \ 's': '\sigma',
-    \ 'S': '\Sigma',
-    \ 't': '\tau',
-    \ 'T': '\chi',
-    \ 'y': '\psi',
-    \ 'Y': '\Psi',
-    \ 'w': '\omega',
-    \ 'W': '\Omega',
-    \ 'z': '\zeta',
-    \ 'i': '\int',
-    \ 'I': '\iint',
-    \ '-': '${-}$',
-    \ '+': '\sum',
-    \ 'x': '\times',
-    \ 'X': '\prod',
-    \ 'O': '$^\circ$',
-    \ '=': '\equiv',
-    \ '~': '{\sim}',
-    \ 'k': '^',
-    \ 'j': '_',
-    \ 'E': '\times10^{}<Left>',
-    \ '.': '\cdot',
-    \ ',': '\, ',
-    \ ':': '\: ',
-    \ ';': '\; ',
-    \ 'M': ' \textCR<CR>',
-  \ }
-
-  " Apply delimiters and snippets
-  for [s:binding, s:snippet] in items(s:textools_snippets)
-    exe 'inoremap <buffer> ' . g:textools_snippet_prefix . s:binding . ' ' . s:snippet
-  endfor
-
+  " Apply delimiters mappings
+  exe 'inoremap ' . g:textools_surround_prefix   . '<Esc> <Nop>'
   for [s:binding, s:pair] in items(s:textools_surround)
     let [s:left, s:right] = s:pair
     let b:surround_{char2nr(s:binding)} = s:left . "\r" . s:right
   endfor
 
-  for [s:binding, s:pair] in items(s:textools_surround_delete_change)
-    " Note: When 'replacement' value is empty, we wait for user to type
-    " in a character and use the corresponding mapped surround delimiter.
-    let [s:left, s:right; s:extra] = s:pair
-    if len(s:extra) == 0
-      let s:replace = ''
-    else
-      let s:replace = ', ' . s:extra[0]
-    endif
-    exe 'nnoremap <buffer> <silent> ds' . s:binding . " :call textools#delete_delims('"
-      \ . s:left . "', '" . s:right . "')<CR>"
-    exe 'nnoremap <buffer> <silent> cs' . s:binding . " :call textools#change_delims('"
-      \ . s:left . "', '" . s:right . "'" . s:replace . ')<CR>'
-  endfor
+  " Table and find
+  command! -nargs=0 SurroundShow call textools#show_bindings(g:textools_surround_prefix, s:textools_surround)
+  command! -nargs=+ SurroundFind call textools#find_bindings(g:textools_surround_prefix, s:textools_surround, <q-args>)
 endif
+
 
 "-----------------------------------------------------------------------------"
 " Citation vim integration
@@ -407,9 +398,6 @@ endif
 " named pkg_resources'; see this thread: https://stackoverflow.com/a/10538412/4970632
 if g:loaded_unite && &rtp =~# 'citation.vim'
   " Default settings
-  if !exists('g:textools_surround_prefix')
-    let g:textools_citation_prefix = '<C-b>'
-  endif
   let b:citation_vim_mode = 'bibtex'
   let b:citation_vim_bibtex_file = ''
 
@@ -427,14 +415,11 @@ if g:loaded_unite && &rtp =~# 'citation.vim'
   let g:citation_vim_opts = '-start-insert -buffer-name=citation -ignorecase -default-action=append citation/key'
 
   " Command and mappings
-  command! BibtexToggle call textools#citation_vim_toggle()
-  if !exists('g:textools_citation_maps')
-    let g:textools_citation_maps = {'c': '', 't': 't', 'p': 'p', 'n': 'num'}
-  endif
+  command! SourceToggle call textools#citation_vim_toggle()
   for [s:map, s:tex] in items(g:textools_citation_maps)
     exe 'inoremap <silent> <buffer> ' . g:textools_citation_prefix
-    \ . s:map . ' <Esc>:call <sid>citation_vim_run("'
-    \ . s:tex . '", g:citation_vim_opts)<CR>'
-    \ . '")'
+      \ . s:map . ' <Esc>:call textools#citation_vim_run("'
+      \ . s:tex . '", g:citation_vim_opts)<CR>'
+      \ . '")'
   endfor
 endif

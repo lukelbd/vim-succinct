@@ -36,7 +36,11 @@ This set of tools is complex and would take quite a while to document. For now I
 | Command | Description |
 | ---- | ---- |
 | `:Latexmk` | Runs the custom [latexmk script](latexmk). This typesets the document asynchronously, shows a condensed log in a popup split window, and opens the file in the [Skim PDF viewer](https://en.wikipedia.org/wiki/Skim_(software)). It automatically detects the number of times the typesetting command must be called, like the original `latexmk`, automatically figures out which typesetting engine to use based on the packages imported, automatically copies over custom user style and theme files from a `~/latex` folder, and deletes extra files generated during typesetting. Run `:Latexmk --help` for more info. |
-| `:BibtexToggle` | Toggles between [citation.vim](https://github.com/rafaqz/citation.vim) using bibtex or Zotero for retrieving citations for the current file. The default is bibtex. |
+| `:SnippetFind` | Find the snippet mapping that matches the input regex. |
+| `:SnippetShow` | Show a table of the current snippet mappings. |
+| `:SurroundFind` | Find the delimiter mapping that matches the input regex. |
+| `:SurroundShow` | Show a table of the current delimiter mappings. |
+| `:SourceToggle` | Toggles between [citation.vim](https://github.com/rafaqz/citation.vim) using bibtex or Zotero for retrieving citations for the current file. The default is bibtex. |
 
 ## Mappings
 
@@ -50,7 +54,7 @@ This set of tools is complex and would take quite a while to document. For now I
 
 ## Functions
 | Function | Description |
-| ---- | ---- |
+  | ---- | ---- |
 | `textools#delete_delims` | Deletes arbitrary delimiters around the cursor. Arguments are a left delimiter regex and a right delimiter regex. This is best used in a normal mode mapping that looks like `ds<key>`. |
 | `textools#change_delims` | Changes arbitrary delimiters. Arguments are a left delimiter regex, right delimiter regex, and a replacement indicator. This can be a non-empty string, used for both left and right delimiters, or an empty string, in which case the function reads the next character pressed by the user and uses the corresponding delimiter. This is best used in a normal mode mapping that looks like `cs<key>`. |
 
@@ -58,7 +62,7 @@ This set of tools is complex and would take quite a while to document. For now I
 
 | Option | Description |
 | ---- | ---- |
-| `g:textools_delim_prefix` | Prefix for the insert mode and visual mode vim-surround mappings. The default is `<C-s>`, which is intuitive but requires adding `bind -r '"\C-s"'` to your `~/.bashrc` or `~/.bash_profile`. |
+| `g:textools_surround_prefix` | Prefix for the insert mode and visual mode vim-surround mappings. The default is `<C-s>`, which is intuitive but requires adding `bind -r '"\C-s"'` to your `~/.bashrc` or `~/.bash_profile`. |
 | `g:textools_snippet_prefix` | Prefix for the snippet insert mappings. The default is `<C-z>`. |
 | `g:textools_citation_prefix` | Prefix for the citation insert mappings. The default is `<C-b>`. |
 | `g:textools_citation_maps` | Dictionary of citation insert mapping suffixes and LaTeX cite commands. The default is `let g:textools_citation_maps = {'c':'', 't':'t', 'p':'p', 'n':'num'}`, which inserts `\cite{ref}` when `<C-b>c` is pressed, `\citet{ref}` when `<C-b>t` is pressed, etc. |
