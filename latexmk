@@ -66,7 +66,7 @@ gsed=/usr/local/bin/gsed
 [ -x "$gsed" ] || raise "/usr/local/bin/gsed not found. Use 'brew install coreutils'."
 
 # Parse args
-trap "cleanup" EXIT  # remove files on exit or interruption!
+trap cleanup EXIT  # remove files on exit or interruption!
 shopt -s nullglob  # glob-expand into zero entries
 raw=false
 latex=pdflatex  # by default use pdflatex
@@ -178,12 +178,12 @@ nocomments "$filename" | grep 'documentclass.*{beamer}' &>/dev/null \
 # Find LaTeX files with kpsewhich, and if not present, copy from custom folder
 # Important to call kpsewhich with a list of files rather than calling it
 # successively; otherwise can be extremely slow, for some strange reason
+# echo "$descrip (${#names[@]}): ${names[@]}"
 texfind() {
   local ext descrip texlive copied names files
   ext="$1"
   descrip="$2"
   [ $# -le 2 ] && return 1
-  echo "$descrip (${#names[@]}): ${names[@]}"
   names=("${@:3}")
   read -r -a files < <(kpsewhich "${names[@]/%/.${ext}}" | xargs)
   for name in "${names[@]}"; do
