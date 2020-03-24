@@ -1,7 +1,7 @@
 # LaTeX tools
 This is a collection of custom tools and plugin enhancements for working with LaTeX files in vim, similar to [vimtex](https://github.com/lervag/vimtex).
 
-It includes integration with the [vim-text-obj](https://github.com/kana/vim-textobj-user), [surround.vim](https://github.com/tpope/vim-surround), [delimitMate](https://github.com/Raimondi/delimitMate), and [citation.vim](https://github.com/rafaqz/citation.vim) plugins that make editing LaTeX documents a breeze, and a custom [latexmk](latexmk) script that omits some features from the more ubiquitous [program of the same name](https://mg.readthedocs.io/latexmk.html) and adds useful new features. It also adds a templating engine -- when you open a new `.tex` file, a popup window allows you to load arbitrary `.tex` file templates stored in a `~/latex` folder. This requires the [FZF](https://github.com/junegunn/fzf) vim plugin.
+It includes integration with the [vim-text-obj](https://github.com/kana/vim-textobj-user), [vim-surround](https://github.com/tpope/vim-surround), [delimitMate](https://github.com/Raimondi/delimitMate), and [citation.vim](https://github.com/rafaqz/citation.vim) plugins that make editing LaTeX documents a breeze, and a custom [latexmk](latexmk) script that omits some features from the more ubiquitous [program of the same name](https://mg.readthedocs.io/latexmk.html) and adds useful new features. It also adds a templating engine -- when you open a new `.tex` file, a popup window allows you to load arbitrary `.tex` file templates stored in a `~/latex` folder. This requires the [FZF](https://github.com/junegunn/fzf) vim plugin.
 
 This set of tools is complex and would take quite a while to document. For now I will just give a broad summary of the features and expect any users to dig into the vimscript code to get the full picture.
 
@@ -55,20 +55,27 @@ This set of tools is complex and would take quite a while to document. For now I
 ## Functions
 | Function | Description |
   | ---- | ---- |
-| `textools#delete_delims` | Deletes arbitrary delimiters around the cursor. Arguments are a left delimiter regex and a right delimiter regex. This is best used in a normal mode mapping that looks like `ds<key>`. |
-| `textools#change_delims` | Changes arbitrary delimiters. Arguments are a left delimiter regex, right delimiter regex, and a replacement indicator. This can be a non-empty string, used for both left and right delimiters, or an empty string, in which case the function reads the next character pressed by the user and uses the corresponding delimiter. This is best used in a normal mode mapping that looks like `cs<key>`. |
+| `textools#delete_delims` | The existing [vim-surround](https://github.com/tpope/vim-surround) API can only handle deleting certain types of delimiters, not custom delimiters set with `g:surround_{num}` or `b:surround_{num}`. Calling this function deletes the *arbitrary* delimiter corresponding to the next keystroke (usage is `ds<key>`). |
+| `textools#change_delims` | The existing [vim-surround](https://github.com/tpope/vim-surround) API can only handle changing certain types of delimiters, not custom delimiters set with `g:surround_{num}` or `b:surround_{num}`. Calling this function changes the delimiter corresponding to the first keystroke to the *arbitrary* delimiter corresponding to the second keystroke (usage is `cs<key1><key2>`). |
 
 ## Customization
 
 | Option | Description |
 | ---- | ---- |
-| `g:textools_surround_prefix` | Prefix for the insert mode and visual mode vim-surround mappings. The default is `<C-s>`, which is intuitive but requires adding `bind -r '"\C-s"'` to your `~/.bashrc` or `~/.bash_profile`. |
+| `g:textools_surround_prefix` | Prefix for the insert and visual mode vim-surround mappings. The default is `<C-s>`, which is intuitive but requires adding `bind -r '"\C-s"'` to your `~/.bashrc` or `~/.bash_profile`. |
 | `g:textools_snippet_prefix` | Prefix for the snippet insert mappings. The default is `<C-z>`. |
 | `g:textools_citation_prefix` | Prefix for the citation insert mappings. The default is `<C-b>`. |
 | `g:textools_citation_maps` | Dictionary of citation insert mapping suffixes and LaTeX cite commands. The default is `let g:textools_citation_maps = {'c':'', 't':'t', 'p':'p', 'n':'num'}`, which inserts `\cite{ref}` when `<C-b>c` is pressed, `\citet{ref}` when `<C-b>t` is pressed, etc. |
 | `g:textools_prevdelim_map` | Insert mode mapping for jumping to the previous bracket. The default is `<C-h>`. |
 | `g:textools_nextdelim_map` | Insert mode mapping for jumping to the previous bracket. The default is `<C-l>`. |
 | `g:textools_latexmk_maps` | Dictionary of normal mode mappings and flags for the `:Latexmk`. This is empty by default. For example, `let g:textools_latexmk_maps = {'<C-x>':'', '<Leader>x':'--diff'}` adds maps that call `:Latexmk` with no flags and the `--diff` flag. |
+
+<!--
+TODO:
+| `g:textools_tex_surround_maps` | Dictionary of keys corresponding to the vim-surround mappings. |
+| `g:textools_{filetype}_surround_maps` | As with `g:textools_tex_surround_maps` but for arbitrary filetypes -- because this feature is not just useful with TeX documents. |
+| `g:textools_surround_maps` | As with `g:textools_tex_surround_maps` but for all filetypes. |
+-->
 
 # Installation
 Install with your favorite [plugin manager](https://vi.stackexchange.com/questions/388/what-is-the-difference-between-the-vim-plugin-managers).

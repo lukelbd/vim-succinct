@@ -3,6 +3,28 @@
 " Date:   2018-09-10
 " LaTeX specific settings
 "-----------------------------------------------------------------------------"
+" Restrict concealmeant to just accents, Greek symbols, and math symbols
+let g:tex_conceal = 'agm'
+
+" Allow @ in makeatletter, allow texmathonly outside of math regions (i.e.
+" don't highlight [_^] when you think they are outside math zone)
+let g:tex_stylish = 1
+
+" Disable spell checking in verbatim mode and comments, disable errors
+let g:tex_fold_enable = 1
+let g:tex_comment_nospell = 1
+let g:tex_verbspell = 0
+let g:tex_no_error = 1
+" let g:tex_fast = ''  " fast highlighting, but pretty ugly
+
+" Latex compiling command and mapping
+command! -nargs=* Latexmk call textools#latex_background(<q-args>)
+if exists('g:textools_latexmk_maps')
+  for [s:map,s:flag] in items(g:textools_latexmk_maps)
+    exe 'noremap <silent> <buffer> ' . s:map . ' :Latexmk ' . s:flag . '<CR>'
+  endfor
+endif
+
 " Map prefixes
 if !exists('g:textools_snippet_prefix')
   let g:textools_snippet_prefix = '<C-z>'
@@ -16,34 +38,6 @@ endif
 if !exists('g:textools_citation_prefix')
   let g:textools_citation_prefix = '<C-b>'
 endif
-
-" Latex compiling maps
-command! -nargs=* Latexmk call textools#latex_background(<q-args>)
-if exists('g:textools_latexmk_maps')
-  for [s:map,s:flag] in items(g:textools_latexmk_maps)
-    exe 'noremap <silent> <buffer> ' . s:map . ' :Latexmk ' . s:flag . '<CR>'
-  endfor
-endif
-
-" Restrict concealmeant to just symbols and stuff
-" a=accents/ligatures
-" b=bold/italics
-" d=delimiters (e.g. $$ math mode)
-" m=math symbols
-" g=Greek
-" s=superscripts/subscripts
-let g:tex_conceal = 'agm'
-
-" Allow @ in makeatletter, allow texmathonly outside of math regions (i.e.
-" don't highlight [_^] when you think they are outside math zone
-let g:tex_stylish = 1
-
-" Disable spell checking in verbatim mode and comments, disable errors
-" let g:tex_fast = "" "fast highlighting, but pretty ugly
-let g:tex_fold_enable = 1
-let g:tex_comment_nospell = 1
-let g:tex_verbspell = 0
-let g:tex_no_error = 1
 
 "-----------------------------------------------------------------------------"
 " Text object integration
@@ -205,61 +199,13 @@ endfor
 command! -nargs=0 SnippetShow call textools#show_bindings(g:textools_snippet_prefix, s:textools_snippets)
 command! -nargs=+ SnippetFind call textools#find_bindings(g:textools_snippet_prefix, s:textools_snippets, <q-args>)
 
-"-----------------------------------------------------------------------------"
-" Changing and deleting surrounding stuff
-"-----------------------------------------------------------------------------"
-" Dictionary of bindings. Include bracket insert targets so that users can
-" switch between \left and \right style braces and ordinary ones
-" Todo: Add back \_s* to end of 'T' left delim and sart of right delim?
-" Note: This works best with surround-vim installed, but does still work without.
-function! s:environ(name)  " helper for csT
-  return '\begin{' . a:name . "}\r" . '\end{' . a:name . '}'
-endfunction
-let s:textools_surround_delete_change = {
-  \ 't':  ['\\\w*{',          '}',             '"\\" . input("command: ") . "{\r}"'],
-  \ 'T':  ['\\begin{[^}]\+}', '\\end{[^}]\+}', "<sid>environ(input('\\begin{'))"],
-  \ "'":  ['`',               "'"],
-  \ '"':  ['``',              "''"],
-  \ 'b':  ['(',               ')'],
-  \ 'c':  ['{',               '}'],
-  \ 'B':  ['{',               '}'],
-  \ 'r':  ['\[',              '\]'],
-  \ 'a':  ['<',               '>'],
-  \ '(':  ['\\left(',         '\\right)'],
-  \ '[':  ['\\left\[',        '\\right\]'],
-  \ '{':  ['\\left\\{',       '\\right\\}'],
-  \ '<':  ['\\left<',         '\\right>'],
-  \ '\|': ['\\left\\|',       '\\right\\|'],
-\ }
-
-" Apply surround mappings
-" Note: When 'replacement' value is empty, we wait for user to type
-" in a character and use the corresponding mapped surround delimiter.
-for [s:binding, s:pair] in items(s:textools_surround_delete_change)
-  let [s:left, s:right; s:extra] = s:pair
-  if len(s:extra) == 0
-    let s:replace = ''
-  else
-    let s:replace = ', ' . s:extra[0]  " note extra will be eval'd
-  endif
-  exe 'nnoremap <buffer> <silent> ds' . s:binding . " :call textools#delete_delims('"
-    \ . s:left . "', '" . s:right . "')<CR>"
-  exe 'nnoremap <buffer> <silent> cs' . s:binding . " :call textools#change_delims('"
-    \ . s:left . "', '" . s:right . "'" . s:replace . ')<CR>'
-endfor
-
 
 "-----------------------------------------------------------------------------"
 " Vim-surround integration
 "-----------------------------------------------------------------------------"
 if exists('g:loaded_surround') && g:loaded_surround
-  " Apply prefix mapping
-  " Note: Lowercase Isurround plug inserts delims without newlines. Instead of
-  " using ISurround we define special begin end delims with newlines baked in.
-  exe 'vmap ' . g:textools_surround_prefix   . ' <Plug>VSurround'
-  exe 'imap ' . g:textools_surround_prefix   . ' <Plug>Isurround'
-
   " Brackets and environments
+  " Todo: Make delete-change features more like this.
   " ':': ['\newpage\hspace{0pt}\vfill', "\n".'\vfill\hspace{0pt}\newpage'],
   " \ 'F': ['\begin{subfigure}{.5\textwidth}'."\n".'\centering'."\n".'\includegraphics{', "}\n".'\end{subfigure}'],
   " \ 'y': ['\begin{python}',       "\n".'\end{python}'],
@@ -374,12 +320,23 @@ if exists('g:loaded_surround') && g:loaded_surround
     \ ],
   \ }
 
+  " Apply prefix mapping
+  " Note: Lowercase Isurround plug inserts delims without newlines. Instead of
+  " using ISurround we define special begin end delims with newlines baked in.
+  inoremap <Plug>ResetUndo <C-g>u
+  exe 'vmap <buffer> ' . g:textools_surround_prefix   . ' <Plug>VSurround'
+  exe 'imap <buffer> ' . g:textools_surround_prefix   . ' <Plug>ResetUndo<Plug>Isurround'
+
   " Apply delimiters mappings
-  exe 'inoremap ' . g:textools_surround_prefix   . '<Esc> <Nop>'
+  exe 'inoremap <buffer> ' . g:textools_surround_prefix   . '<Esc> <Nop>'
   for [s:binding, s:pair] in items(s:textools_surround)
     let [s:left, s:right] = s:pair
     let b:surround_{char2nr(s:binding)} = s:left . "\r" . s:right
   endfor
+
+  " Apply mappings for *changing* and *deleting* these matches
+  nnoremap <buffer> <silent> ds :call textools#delete_delims()<CR>
+  nnoremap <buffer> <silent> cs :call textools#change_delims()<CR>
 
   " Table and find
   command! -nargs=0 SurroundShow call textools#show_bindings(g:textools_surround_prefix, s:textools_surround)

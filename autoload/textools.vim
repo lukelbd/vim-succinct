@@ -102,6 +102,88 @@ endfunction
 "-----------------------------------------------------------------------------"
 " Changing and deleting surrounding delim
 "-----------------------------------------------------------------------------"
+" Strip leading and trailing spaces
+function! s:strip(text) abort
+  return substitute(a:text, '^\_s*\(.\{-}\)\_s*$', '\1', '')
+endfunction
+
+" Get left and right 'surround' delimiter from input key
+function! s:get_delims(regex) abort
+  let cnum = getchar()
+  if exists('b:surround_' . cnum)
+    let string = b:surround_{cnum}
+  elseif exists('g:surround_' . cnum)
+    let string = g:surround_{cnum}
+  else
+    let string = nr2char(cnum) . "\r" . nr2char(cnum)
+  endif
+  let delims = s:process(string, a:regex)
+  return map(split(delims, "\r"), 's:strip(v:val)')
+endfunction
+
+" Copied from vim-surround source code, use this to obtain string
+" delimiters from the b:surround_{num} and g:surround_{num} variables
+" even when they accept variable input. Can return delimiters themselves or
+" regex suitable for *searching* for delimiters with searchpair().
+" Todo: Use builtin function if it gets moved to autoload
+function! s:process(string, regex) abort
+  " Get string(s) corresponding to replacement placeholders \1, \2, \3, ...
+  " Note that char2nr("\1") is 1, char2nr("\2") is 2, etc.
+  " Note: We permit overriding the dumjy spot with a dummy search pattern. This
+  " is used when we want to use the delimiters returned by this function to
+  " *search* for matches rather than *insert* them... and if a delimiter accepts
+  " arbitrary input then we need to search for arbitrary text in that spot.
+  for i in range(7)
+    if a:regex
+      let repl_{i} = '\S\{-1,}'
+    else
+      let repl_{i} = ''
+      let m = matchstr(a:string, nr2char(i) . '.\{-\}\ze' . nr2char(i))
+      if m !=# ''
+        let m = substitute(strpart(m, 1), '\r.*', '', '')
+        let repl_{i} = input(match(m, '\w\+$') >= 0 ? m . ': ' : m)
+      endif
+    endif
+  endfor
+
+  " Build up string
+  let i = 0
+  let string = ''
+  while i < strlen(a:string)
+    let char = strpart(a:string, i, 1)
+    if a:regex && char =~# '[.\\\[\]]'
+      " Escape character
+      let string .= '\' . char
+    elseif a:regex && char ==# "\n"
+      " Ignore newlines e.g. from \begin{}...\end{} environments
+      let string .= ''
+    elseif char2nr(char) >= 8
+      " Nothing needs to be done
+      let string .= char
+    else
+      " Handle insertions between subsequent \1...\1, \2...\2, etc. occurrences
+      let next = stridx(a:string, char, i + 1)
+      if next == -1
+        let string .= char
+      else
+        let insertion = repl_{char2nr(char)}
+        let substring = strpart(a:string, i + 1, next - i - 1)
+        let substring = matchstr(substring, '\r.*')
+        while substring =~# '^\r.*\r'
+          let matchstring = matchstr(substring, "^\r\\zs[^\r]*\r[^\r]*")
+          let substring = strpart(substring, strlen(matchstring) + 1)
+          let r = stridx(matchstring, "\r")
+          let insertion = substitute(insertion, strpart(matchstring, 0, r), strpart(matchstring, r + 1), '')
+        endwhile
+        let i = next
+        let string .= insertion
+      endif
+    endif
+    let i += 1
+  endwhile
+  return string
+endfunction
+
 " Driver function that accepts left and right delims, and normal mode commands
 " run from the leftmost character of left and right delims. This function sets
 " the mark 'z to the end of each delim, so expression can be d`zx
@@ -112,55 +194,46 @@ function! s:pair_action(left, right, lexpr, rexpr) abort
     return
   endif
 
-  " Get pairs
-  let pos1 = searchpairpos(a:left, '', a:right, 'bnW') " set '' mark at current location
-  let pos2 = searchpairpos(a:left, '', a:right, 'nW')
-  let [l1, c11] = pos1
-  let [l2, c21] = pos2
+  " Get positions for *start* of matches
+  let [l1, c11] = searchpairpos(a:left, '', a:right, 'bnW') " set '' mark at current location
+  let [l2, c21] = searchpairpos(a:left, '', a:right, 'nW')
   if l1 == 0 || l2 == 0
+    echohl WarningMsg
+    echom 'Warning: Cursor is not inside ' . a:left . a:right . ' pair.'
+    echohl None
     return
   endif
 
-  " Delete or change right delim
+  " Delete or change right delim. If this leaves an empty line, delete it.
   " Note: Right must come first!
   call cursor(l2, c21)
   let [l2, c22] = searchpos(a:right, 'cen')
   call setpos("'z", [0, l2, c22, 0])
-  exe 'normal! "_' . a:rexpr
+  set paste | exe 'normal! "_' . a:rexpr | set nopaste
+  if len(s:strip(getline(l2))) == 0 | exe l2 . 'd' | endif
 
   " Delete or change left delim
   call cursor(l1, c11)
   let [l1, c12] = searchpos(a:left, 'cen')
   call setpos("'z", [0, l1, c12, 0])
-  exe 'normal! "_' . a:lexpr
+  set paste | exe 'normal! "_' . a:lexpr | set nopaste
+  if len(s:strip(getline(l1))) == 0 | exe l1 . 'd' | endif
 endfunction
 
 " Delete delims function
-function! textools#delete_delims(left, right) abort
-  call s:pair_action(a:left, a:right, 'd`zx', 'd`zx')
+function! textools#delete_delims() abort
+  let [left, right] = s:get_delims(1)  " disallow user input
+  call s:pair_action(left, right, 'd`zx', 'd`zx')
 endfunction
 
 " Change delims function, use input replacement text
 " or existing mapped surround character
-function! textools#change_delims(left, right, ...) abort
-  if a:0
-    let [nleft, nright] = split(a:1, "\r")
-  else
-    let cnum = getchar()
-    if exists('b:surround_' . cnum)
-      let [nleft, nright] = split(b:surround_{cnum}, "\r")
-    elseif exists('g:surround_' . cnum)
-      let [nleft, nright] = split(g:surround_{cnum}, "\r")
-    else
-      echohl WarningMsg
-      echom 'Warning: Replacement delim code "' . nr2char(cnum) . '" not found.'
-      echohl None
-      return
-    endif
-  endif
+function! textools#change_delims() abort
+  let [left, right] = s:get_delims(1)  " disallow user input
+  let [left_new, right_new] = s:get_delims(0)
   call s:pair_action(
-    \ a:left, a:right,
-    \ 'c`z' . nleft . "\<Delete>", 'c`z' . nright . "\<Delete>"
+    \ left, right,
+    \ 'c`z' . left_new . "\<Delete>", 'c`z' . right_new . "\<Delete>",
   \ )
 endfunction
 
