@@ -191,7 +191,6 @@ function! s:process(string, regex) abort
     endif
     let i += 1
   endwhile
-  echo substitute(string, "\r", '', '')
   return string
 endfunction
 
