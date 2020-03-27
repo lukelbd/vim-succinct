@@ -287,20 +287,20 @@ if exists('g:loaded_surround') && g:loaded_surround
     \ '#': ['\begin{enumerate}',                "\n" . '\end{enumerate}'],
     \ '@': ['\begin{enumerate}[label=\alph*.]', "\n" . '\end{enumerate}'],
     \ 'g': [
-    \   '\includegraphics[width=\textwidth]{',
+    \   '\includegraphics{',
     \   '}'
     \ ],
     \ 'G': [
-    \   '\makebox[\textwidth][c]{\includegraphics[width=\textwidth]{',
+    \   '\makebox[\textwidth][c]{\includegraphics{',
     \   '}}'
     \ ],
     \ 'f': [
-    \   '\begin{center}' . "\n" . '\centering' . "\n" . '\includegraphics{',
-    \   "}\n" . '\end{center}'
-    \ ],
-    \ 'F': [
     \   '\begin{figure}' . "\n" . '\centering' . "\n" . '\includegraphics{',
     \   "}\n" . '\end{figure}'
+    \ ],
+    \ 'C': [
+    \   '\begin{center}' . "\n" . '\centering' . "\n" . '\includegraphics{',
+    \   "}\n" . '\end{center}'
     \ ],
     \ 'w': [
     \   '{\usebackgroundtemplate{}\begin{frame}',
