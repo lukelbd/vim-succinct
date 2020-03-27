@@ -127,15 +127,21 @@ endfunction
 " regex suitable for *searching* for delimiters with searchpair().
 " Todo: Use builtin function if it gets moved to autoload
 function! s:process(string, regex) abort
-  " Get string(s) corresponding to replacement placeholders \1, \2, \3, ...
+  " Get delimiter string with filled replacement placeholders \1, \2, \3, ...
   " Note that char2nr("\1") is 1, char2nr("\2") is 2, etc.
   " Note: We permit overriding the dumjy spot with a dummy search pattern. This
   " is used when we want to use the delimiters returned by this function to
   " *search* for matches rather than *insert* them... and if a delimiter accepts
   " arbitrary input then we need to search for arbitrary text in that spot.
+  let fill = '\%(\k\|\.\)'  " valid character
   for i in range(7)
     if a:regex
-      let repl_{i} = '\S\{-1,}'
+      " Todo: For now try to match superset of all possible items that
+      " can be contained inside patterns with variable input. Includes latex
+      " environment names, tag names, and python methods and functions.
+      " let repl_{i} = '\S\{-1,}'
+      " let repl_{i} = '\k\+'
+      let repl_{i} = fill . '\+'  " any valid fill character
     else
       let repl_{i} = ''
       let m = matchstr(a:string, nr2char(i) . '.\{-\}\ze' . nr2char(i))
@@ -164,7 +170,7 @@ function! s:process(string, regex) abort
       " Handle insertions between subsequent \1...\1, \2...\2, etc. occurrences
       let next = stridx(a:string, char, i + 1)
       if next == -1
-        let string .= char
+        let string .= char  " if we just found one \1, etc. instance, put back
       else
         let insertion = repl_{char2nr(char)}
         let substring = strpart(a:string, i + 1, next - i - 1)
@@ -175,12 +181,17 @@ function! s:process(string, regex) abort
           let r = stridx(matchstring, "\r")
           let insertion = substitute(insertion, strpart(matchstring, 0, r), strpart(matchstring, r + 1), '')
         endwhile
+        if a:regex && i == 0  " add start-of-word marker
+          " asdfa.heloo.asdfasd( asdfasa )
+          let insertion = fill . '\@<!' . insertion
+        endif
         let i = next
         let string .= insertion
       endif
     endif
     let i += 1
   endwhile
+  echo substitute(string, "\r", '', '')
   return string
 endfunction
 
