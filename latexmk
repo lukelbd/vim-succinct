@@ -60,10 +60,9 @@ cleanup() {
 }
 
 # Commands
-sed=/usr/bin/sed
-gsed=/usr/local/bin/gsed
-[ -x "$sed" ] || raise "/usr/bin/sed not found. How is that even possible..."
-[ -x "$gsed" ] || raise "/usr/local/bin/gsed not found. Use 'brew install coreutils'."
+which gsed 2>/dev/null && sedcmd=gsed || sedcmd=sed
+[ -n "$OSTYPE" ] && [[ "$OSTYPE" =~ darwin* ]] && [ "$sedcmd" == sed ] && \
+  raise "GNU sed needed when running this script on OSX. Can be installed from Homebrew with 'brew install gnu-sed'."
 
 # Parse args
 trap cleanup EXIT  # remove files on exit or interruption!
@@ -108,23 +107,54 @@ if [[ "$filename" =~ / ]]; then  # i.e. contains directory specifier
 fi
 filestem="${filename%.tex}"  # simple
 
+#-----------------------------------------------------------------------------#
+# Helper regex functions
+#-----------------------------------------------------------------------------#
+# General utilities
+nocomments() {  # ignore comments. TODO: Maybe awk is better?
+[ $# -eq 1 ] || raise "Incorrect usage of get_bibnames."
+  grep -o '^[^%]*' "$1"
+}
+inbraces() {  # get content inside braces
+  cut -s -d'{' -f2 | cut -s -d'}' -f1 | tr ',' ' '
+}
+
+# Search tex file for various dependencies
+get_bibnames() {  # show bibliography files
+  [ $# -eq 1 ] || raise "Incorrect usage of get_bibnames."
+  nocomments "$1" \
+  | $sedcmd -n 's/\\\(bibliography\|nobibliography\|addbibresource\){\(.*\)}/\2/p' \
+  | xargs
+}
+get_bibstyles() {
+  [ $# -eq 1 ] || raise "Incorrect usage of get_bibstyles."
+  nocomments "$1" | grep '\\bibliographystyle' | inbraces \
+  | xargs
+}
+get_packages() {  # show package names
+  [ $# -eq 1 ] || raise "Incorrect usage of get_packages."
+  nocomments "$1" | grep '\\RequirePackage' \
+  | $sedcmd 's/\[[^][]*\]//g' | $sedcmd '/\[\|\]/d' \
+  | $sedcmd 's/AtEndOfClass{//g' | $sedcmd '/newcommand\|#/d' \
+  | inbraces | xargs
+}
+get_themes () {  # fintd \beamerthemeTHEME and \beamercolorthemeTHEME files
+  [ $# -eq 2 ] || raise "Incorrect usage of get_themes."
+  nocomments "$1" | grep '\\use'"$2" | inbraces \
+  | $sedcmd 's/^/beamer'"$2"'/' | xargs
+}
+
 #------------------------------------------------------------------------------#
 # Get compile options from LaTeX commands
 #------------------------------------------------------------------------------#
-# Ignore comments
-# TODO: Maybe awk is better?
-nocomments() {
-  grep -o '^[^%]*' "$1"
+# Helper functions
+errfilt() {  # show only error messages separated by blank lines
+  $sedcmd -E '/^! |^l\./!d' | $sedcmd $'s/^! /\\\n/g'
 }
-# Get content inside braces
-inbraces() {
-  cut -s -d'{' -f2 | cut -s -d'}' -f1 | tr ',' ' '
+errcat() {  # ignore messages about packages and remove empty lines
+  errfilt | grep -A2 '^$' | $sedcmd '/^$/d'
 }
-# Show only error messages
-errfilter() {
-  cat - | $sed -E '/^! |^l\./!d' | $sed $'s/^! /\\\n/g' \
-    | grep -A2 '^$' | $sed '/^$/d'
-}
+
 # Run latex comand, first arg is 1 or 0, indicates whether to always print message
 run() {
   local res cmd
@@ -132,30 +162,27 @@ run() {
   # shellcheck disable=2181
   if [ $? -ne 0 ] || [ "$1" -eq 1 ]; then
     if $raw || [[ "${*:2}" =~ "bibtex" ]]; then
-      # shellcheck disable=2209
-      cmd=cat
+      cmd='cat'
     else
-      cmd=errfilter
+      cmd='errcat'
     fi
-    echo "$res" | $cmd | $sed 's/^/  /'
+    echo "$res" | $cmd | $sedcmd 's/^/  /'
   fi
 }
 
 # First if GIF/animation in file, need to change from Skim to compatible viewer
-nocomments "$filename" | grep '\\animategraphics' &>/dev/null \
+cat "$filename" | nocomments | grep '\\animategraphics' &>/dev/null \
   && viewer="Adobe Acrobat Reader DC" || viewer="Skim"
 
-# Get actual .bib file or resource; will need it for
+# Get actual .bib file or resource; needed for pandoc
 # The -n flag prevents printing every single line after running command
-# nocomments "$filename" | egrep '\\bibliography{.*}|\\printbibliography|\\nobibliography{.*}' &>/dev/null \
-#   && bibliography=true || bibliography=false
-bibfile=$(nocomments "$filename" | $gsed -n 's/^.*\\\(bibliography\|nobibliography\|addbibresource\){\(.*\)}.*$/\2/p')
-if [ -z "$bibfile" ]; then
-  bibliography=false
-else
+read -r -a bibnames < <(get_bibnames "$filename")
+bibliography=false
+if [ "${#bibnames[@]}" -gt 0 ]; then
   bibliography=true
-  bibfile="${bibfile%.bib}.bib"  # add back extension, if abscent
-  echo "Bibliography: \"$bibfile\""
+  bibnames=("${bibnames[@]%.bib}")  # remove extension, if present
+  bibfiles=("${bibnames[@]/%/.bib}")  # add back extension
+  echo "Bibliographies: ${bibfiles[*]}"
 fi
 
 # Detect if we want to run latexdiff on this file
@@ -164,12 +191,12 @@ fi
 
 # Automatically choose from xelatex and pdflatex; just need xelatex for
 # tex files that load fontspec, or use modules that themselves load fontspec
-nocomments "$filename" | grep -E 'fontspec|xltxtra' &>/dev/null \
+cat "$filename" | nocomments | grep -E 'fontspec|xltxtra' &>/dev/null \
   && latex=xelatex
 
 # Use Lua if beamer present, will be faster
 # Also required for beamerposter, not sure about other cases
-nocomments "$filename" | grep 'documentclass.*{beamer}' &>/dev/null \
+cat "$filename" | nocomments | grep 'documentclass.*{beamer}' &>/dev/null \
   && latex=lualatex
 
 #------------------------------------------------------------------------------#
@@ -219,42 +246,24 @@ texfind cls "Class file" "$class"
 #   do by deleting lines containing a '#' character
 classfile=$(kpsewhich "$class.cls")
 [ -n "$classfile" ] || raise "You should never see this error, already checked for $class.cls existence, check code."
-read -r -a required < <( \
-  nocomments "$classfile" | grep '^.*\\RequirePackage' \
-  | $sed 's/\[[^][]*\]//g' | $gsed '/\[\|\]/d' \
-  | $sed 's/AtEndOfClass{//g' | $gsed '/newcommand\|#/d' \
-  | inbraces | xargs \
-)
+read -r -a required < <(get_packages "$classfile")
 texfind sty "Class sty dependency" "${required[@]}"
 
 # As above but for .sty files
 # Will also detect \usepackage{package1,package2} lists
-read -r -a packages < <( \
-  nocomments "$filename" | grep -E '^.*\\usepackage|^.*\\templatetype' \
-  | $sed 's/\[[^][]*\]//g' | $gsed '/\[\|\]/d' \
-  | $sed 's/AtEndOfClass{//g' | $gsed '/newcommand\|#/d' \
-  | inbraces | xargs \
-)
+read -r -a packages < <(get_packages "$filename")
 texfind sty "Preamble sty file" "${packages[@]}"
 
 # As above but for .bst file
-read -r -a bibstyle < <( \
-  nocomments "$filename" | grep '^.*\\bibliographystyle' | inbraces | xargs \
-)
+read -r -a bibstyle < <(get_bibstyles "$filename")
 texfind bst "Bibstyle file" "${bibstyle[@]}"
 
 # Next beamer theme
-read -r -a themes < <( \
-  nocomments "$filename" | grep '^.*\\usetheme' | inbraces \
-  | $sed 's/^/beamertheme/' | xargs \
-)
+read -r -a themes < <(get_themes "$filename")
 texfind sty "Theme file" "${themes[@]}"
 
 # And beamer color theme
-read -r -a colorthemes < <( \
-  nocomments "$filename" | grep '^.*\\usecolortheme' | inbraces \
-  | $sed 's/^/beamercolortheme/' | xargs
-)
+read -r -a colorthemes < <(get_themes "$filename" "colortheme")
 texfind sty "Color theme file" "${colorthemes[@]}"
 
 #------------------------------------------------------------------------------#
@@ -317,9 +326,13 @@ if $texdiff; then
           $latex -draftmode "${flags[@]}" "$dfilestem" &>/dev/null
           $bibtex "$dfilestem"  #&>/dev/null
         fi
+        # $latex "${flags[@]}" "$dfilestem" | errfilt | tail +2
         $latex -draftmode "${flags[@]}" "$dfilestem" &>/dev/null
-        $latex "${flags[@]}" "$dfilestem" | $sed -E '/^! |^l\./!d' | $sed $'s/^! /\\\n/g' | tail +2
-        ! [ -r "$dfilestem.pdf" ] && echo "Warning: Difference PDF not produced" && texdiff=false
+        $latex "${flags[@]}" "$dfilestem" | errcat
+        if ! [ -r "$dfilestem.pdf" ]; then
+          echo "Warning: Difference PDF not produced."
+          texdiff=false
+        fi
       fi
     fi
   fi
@@ -330,10 +343,10 @@ if $tex2docx; then
   if ! type pandoc &>/dev/null; then
     echo "Warning: Pandoc not found; use brew install pandoc"
   else
-    echo "Running pandoc to convert tex-->docx"
-    $bibliography && panbib="--bibliography=$bibfile" || panbib=""
-    echo pandoc --output="$filestem.docx" "$panbib" "$filename"
-    pandoc --output="$filestem.docx" "$panbib" "$filename"
+    echo "Running pandoc to convert tex --> docx"
+    # echo pandoc --output="$filestem.docx" "${bibflags[@]}" "$filename"
+    $bibliography && bibflags=("${bibfiles[@]/#/--bibliography=}")
+    pandoc --output="$filestem.docx" "${bibflags[@]}" "$filename"
   fi
 fi
 
