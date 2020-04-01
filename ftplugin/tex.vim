@@ -118,7 +118,7 @@ endif
 " the 'u' used for {-} and {+} is for 'unary'
 " '_' '\begin{center}\noindent\rule{' . input('fraction: ') . '\textwidth}{0.7pt}\end{center}'
 " \ 'q': '\quad ',
-let s:textools_snippets = {
+let g:textools_snippet_map = {
   \ '1': '\tiny',
   \ '2': '\scriptsize',
   \ '3': '\footnotesize',
@@ -193,13 +193,13 @@ let s:textools_snippets = {
 
 " Apply snippets mappings
 exe 'inoremap ' . g:textools_snippet_prefix . '<Esc> <Nop>'
-for [s:binding, s:snippet] in items(s:textools_snippets)
+for [s:binding, s:snippet] in items(g:textools_snippet_map)
   exe 'inoremap <buffer> ' . g:textools_snippet_prefix . s:binding . ' ' . s:snippet
 endfor
 
 " Table and find
-command! -nargs=0 SnippetShow call textools#show_bindings(g:textools_snippet_prefix, s:textools_snippets)
-command! -nargs=+ SnippetFind call textools#find_bindings(g:textools_snippet_prefix, s:textools_snippets, <q-args>)
+command! -nargs=0 SnippetShow call textools#show_bindings(g:textools_snippet_prefix, g:textools_snippet_map)
+command! -nargs=+ SnippetFind call textools#find_bindings(g:textools_snippet_prefix, g:textools_snippet_map, <q-args>)
 
 
 "-----------------------------------------------------------------------------"
@@ -214,6 +214,7 @@ if exists('g:loaded_surround') && g:loaded_surround
   " \ 'b': ['\begin{block}{}',      "\n".'\end{block}'],
   " \ 'B': ['\begin{alertblock}{}', "\n".'\end{alertblock}'],
   " \ 'v': ['\begin{verbatim}',     "\n".'\end{verbatim}'],
+  let g:textools_surround_map = {
   " \ 'a': ['<',                                '>'],
   let s:textools_surround = {
     \ 't': ["\\\1command: \1{",                 '}'],
@@ -331,7 +332,7 @@ if exists('g:loaded_surround') && g:loaded_surround
 
   " Apply delimiters mappings
   exe 'inoremap <buffer> ' . g:textools_surround_prefix   . '<Esc> <Nop>'
-  for [s:binding, s:pair] in items(s:textools_surround)
+  for [s:binding, s:pair] in items(g:textools_surround_map)
     let [s:left, s:right] = s:pair
     let b:surround_{char2nr(s:binding)} = s:left . "\r" . s:right
   endfor
@@ -341,44 +342,6 @@ if exists('g:loaded_surround') && g:loaded_surround
   nnoremap <buffer> <silent> cs :call textools#change_delims()<CR>
 
   " Table and find
-  command! -nargs=0 SurroundShow call textools#show_bindings(g:textools_surround_prefix, s:textools_surround)
-  command! -nargs=+ SurroundFind call textools#find_bindings(g:textools_surround_prefix, s:textools_surround, <q-args>)
-endif
-
-
-"-----------------------------------------------------------------------------"
-" Citation vim integration
-"-----------------------------------------------------------------------------"
-" Requires pybtex and bibtexparser python modules, and unite.vim plugin
-" Note: Set up with macports. By default the +python vim was compiled with
-" is not on path; access with port select --set pip <pip36|python36>. To
-" install module dependencies, use that pip. Can also install most packages
-" with 'port install py36-module_name' but often get error 'no module
-" named pkg_resources'; see this thread: https://stackoverflow.com/a/10538412/4970632
-if g:loaded_unite && &rtp =~# 'citation.vim'
-  " Default settings
-  let b:citation_vim_mode = 'bibtex'
-  let b:citation_vim_bibtex_file = ''
-
-  " Global settings
-  " Local settings are applied as global variables before calling cite command,
-  " and note they are always defined since this is an ftplugin file!
-  let g:unite_data_directory = '~/.unite'
-  let g:citation_vim_cache_path = '~/.unite'
-  let g:citation_vim_outer_prefix = ''
-  let g:citation_vim_inner_prefix = ''
-  let g:citation_vim_suffix = '}'
-  let g:citation_vim_et_al_limit = 3 " show et al if more than 2 authors
-  let g:citation_vim_zotero_path = '~/Zotero' " location of .sqlite file
-  let g:citation_vim_zotero_version = 5
-  let g:citation_vim_opts = '-start-insert -buffer-name=citation -ignorecase -default-action=append citation/key'
-
-  " Command and mappings
-  command! SourceToggle call textools#citation_vim_toggle()
-  for [s:map, s:tex] in items(g:textools_citation_maps)
-    exe 'inoremap <silent> <buffer> ' . g:textools_citation_prefix
-      \ . s:map . ' <Esc>:call textools#citation_vim_run("'
-      \ . s:tex . '", g:citation_vim_opts)<CR>'
-      \ . '")'
-  endfor
+  command! -nargs=0 SurroundShow call textools#show_bindings(g:textools_surround_prefix, g:textools_surround_map)
+  command! -nargs=+ SurroundFind call textools#find_bindings(g:textools_surround_prefix, g:textools_surround_map, <q-args>)
 endif
