@@ -32,12 +32,6 @@ endif
 if !exists('g:textools_surround_prefix')
   let g:textools_surround_prefix = '<C-s>'
 endif
-if !exists('g:textools_citation_maps')
-  let g:textools_citation_maps = {'c': '', 't': 't', 'p': 'p', 'n': 'num'}
-endif
-if !exists('g:textools_citation_prefix')
-  let g:textools_citation_prefix = '<C-b>'
-endif
 
 "-----------------------------------------------------------------------------"
 " Text object integration
