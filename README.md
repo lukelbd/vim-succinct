@@ -35,7 +35,7 @@ This set of tools is complex and would take quite a while to document. For now I
 
 | Command | Description |
 | ---- | ---- |
-| `:Latexmk` | Runs the custom [latexmk script](latexmk). This typesets the document asynchronously, shows a condensed log in a popup split window, and opens the file in the [Skim PDF viewer](https://en.wikipedia.org/wiki/Skim_(software)). It automatically detects the number of times the typesetting command must be called, like the original `latexmk`, automatically figures out which typesetting engine to use based on the packages imported, automatically copies over custom user style and theme files from a `~/latex` folder, and deletes extra files generated during typesetting. Run `:Latexmk --help` for more info. |
+| `:Latexmk` | Runs the custom [latexmk script](latexmk). This typesets the document asynchronously, shows a condensed log in a popup split window, and opens the file in the [Skim PDF viewer](https://en.wikipedia.org/wiki/Skim_(software)). It automatically detects the number of times the typesetting command must be called, like the original `latexmk`, automatically figures out which typesetting engine to use based on the packages imported, automatically copies over custom user style and theme files from a `~/latex` folder, and deletes extra files generated during typesetting. Run `:Latexmk --help` for more info. Note that `latexmk` requires GNU sed to function properly (this can be installed on macOS using [Homebrew](https://brew.sh) with `brew install gnu-sed`). |
 | `:SnippetFind` | Find the snippet mapping that matches the input regex. |
 | `:SnippetShow` | Show a table of the current snippet mappings. |
 | `:SurroundFind` | Find the delimiter mapping that matches the input regex. |
