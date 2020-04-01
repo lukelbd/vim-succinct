@@ -4,7 +4,7 @@
 " LaTeX specific settings
 "-----------------------------------------------------------------------------"
 " Restrict concealmeant to just accents, Greek symbols, and math symbols
-let g:tex_conceal = 'agm'
+let g:tex_conceal = 'agmd'
 
 " Allow @ in makeatletter, allow texmathonly outside of math regions (i.e.
 " don't highlight [_^] when you think they are outside math zone)
@@ -172,22 +172,24 @@ let s:textools_snippets = {
   \ 'z': '\zeta',
   \ 'i': '\int',
   \ 'I': '\iint',
-  \ '-': '${-}$',
   \ '+': '\sum',
   \ 'x': '\times',
   \ 'X': '\prod',
   \ 'O': '$^\circ$',
   \ '=': '\equiv',
   \ '~': '{\sim}',
-  \ 'k': '^',
-  \ 'j': '_',
-  \ 'E': '\times10^{}<Left>',
+  \ 'k': '$^{}$<Left><Left>',
+  \ 'j': '$_{}$<Left><Left>',
+  \ 'E': '$\times 10^{}$<Left><Left>',
   \ '.': '\cdot',
-  \ ',': '\, ',
-  \ ':': '\: ',
-  \ ';': '\; ',
+  \ ',': '$\,$',
+  \ ':': '$\:$',
+  \ ';': '$\;$',
   \ 'M': ' \textCR<CR>',
 \ }
+" \ ',': '\, ',
+" \ ':': '\: ',
+" \ ';': '\; ',
 
 " Apply snippets mappings
 exe 'inoremap ' . g:textools_snippet_prefix . '<Esc> <Nop>'
