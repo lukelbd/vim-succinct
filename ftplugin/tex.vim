@@ -17,6 +17,14 @@ let g:tex_verbspell = 0
 let g:tex_no_error = 1
 " let g:tex_fast = ''  " fast highlighting, but pretty ugly
 
+" Map prefixes
+if !exists('g:textools_snippet_prefix')
+  let g:textools_snippet_prefix = '<C-z>'
+endif
+if !exists('g:textools_surround_prefix')
+  let g:textools_surround_prefix = '<C-s>'
+endif
+
 " Latex compiling command and mapping
 command! -nargs=* Latexmk call textools#latex_background(<q-args>)
 if exists('g:textools_latexmk_maps')
@@ -25,13 +33,12 @@ if exists('g:textools_latexmk_maps')
   endfor
 endif
 
-" Map prefixes
-if !exists('g:textools_snippet_prefix')
-  let g:textools_snippet_prefix = '<C-z>'
-endif
-if !exists('g:textools_surround_prefix')
-  let g:textools_surround_prefix = '<C-s>'
-endif
+" Maps for inserting figures and bibtex citations
+" Todo: Document this feature
+exe "inoremap <buffer> <expr> " . g:textools_snippet_prefix
+  \ . "; '<C-g>u' . textools#cite_select()"
+exe "inoremap <buffer> <expr> " . g:textools_snippet_prefix
+  \ . ": '<C-g>u' . textools#graphics_select()"
 
 "-----------------------------------------------------------------------------"
 " Text object integration
@@ -195,6 +202,9 @@ endfor
 command! -nargs=0 SnippetShow echo textools#show_bindings(g:textools_snippet_prefix, g:textools_snippet_map)
 command! -nargs=+ SnippetFind echo textools#find_bindings(g:textools_snippet_prefix, g:textools_snippet_map, <q-args>)
 
+" Map for showing snippets in insert mode
+exe 'inoremap <buffer> <silent> ' . repeat(g:textools_snippet_prefix, 2)
+  \ . ' <C-o>:echo textools#show_bindings(g:textools_snippet_prefix, g:textools_snippet_map)<CR>'
 
 "-----------------------------------------------------------------------------"
 " Vim-surround integration
@@ -337,9 +347,12 @@ if exists('g:loaded_surround') && g:loaded_surround
   " Apply mappings for *changing* and *deleting* these matches
   nnoremap <buffer> <silent> ds :call textools#delete_delims()<CR>
   nnoremap <buffer> <silent> cs :call textools#change_delims()<CR>
-  " sadfasdfsa
 
   " Table and find
   command! -nargs=0 SurroundShow echo textools#show_bindings(g:textools_surround_prefix, g:textools_surround_map)
   command! -nargs=+ SurroundFind echo textools#find_bindings(g:textools_surround_prefix, g:textools_surround_map, <q-args>)
+
+" Map for showing surround delims in insert mode
+  exe 'inoremap <buffer> <silent> ' . repeat(g:textools_surround_prefix)
+    \ . ' <C-o>:echo textools#show_bindings(g:textools_surround_prefix, g:textools_surround_map)<CR>'
 endif
