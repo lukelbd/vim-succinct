@@ -192,8 +192,8 @@ for [s:binding, s:snippet] in items(g:textools_snippet_map)
 endfor
 
 " Table and find
-command! -nargs=0 SnippetShow call textools#show_bindings(g:textools_snippet_prefix, g:textools_snippet_map)
-command! -nargs=+ SnippetFind call textools#find_bindings(g:textools_snippet_prefix, g:textools_snippet_map, <q-args>)
+command! -nargs=0 SnippetShow echo textools#show_bindings(g:textools_snippet_prefix, g:textools_snippet_map)
+command! -nargs=+ SnippetFind echo textools#find_bindings(g:textools_snippet_prefix, g:textools_snippet_map, <q-args>)
 
 
 "-----------------------------------------------------------------------------"
@@ -337,8 +337,9 @@ if exists('g:loaded_surround') && g:loaded_surround
   " Apply mappings for *changing* and *deleting* these matches
   nnoremap <buffer> <silent> ds :call textools#delete_delims()<CR>
   nnoremap <buffer> <silent> cs :call textools#change_delims()<CR>
+  " sadfasdfsa
 
   " Table and find
-  command! -nargs=0 SurroundShow call textools#show_bindings(g:textools_surround_prefix, g:textools_surround_map)
-  command! -nargs=+ SurroundFind call textools#find_bindings(g:textools_surround_prefix, g:textools_surround_map, <q-args>)
+  command! -nargs=0 SurroundShow echo textools#show_bindings(g:textools_surround_prefix, g:textools_surround_map)
+  command! -nargs=+ SurroundFind echo textools#find_bindings(g:textools_surround_prefix, g:textools_surround_map, <q-args>)
 endif

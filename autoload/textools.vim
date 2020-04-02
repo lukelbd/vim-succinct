@@ -73,7 +73,7 @@ endfunction
 function! textools#show_bindings(prefix, table) abort
   " Show the entire table
   let header = 'Table of ' . a:prefix . "<KEY> bindings:\n"
-  echo header . s:bindings_table(a:table)
+  return header . s:bindings_table(a:table)
 endfunction
 
 function! textools#find_bindings(prefix, table, regex) abort
@@ -96,7 +96,7 @@ function! textools#find_bindings(prefix, table, regex) abort
     return
   endif
   let header = (len(table_filtered) == 1 ? '' : "Bindings matching regex '" . a:regex . "':\n")
-  echo header . s:bindings_table(table_filtered)
+  return header . s:bindings_table(table_filtered)
 endfunction
 
 "-----------------------------------------------------------------------------"
