@@ -353,6 +353,6 @@ if exists('g:loaded_surround') && g:loaded_surround
   command! -nargs=+ SurroundFind echo textools#find_bindings(g:textools_surround_prefix, g:textools_surround_map, <q-args>)
 
 " Map for showing surround delims in insert mode
-  exe 'inoremap <buffer> <silent> ' . repeat(g:textools_surround_prefix)
+  exe 'inoremap <buffer> <silent> ' . repeat(g:textools_surround_prefix, 2)
     \ . ' <C-o>:echo textools#show_bindings(g:textools_surround_prefix, g:textools_surround_map)<CR>'
 endif
