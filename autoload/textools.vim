@@ -248,7 +248,7 @@ function! textools#change_delims() abort
 endfunction
 
 "-----------------------------------------------------------------------------"
-" Functions for selecting from available bibtex files
+" Functions for selecting citations from bibtex files
 " See: https://github.com/msprev/fzf-bibtex
 "-----------------------------------------------------------------------------"
 " The gsed executable

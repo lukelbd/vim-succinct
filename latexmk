@@ -40,8 +40,8 @@ Additional features
 "
 # Function for raising error
 raise() {
-  echo "Usage: $usage"
-  echo "Error: $*"
+  echo "Usage: $usage" 1>&2
+  echo "Error: $*" 1>&2
   exit 1
 }
 # Exit trap function
@@ -60,7 +60,7 @@ cleanup() {
 }
 
 # Commands
-which gsed 2>/dev/null && sedcmd=gsed || sedcmd=sed
+which gsed &>/dev/null && sedcmd=gsed || sedcmd=sed
 [ -n "$OSTYPE" ] && [[ "$OSTYPE" =~ darwin* ]] && [ "$sedcmd" == sed ] && \
   raise "GNU sed needed when running this script on OSX. Can be installed from Homebrew with 'brew install gnu-sed'."
 
