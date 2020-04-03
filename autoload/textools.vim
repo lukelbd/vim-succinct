@@ -262,16 +262,6 @@ endif
 
 " Basic function called every time
 function! s:cite_source() abort
-  " Set the cache directory
-  " Makes sense to do this here
-  let cache_dir = expand('~/Library/Caches/bibtex')
-  if !isdirectory(cache_dir)
-    echohl ErrorMsg
-    echom 'Error: Cache directory ''' . cache_dir . '''does not exist.'
-    echohl None
-  endif
-  let $FZF_BIBTEX_CACHEDIR = cache_dir
-
   " Set the plugin source variables
   " Get biligraphies using grep, copied from latexmk
   " Easier than using search() because we want to get *all* results
