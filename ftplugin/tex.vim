@@ -17,7 +17,7 @@ let g:tex_verbspell = 0
 let g:tex_no_error = 1
 " let g:tex_fast = ''  " fast highlighting, but pretty ugly
 
-" Map prefixes
+" Default settings
 if !exists('g:textools_snippet_prefix')
   let g:textools_snippet_prefix = '<C-z>'
 endif

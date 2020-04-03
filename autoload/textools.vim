@@ -5,11 +5,12 @@ let s:vim8 = has('patch-8.0.0039') && exists('*job_start')  " copied from autore
 let s:path = expand('<sfile>:p:h')
 function! textools#latex_background(...) abort
   if !s:vim8
-    echohl WarningMsg
+    echohl ErrorMsg
     echom 'Error: Latex compilation requires vim >= 8.0'
     echohl None
     return 1
   endif
+
   " Jump to logfile if it is open, else open one
   " Warning: Trailing space will be escaped as a flag! So trim it unless
   " we have any options
@@ -28,11 +29,14 @@ function! textools#latex_background(...) abort
     silent! 1,$d
     silent! exe winnr('#') . 'wincmd w'
   endif
+
   " Run job in realtime
+  " echom s:path . '/../latexmk'
   let num = bufnr(logfile)
-  echom s:path . '/../latexmk'
-  let g:tex_job = job_start(s:path . '/../latexmk ' . texfile . opts,
-      \ { 'out_io': 'buffer', 'out_buf': num })
+  let g:tex_job = job_start(
+    \ s:path . '/../latexmk ' . texfile . opts,
+    \ { 'out_io': 'buffer', 'out_buf': num }
+    \ )
 endfunction
 
 "-----------------------------------------------------------------------------"
