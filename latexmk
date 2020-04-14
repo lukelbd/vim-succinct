@@ -143,7 +143,7 @@ get_bibstyles() {
 }
 get_packages() {  # show package names
   [ $# -eq 1 ] || raise "Incorrect usage of get_packages."
-  nocomments "$1" | grep '\\RequirePackage' \
+  nocomments "$1" | grep -E '\\RequirePackage|\\usepackage' \
   | $sedcmd 's/\[[^][]*\]//g' | $sedcmd '/\[\|\]/d' \
   | $sedcmd 's/AtEndOfClass{//g' | $sedcmd '/newcommand\|#/d' \
   | inbraces | xargs
