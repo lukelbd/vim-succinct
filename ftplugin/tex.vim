@@ -35,9 +35,9 @@ endif
 
 " Maps for inserting figures and bibtex citations
 " Todo: Document this feature
-exe "inoremap <buffer> <expr> " . g:textools_snippet_prefix
+exe 'inoremap <buffer> <expr> ' . g:textools_snippet_prefix
   \ . "; '<C-g>u' . textools#cite_select()"
-exe "inoremap <buffer> <expr> " . g:textools_snippet_prefix
+exe 'inoremap <buffer> <expr> ' . g:textools_snippet_prefix
   \ . ": '<C-g>u' . textools#graphics_select()"
 
 "-----------------------------------------------------------------------------"
@@ -113,12 +113,12 @@ endif
 " Useful latex snippets
 " Todo: Integrate with some snippets plugin?
 "-----------------------------------------------------------------------------"
-" Snippet dictionary
+" Snippet dictionaries. Each snippet is made into an <expr> map by prepending
+" and appending the strings with single quotes. This lets us make input()
+" dependent snippets as shown for the 'j', 'k', and 'E' mappings.
 " \xi is the weird curly one, pronounced 'zai'
 " \chi looks like an x, pronounced 'kai'
 " the 'u' used for {-} and {+} is for 'unary'
-" '_' '\begin{center}\noindent\rule{' . input('fraction: ') . '\textwidth}{0.7pt}\end{center}'
-" \ 'q': '\quad ',
 let g:textools_snippet_map = {
   \ '1': '\tiny',
   \ '2': '\scriptsize',
@@ -179,23 +179,25 @@ let g:textools_snippet_map = {
   \ 'O': '$^\circ$',
   \ '=': '\equiv',
   \ '~': '{\sim}',
-  \ 'k': '$^{}$<Left><Left>',
-  \ 'j': '$_{}$<Left><Left>',
-  \ 'E': '$\times 10^{}$<Left><Left>',
   \ '.': '\cdot',
   \ ',': '$\,$',
   \ 'M': ' \textCR<CR>',
+  \ 'k': '$^{'' . input(''Superscript: '') . ''}\,$',
+  \ 'j': '$_{'' . input(''Subscript: '') . ''}\,$',
+  \ 'E': '$\times 10^{'' . input(''Exponent: '') . ''}$',
 \ }
 " \ ':': '$\:$',
 " \ ';': '$\;$',
 " \ ',': '\, ',
 " \ ':': '\: ',
 " \ ';': '\; ',
+" \ 'q': '\quad ',
+" '_' '\begin{center}\noindent\rule{' . input('fraction: ') . '\textwidth}{0.7pt}\end{center}'
 
 " Apply snippets mappings
-exe 'inoremap ' . g:textools_snippet_prefix . '<Esc> <Nop>'
+exe 'inoremap <buffer> ' . g:textools_snippet_prefix . '<Esc> <Nop>'
 for [s:binding, s:snippet] in items(g:textools_snippet_map)
-  exe 'inoremap <buffer> ' . g:textools_snippet_prefix . s:binding . ' ' . s:snippet
+  exe 'inoremap <expr> <buffer> ' . g:textools_snippet_prefix . s:binding . " '" . s:snippet . "'"
 endfor
 
 " Table and find
