@@ -322,7 +322,7 @@ function! textools#cite_select() abort
   let result = ''
   let items = fzf#run({
     \ 'source': s:cite_source(),
-    \ 'options': '--prompt="Article> "',
+    \ 'options': '--prompt="Source> "',
     \ 'down': '~50%',
     \ })
   if executable('bibtex-cite')
