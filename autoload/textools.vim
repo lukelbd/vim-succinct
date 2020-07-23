@@ -350,7 +350,7 @@ function! s:graphics_source() abort
   \ )
   if v:shell_error != 0
     echohl ErrorMsg
-    echom 'Error: Failed to get list of bibliography files.'
+    echom 'Error: Failed to get list of graphics paths.'
     echohl None
   endif
   let paths = substitute(paths, "\n", '', 'g')  " in case multiple \graphicspath calls, even though this is illegal
