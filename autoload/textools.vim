@@ -104,25 +104,25 @@ function! textools#find_bindings(prefix, table, regex) abort
 endfunction
 
 "-----------------------------------------------------------------------------"
+" Inserting complicatd snippets
+"-----------------------------------------------------------------------------"
+" Add user-defined snippet with fixed prefix and suffix. If the user
+" *cancels* input or writes nothing, insert nothing.
+function! textools#insert_snippet(prompt, prefix, suffix)
+  let result = input(a:prompt)
+  if empty(result)
+    return ''
+  else
+    return a:prefix . result . a:suffix
+  endif
+endfunction
+
+"-----------------------------------------------------------------------------"
 " Changing and deleting surrounding delim
 "-----------------------------------------------------------------------------"
 " Strip leading and trailing spaces
 function! s:strip(text) abort
   return substitute(a:text, '^\_s*\(.\{-}\)\_s*$', '\1', '')
-endfunction
-
-" Get left and right 'surround' delimiter from input key
-function! s:get_delims(regex) abort
-  let cnum = getchar()
-  if exists('b:surround_' . cnum)
-    let string = b:surround_{cnum}
-  elseif exists('g:surround_' . cnum)
-    let string = g:surround_{cnum}
-  else
-    let string = nr2char(cnum) . "\r" . nr2char(cnum)
-  endif
-  let delims = s:process(string, a:regex)
-  return map(split(delims, "\r"), 's:strip(v:val)')
 endfunction
 
 " Copied from vim-surround source code, use this to obtain string
@@ -232,6 +232,20 @@ function! s:pair_action(left, right, lexpr, rexpr) abort
   call setpos("'z", [0, l1, c12, 0])
   set paste | exe 'normal! "_' . a:lexpr | set nopaste
   if len(s:strip(getline(l1))) == 0 | exe l1 . 'd' | endif
+endfunction
+
+" Get left and right 'surround' delimiter from input key
+function! s:get_delims(regex) abort
+  let cnum = getchar()
+  if exists('b:surround_' . cnum)
+    let string = b:surround_{cnum}
+  elseif exists('g:surround_' . cnum)
+    let string = g:surround_{cnum}
+  else
+    let string = nr2char(cnum) . "\r" . nr2char(cnum)
+  endif
+  let delims = s:process(string, a:regex)
+  return map(split(delims, "\r"), 's:strip(v:val)')
 endfunction
 
 " Delete delims function

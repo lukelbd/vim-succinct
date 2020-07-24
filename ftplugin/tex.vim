@@ -182,9 +182,9 @@ let g:textools_snippet_map = {
   \ '.': '\cdot',
   \ ',': '$\,$',
   \ 'M': ' \textCR<CR>',
-  \ 'k': '$^{'' . input(''Superscript: '') . ''}\,$',
-  \ 'j': '$_{'' . input(''Subscript: '') . ''}\,$',
-  \ 'E': '$\times 10^{'' . input(''Exponent: '') . ''}$',
+  \ 'k': ['Superscript: ', '$^{', '}\,$'],
+  \ 'j': ['Subscript: ', '$_{', '}\,$'],
+  \ 'E': ['Exponent: ', '$\times 10^{', '}$'],
 \ }
 " \ ':': '$\:$',
 " \ ';': '$\;$',
@@ -192,12 +192,17 @@ let g:textools_snippet_map = {
 " \ ':': '\: ',
 " \ ';': '\; ',
 " \ 'q': '\quad ',
-" '_' '\begin{center}\noindent\rule{' . input('fraction: ') . '\textwidth}{0.7pt}\end{center}'
 
 " Apply snippets mappings
 exe 'inoremap <buffer> ' . g:textools_snippet_prefix . '<Esc> <Nop>'
 for [s:binding, s:snippet] in items(g:textools_snippet_map)
-  exe 'inoremap <expr> <buffer> ' . g:textools_snippet_prefix . s:binding . " '" . s:snippet . "'"
+  if type(s:snippet) == 3  " pass list of args to special function
+    let [s:prompt, s:prefix, s:suffix] = s:snippet
+    let s:snippet = "textools#insert_snippet('" . s:prompt . "', '" . s:prefix . "', '" . s:suffix . "')"
+  else
+    let s:snippet = "'" . s:snippet . "'"
+  endif
+  exe 'inoremap <expr> <buffer> ' . g:textools_snippet_prefix . s:binding . ' ' . s:snippet
 endfor
 
 " Table and find

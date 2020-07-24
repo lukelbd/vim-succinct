@@ -5,9 +5,11 @@ features but with a different, minimal flavor.
 
 * Includes a simplified [latexmk](latexmk) shell script compared to the popular
   [PERL script of the same name](https://mg.readthedocs.io/latexmk.html).
-  This custom latexmk script adds several useful features for
-  typesetting LaTeX documents.
-  See ``~/.vim/plugged/vim-textools/latexmk --help`` for details.
+  The latexmk script runs in a popup window parallel with your
+  vim session and opens/refreshes the [Skim PDF viewer](https://skim-app.sourceforge.io)
+  (in the future, the viewer will be configurable).
+  See ``~/.vim/plugged/vim-textools/latexmk --help`` for
+  the new features offered by this script.
 * Integrates with the
   [vim-text-obj](https://github.com/kana/vim-textobj-user)
   and [vim-surround](https://github.com/tpope/vim-surround) plugins
