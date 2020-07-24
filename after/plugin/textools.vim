@@ -29,7 +29,7 @@ function! s:prevdelim()
     let pos = result + 1 " go to next one
   endfor
   if pos == 0 " relative position is zero, i.e. don't move
-    return ""
+    return ''
   else
     return repeat("\<Left>", pos)
   endif
@@ -50,7 +50,7 @@ function! s:nextdelim()
     let pos = col('$')-col('.')-1
   endif
   if pos == 0 " relative position is zero, i.e. don't move
-    return ""
+    return ''
   else
     return repeat("\<Right>", pos)
   endif
@@ -60,7 +60,7 @@ endfunction
 " open. See: https://github.com/lukelbd/dotfiles/blob/master/.vimrc
 function! s:popup_close()
   if !pumvisible()
-    return ""
+    return ''
   elseif b:menupos == 0 " exit
     return "\<C-e>"
   else
@@ -93,7 +93,7 @@ if exists('*fzf#run')
   endfunction
   function! s:tex_select(item)
     if len(a:item)
-      execute "0r ~/latex/" . a:item
+      execute '0r ~/latex/' . a:item
     endif
   endfunction
 endif
