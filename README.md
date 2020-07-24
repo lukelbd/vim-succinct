@@ -1,24 +1,28 @@
-# LaTeX tools
+# TeX tools
 This is a collection of custom tools and plugin enhancements for working with LaTeX
-files in vim, similar to [vimtex](https://github.com/lervag/vimtex).
+files in vim, reproducing most of [vimtex](https://github.com/lervag/vimtex)'s
+features but with a different flavor.
 
-It includes integration with the
-[vim-text-obj](https://github.com/kana/vim-textobj-user),
-[vim-surround](https://github.com/tpope/vim-surround), and
-[delimitMate](https://github.com/Raimondi/delimitMate) plugins that make editing LaTeX
-documents a breeze, and a custom [latexmk](latexmk) script that omits some features from
-the more ubiquitous [program of the same name](https://mg.readthedocs.io/latexmk.html)
-and adds useful new features.
-
-It also integrates with the [FZF](https://github.com/junegunn/fzf) vim plugin
-to permit (1) inserting citation references from `.bib` files
-added with `\bibliography` and `\addbibresource` using
-fuzzy name selection powered by [bibtex-cite](https://github.com/msprev/fzf-bibtex),
-to permit (2) adding figures inside `\graphicspath` locations
-with fuzzy name selection,
-and (3) loading arbitrary `.tex` file templates
-stored in a `~/latex` folder when creating new `.tex`
-files using fuzzy name selection.
+* Includes a simplified [latexmk](latexmk) shell script compared to the popular
+  [PERL script of the same name](https://mg.readthedocs.io/latexmk.html).
+  This custom latexmk script adds several useful features for
+  typesetting LaTeX documents.
+  See ``~/.vim/plugged/vim-textools/latexmk --help`` for details.
+* Integrates with the
+  [vim-text-obj](https://github.com/kana/vim-textobj-user)
+  and [vim-surround](https://github.com/tpope/vim-surround) plugins
+  by adding LaTeX-specific delimiters and text objects
+  that make editing LaTeX documents a breeze.
+* Permits inserting citation labels from `.bib` files
+  added with `\bibliography` and `\addbibresource` using
+  fuzzy name selection powered by
+  [bibtex-cite](https://github.com/msprev/fzf-bibtex)
+  and [FZF](https://github.com/junegunn/fzf).
+* Permits adding figures inside the `\graphicspath` directories
+  with fuzzy name selection powered by [FZF](https://github.com/junegunn/fzf).
+* Permits loading arbitrary `.tex` file templates
+  stored in a `~/latex` folder when creating new `.tex`
+  files using fuzzy name selection powered by [FZF](https://github.com/junegunn/fzf).
 
 This set of tools is complex and would take quite a while to document. For now I will
 just give a broad summary of the features and expect any users to dig into the vimscript
