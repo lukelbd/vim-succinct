@@ -1,7 +1,7 @@
 # TeX tools
 This is a collection of custom tools and plugin enhancements for working with LaTeX
 files in vim, reproducing most of [vimtex](https://github.com/lervag/vimtex)'s
-features but with a different flavor.
+features but with a different, minimal flavor.
 
 * Includes a simplified [latexmk](latexmk) shell script compared to the popular
   [PERL script of the same name](https://mg.readthedocs.io/latexmk.html).
