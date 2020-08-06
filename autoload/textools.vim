@@ -223,14 +223,14 @@ function! s:pair_action(left, right, lexpr, rexpr) abort
   call cursor(l2, c21)
   let [l2, c22] = searchpos(a:right, 'cen')
   call setpos("'z", [0, l2, c22, 0])
-  set paste | exe 'normal! "_' . a:rexpr | set nopaste
+  set paste | exe 'normal! ' . a:rexpr | set nopaste
   if len(s:strip(getline(l2))) == 0 | exe l2 . 'd' | endif
 
   " Delete or change left delim
   call cursor(l1, c11)
   let [l1, c12] = searchpos(a:left, 'cen')
   call setpos("'z", [0, l1, c12, 0])
-  set paste | exe 'normal! "_' . a:lexpr | set nopaste
+  set paste | exe 'normal! ' . a:lexpr | set nopaste
   if len(s:strip(getline(l1))) == 0 | exe l1 . 'd' | endif
 endfunction
 
@@ -251,7 +251,7 @@ endfunction
 " Delete delims function
 function! textools#delete_delims() abort
   let [left, right] = s:get_delims(1)  " disallow user input
-  call s:pair_action(left, right, 'd`zx', 'd`zx')
+  call s:pair_action(left, right, '"_d`z"_x', '"_d`z"_x')
 endfunction
 
 " Change delims function, use input replacement text
@@ -260,8 +260,10 @@ function! textools#change_delims() abort
   let [left, right] = s:get_delims(1)  " disallow user input
   let [left_new, right_new] = s:get_delims(0)
   call s:pair_action(
-    \ left, right,
-    \ 'c`z' . left_new . "\<Delete>", 'c`z' . right_new . "\<Delete>",
+    \ left,
+    \ right,
+    \ '"_c`z' . left_new . "\<Delete>",
+    \ '"_c`z' . right_new . "\<Delete>",
   \ )
 endfunction
 
