@@ -3,6 +3,10 @@
 " Date:   2018-09-10
 " LaTeX specific settings
 "-----------------------------------------------------------------------------"
+" DelimitMate plugin
+let b:delimitMate_quotes = '$ |'
+let b:delimitMate_matchpairs = "(:),{:},[:],`:'"
+
 " Restrict concealmeant to just accents, Greek symbols, and math symbols
 let g:tex_conceal = 'agmd'
 
@@ -135,8 +139,8 @@ let g:textools_snippet_map = {
   \ '*': '\item',
   \ '/': '\pause',
   \ 'o': '\partial',
-  \ "'": '\textnormal{d}',
-  \ '"': '\textnormal{D}',
+  \ "'": '\mathrm{d}',
+  \ '"': '\mathrm{D}',
   \ 'U': '${-}$',
   \ 'u': '${+}$',
   \ 'a': '\alpha',
@@ -182,8 +186,8 @@ let g:textools_snippet_map = {
   \ '.': '\cdot',
   \ ',': '$\,$',
   \ 'M': ' \textCR<CR>',
-  \ 'k': ['Superscript: ', '$^{', '}\,$'],
-  \ 'j': ['Subscript: ', '$_{', '}\,$'],
+  \ 'k': ['Superscript: ', '$^{', '}$'],
+  \ 'j': ['Subscript: ', '$_{', '}$'],
   \ 'E': ['Exponent: ', '$\times 10^{', '}$'],
 \ }
 " \ ':': '$\:$',
@@ -292,7 +296,7 @@ if exists('g:loaded_surround') && g:loaded_surround
     \ 'i': ['\textit{',                         '}'],
     \ 'j': ['_{',                               '}'],
     \ 'k': ['^{',                               '}'],
-    \ 'm': ['\textnormal{',                     '}'],
+    \ 'm': ['\mathrm{',                         '}'],
     \ 'n': ['\pdfcomment{' . "\n",              "\n}"],
     \ 'o': ['\textbf{',                         '}'],
     \ 'r': ['[',                                ']'],

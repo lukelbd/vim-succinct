@@ -1,2 +1,5 @@
 " Filetype declaration for latexmk files
-au BufRead,BufNewFile latexmk.log set filetype=latexmk
+augroup latexmk
+  au!
+  au BufNewFile,BufRead latexmk.log set filetype=latexmk
+augroup END

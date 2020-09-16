@@ -3,7 +3,7 @@
 "-----------------------------------------------------------------------------"
 " Define mappings and delimiters
 if !exists('g:textools_delimjump_regex')
-  let g:textools_delimjump_regex = "[()\\[\\]{}<>]" "list of 'outside' delimiters for jk matching
+  let g:textools_delimjump_regex = '[()\[\]{}<>]' " list of 'outside' delimiters for jk matching
 endif
 if !exists('g:textools_prevdelim_map')
   let g:textools_prevdelim_map = '<C-h>'

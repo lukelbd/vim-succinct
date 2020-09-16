@@ -361,9 +361,9 @@ function! s:graphics_source() abort
   " Todo: Make this work when \graphicspath takes up more than one line
   " Not high priority because latexmk rarely accounts for this anyway
   let paths = system(
-  \ 'grep -o ''^[^%]*'' ' . shellescape(@%) . ' | '
-  \ . s:gsed . ' -n ''s/\\graphicspath{\(.*\)}/\1/p'''
-  \ )
+    \ 'grep -o ''^[^%]*'' ' . shellescape(@%) . ' | '
+    \ . s:gsed . ' -n ''s/\\graphicspath{\(.*\)}/\1/p'''
+    \ )
   if v:shell_error != 0
     echohl ErrorMsg
     echom 'Error: Failed to get list of graphics paths.'

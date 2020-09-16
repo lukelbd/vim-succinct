@@ -79,38 +79,39 @@ tex2docx=false  # option
 while [ $# -gt 0 ]; do
   case $1 in
     -h|--help) echo "$doc" && exit 0 ;;
-    -r|--raw) raw=true ;;
+    -r|--raw)  raw=true ;;
     -d|--diff) texdiff=true ;;
     -w|--word) tex2docx=true ;;
     -p|--pull) pull=true ;;
     [^-]*)
       [ -n "$filename" ] && raise "Got multiple filenames."
-      filename="$1" ;;
+      filename="$1"
+      ;;
     *) raise "Unknown arg $1."
   esac
   shift
 done
 [ -n "$filename" ] || raise "Must pass filename."
-[ -r "$filename" ] || raise "File \"$filename\" does not exist."
+[ -r "$filename" ] || raise "File '$filename' does not exist."
 
 # Get terminal program
 if [ -z "$TERM_PROGRAM" ]; then
-  terminal="MacVim"
-elif [[ "$TERM_PROGRAM" =~ "Apple_Terminal" ]]; then  # or e.g. Apple_Terminal2.0
-  terminal="Terminal"
+  terminal=MacVim
+elif [[ "$TERM_PROGRAM" =~ 'Apple_Terminal' ]]; then  # or e.g. Apple_Terminal2.0
+  terminal=Terminal
 else
-  terminal="$TERM_PROGRAM"
+  terminal=$TERM_PROGRAM
 fi
 
 # Get paths
-templates="$HOME/latex"  # location of LaTeX templates and style files
+templates=$HOME/latex  # location of LaTeX templates and style files
 echo "Filename: $filename"
 if [[ "$filename" =~ / ]]; then  # i.e. contains directory specifier
-  directory="${filename%/*}"  # trim shortest pattern matching <stuff>/*, keep "stuff"
-  filename="${filename##*/}"  # trim longest pattern matching */<stuff>, keep "stuff"
+  directory=${filename%/*}  # trim shortest pattern matching <stuff>/*, keep "stuff"
+  filename=${filename##*/}  # trim longest pattern matching */<stuff>, keep "stuff"
   cd "$directory" || raise "Directory $directory does not exist."
 fi
-filestem="${filename%.tex}"  # simple
+filestem=${filename%.tex}  # simple
 
 # Update repository
 if $pull; then
@@ -122,7 +123,7 @@ fi
 #-----------------------------------------------------------------------------#
 # General utilities
 nocomments() {  # ignore comments. TODO: Maybe awk is better?
-[ $# -eq 1 ] || raise "Incorrect usage of get_bibnames."
+  [ $# -eq 1 ] || raise "Incorrect usage of nocomments."
   grep -o '^[^%]*' "$1"
 }
 inbraces() {  # get content inside braces
@@ -133,25 +134,25 @@ inbraces() {  # get content inside braces
 get_bibnames() {  # show bibliography files
   [ $# -eq 1 ] || raise "Incorrect usage of get_bibnames."
   nocomments "$1" \
-  | $sedcmd -n 's/\\\(bibliography\|nobibliography\|addbibresource\){\(.*\)}/\2/p' \
-  | xargs
+    | $sedcmd -n 's/\\\(bibliography\|nobibliography\|addbibresource\){\(.*\)}/\2/p' \
+    | xargs
 }
 get_bibstyles() {
   [ $# -eq 1 ] || raise "Incorrect usage of get_bibstyles."
-  nocomments "$1" | grep '\\bibliographystyle' | inbraces \
-  | xargs
+  nocomments "$1" | grep '\\bibliographystyle' \
+    | inbraces | xargs
 }
 get_packages() {  # show package names
   [ $# -eq 1 ] || raise "Incorrect usage of get_packages."
   nocomments "$1" | grep -E '\\RequirePackage|\\usepackage' \
-  | $sedcmd 's/\[[^][]*\]//g' | $sedcmd '/\[\|\]/d' \
-  | $sedcmd 's/AtEndOfClass{//g' | $sedcmd '/newcommand\|#/d' \
-  | inbraces | xargs
+    | $sedcmd 's/\[[^][]*\]//g' | $sedcmd '/\[\|\]/d' \
+    | $sedcmd 's/AtEndOfClass{//g' | $sedcmd '/newcommand\|#/d' \
+    | inbraces | xargs
 }
 get_themes () {  # fintd \beamerthemeTHEME and \beamercolorthemeTHEME files
   [ $# -eq 2 ] || raise "Incorrect usage of get_themes."
   nocomments "$1" | grep '\\use'"$2" | inbraces \
-  | $sedcmd 's/^/beamer'"$2"'/' | xargs
+    | $sedcmd 's/^/beamer'"$2"'/' | xargs
 }
 
 #------------------------------------------------------------------------------#
@@ -172,17 +173,17 @@ run() {
   # shellcheck disable=2181
   if [ $? -ne 0 ] || [ "$1" -eq 1 ]; then
     if $raw || [[ "${*:2}" =~ "bibtex" ]]; then
-      cmd='cat'
+      cmd=cat
     else
-      cmd='errcat'
+      cmd=errcat
     fi
     echo "$res" | $cmd | $sedcmd 's/^/  /'
   fi
 }
 
 # First if GIF/animation in file, need to change from Skim to compatible viewer
-cat "$filename" | nocomments | grep '\\animategraphics' &>/dev/null \
-  && viewer="Adobe Acrobat Reader DC" || viewer="Skim"
+nocomments "$filename" | grep '\\animategraphics' &>/dev/null \
+  && viewer='Adobe Acrobat Reader DC' || viewer='Skim'
 
 # Get actual .bib file or resource; needed for pandoc
 # The -n flag prevents printing every single line after running command
@@ -197,16 +198,16 @@ fi
 
 # Detect if we want to run latexdiff on this file
 [[ "$filename" =~ .*[0-9][0-9][0-9][0-9]-[0-9][0-9]*.tex ]] \
-  && dfilename="${filename%.tex}changes.tex" || dfilename=""
+  && dfilename=${filename%.tex}_changes.tex
 
 # Automatically choose from xelatex and pdflatex; just need xelatex for
 # tex files that load fontspec, or use modules that themselves load fontspec
-cat "$filename" | nocomments | grep -E 'fontspec|xltxtra' &>/dev/null \
+nocomments "$filename" | grep -E 'fontspec|xltxtra' &>/dev/null \
   && latex=xelatex
 
 # Use Lua if beamer present, will be faster
 # Also required for beamerposter, not sure about other cases
-cat "$filename" | nocomments | grep 'documentclass.*{beamer}' &>/dev/null \
+nocomments "$filename" | grep 'documentclass.*{beamer}' &>/dev/null \
   && latex=lualatex
 
 #------------------------------------------------------------------------------#
@@ -218,8 +219,8 @@ cat "$filename" | nocomments | grep 'documentclass.*{beamer}' &>/dev/null \
 # echo "$descrip (${#names[@]}): ${names[@]}"
 texfind() {
   local ext descrip texlive copied names files
-  ext="$1"
-  descrip="$2"
+  ext=$1
+  descrip=$2
   [ $# -le 2 ] && return 1
   names=("${@:3}")
   read -r -a files < <(kpsewhich "${names[@]/%/.${ext}}" | xargs)
@@ -241,8 +242,8 @@ texfind() {
 }
 
 # First the custom .cls files
-read -r -a classes < <(nocomments "$filename" | grep '^\\documentclass' | inbraces)
-[ ${#classes[@]} -eq 1 ] || raise "Ambiguous document class: \"${classes[*]}\"."
+read -r -a classes < <(nocomments "$filename" | grep '\\documentclass' | inbraces)
+[ ${#classes[@]} -eq 1 ] || raise "Ambiguous document class: '${classes[*]}'."
 class=${classes[0]}
 texfind cls "Class file" "$class"
 
@@ -257,24 +258,24 @@ texfind cls "Class file" "$class"
 classfile=$(kpsewhich "$class.cls")
 [ -n "$classfile" ] || raise "You should never see this error, already checked for $class.cls existence, check code."
 read -r -a required < <(get_packages "$classfile")
-texfind sty "Class sty dependency" "${required[@]}"
+texfind sty 'Class sty dependenc(ies)' "${required[@]}"
 
 # As above but for .sty files
 # Will also detect \usepackage{package1,package2} lists
 read -r -a packages < <(get_packages "$filename")
-texfind sty "Preamble sty file" "${packages[@]}"
+texfind sty 'Preamble sty file(s)' "${packages[@]}"
 
 # As above but for .bst file
 read -r -a bibstyle < <(get_bibstyles "$filename")
-texfind bst "Bibstyle file" "${bibstyle[@]}"
+texfind bst 'Bibstyle file(s)' "${bibstyle[@]}"
 
 # Next beamer theme
-read -r -a themes < <(get_themes "$filename")
-texfind sty "Theme file" "${themes[@]}"
+read -r -a themes < <(get_themes "$filename" 'theme')
+texfind sty 'Theme file(s)' "${themes[@]}"
 
 # And beamer color theme
-read -r -a colorthemes < <(get_themes "$filename" "colortheme")
-texfind sty "Color theme file" "${colorthemes[@]}"
+read -r -a colorthemes < <(get_themes "$filename" 'colortheme')
+texfind sty 'Color theme file(s)' "${colorthemes[@]}"
 
 #------------------------------------------------------------------------------#
 # Compile the document(s) and display them
