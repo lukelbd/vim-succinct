@@ -76,11 +76,11 @@ endfunction
 
 function! textools#show_bindings(prefix, table) abort
   " Show the entire table
-  let header = 'Table of ' . a:prefix . "<KEY> bindings:\n"
+  let header = a:prefix . "<key> bindings:\n"
   return header . s:bindings_table(a:table)
 endfunction
 
-function! textools#find_bindings(prefix, table, regex) abort
+function! textools#search_bindings(prefix, table, regex) abort
   " Find the matching entry/entries
   let table_filtered = {}
   for [key, value] in items(a:table)
@@ -99,7 +99,11 @@ function! textools#find_bindings(prefix, table, regex) abort
     echohl None
     return
   endif
-  let header = (len(table_filtered) == 1 ? '' : "Bindings matching regex '" . a:regex . "':\n")
+  if len(table_filtered) == 1
+    let header = ''
+  else
+    let header = a:prefix . "<key> bindings matching regex '" . a:regex . "':\n"
+  endif
   return header . s:bindings_table(table_filtered)
 endfunction
 
@@ -307,7 +311,7 @@ function! s:cite_source() abort
       call add(biblist, bibpath)
     else
       echohl WarningMsg
-      echom 'Warning: Bibtex file ''' . bibpath . ''' does not exist.''
+      echom "Warning: Bibtex file '" . bibpath . "' does not exist.'"
       echohl None
     endif
   endfor

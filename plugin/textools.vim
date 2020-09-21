@@ -1,9 +1,12 @@
 "-----------------------------------------------------------------------------"
-" Delimiter navigation improvements
+" Global plugin settings
 "-----------------------------------------------------------------------------"
 " Define mappings and delimiters
-if !exists('g:textools_delimjump_regex')
-  let g:textools_delimjump_regex = '[()\[\]{}<>]' " list of 'outside' delimiters for jk matching
+if !exists('g:textools_surround_prefix')
+  let g:textools_surround_prefix = '<C-j>'
+endif
+if !exists('g:textools_snippet_prefix')
+  let g:textools_snippet_prefix = '<C-k>'
 endif
 if !exists('g:textools_prevdelim_map')
   let g:textools_prevdelim_map = '<C-h>'
@@ -11,7 +14,24 @@ endif
 if !exists('g:textools_nextdelim_map')
   let g:textools_nextdelim_map = '<C-l>'
 endif
+if !exists('g:textools_delimjump_regex')
+  let g:textools_delimjump_regex = '[()\[\]{}<>]' " list of 'outside' delimiters for jk matching
+endif
 
+" Apply custom prefixes
+" Note: Lowercase Isurround plug inserts delims without newlines. Instead of
+" using ISurround we define special begin end delims with newlines baked in.
+inoremap <Plug>ResetUndo <C-g>u
+exe 'vmap ' . g:textools_surround_prefix   . ' <Plug>VSurround'
+exe 'imap ' . g:textools_surround_prefix   . ' <Plug>ResetUndo<Plug>Isurround'
+
+" Apply mappings for *changing* and *deleting* matches
+nnoremap <silent> ds :call textools#delete_delims()<CR>
+nnoremap <silent> cs :call textools#change_delims()<CR>
+
+"-----------------------------------------------------------------------------"
+" Delimiter navigation improvements
+"-----------------------------------------------------------------------------"
 " Move to right of previous delim
 " ( [ [ ( "  "  asdfad) sdf    ]  sdfad   ]  asdfasdf) hello   asdfas)
 " Note: matchstrpos is relatively new/less portable, e.g. fails on midway
@@ -58,6 +78,8 @@ endfunction
 
 " Define the maps, with special consideration for whether popup menu is
 " open. See: https://github.com/lukelbd/dotfiles/blob/master/.vimrc
+" Note: Why not define these as <Plug> maps? For consistency in documentation
+" and with the snippet and citation maps ftplugin/tex.vim
 function! s:popup_close()
   if !pumvisible()
     return ''
@@ -68,8 +90,6 @@ function! s:popup_close()
     return "\<C-y>"
   endif
 endfunction
-" Why not define these as <Plug> maps? For consistency in documentation
-" and with the snippet and citation maps ftplugin/tex.vim
 exe 'inoremap <expr> ' . g:textools_prevdelim_map . ' <sid>popup_close().<sid>prevdelim()'
 exe 'inoremap <expr> ' . g:textools_nextdelim_map . ' <sid>popup_close().<sid>nextdelim()'
 
@@ -80,12 +100,6 @@ exe 'inoremap <expr> ' . g:textools_nextdelim_map . ' <sid>popup_close().<sid>ne
 " Make sure menu generating tool available
 " No fall back because IDGAF about distribution right now
 if exists('*fzf#run')
-  " Autocommand
-  augroup tex_templates
-    au!
-    au BufNewFile *.tex call fzf#run({'source':s:tex_templates(), 'options':'--no-sort', 'sink':function('s:tex_select'), 'down':'~30%'})
-  augroup END
-
   " Functions that list and read templates
   function! s:tex_templates()
     let templates = map(split(globpath('~/latex/', '*.tex'), "\n"), 'fnamemodify(v:val, ":t")')
@@ -96,4 +110,15 @@ if exists('*fzf#run')
       execute '0r ~/latex/' . a:item
     endif
   endfunction
+
+  " Autocommand
+  augroup tex_templates
+    au!
+    au BufNewFile *.tex call fzf#run({
+      \ 'source': s:tex_templates(),
+      \ 'options': '--no-sort',
+      \ 'sink': function('s:tex_select'),
+      \ 'down': '~30%'
+      \ })
+  augroup END
 endif

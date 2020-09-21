@@ -15,34 +15,19 @@ let g:tex_conceal = 'agmd'
 let g:tex_stylish = 1
 
 " Disable spell checking in verbatim mode and comments, disable errors
+" let g:tex_fast = ''  " fast highlighting, but pretty ugly
 let g:tex_fold_enable = 1
 let g:tex_comment_nospell = 1
 let g:tex_verbspell = 0
 let g:tex_no_error = 1
-" let g:tex_fast = ''  " fast highlighting, but pretty ugly
 
-" Default settings
-if !exists('g:textools_snippet_prefix')
-  let g:textools_snippet_prefix = '<C-z>'
-endif
-if !exists('g:textools_surround_prefix')
-  let g:textools_surround_prefix = '<C-s>'
-endif
-
-" Latex compiling command and mapping
-command! -nargs=* Latexmk call textools#latex_background(<q-args>)
+" Tools for compiling latex documents
+command! -buffer -nargs=* Latexmk call textools#latex_background(<q-args>)
 if exists('g:textools_latexmk_maps')
   for [s:map,s:flag] in items(g:textools_latexmk_maps)
     exe 'noremap <silent> <buffer> ' . s:map . ' :Latexmk ' . s:flag . '<CR>'
   endfor
 endif
-
-" Maps for inserting figures and bibtex citations
-" Todo: Document this feature
-exe 'inoremap <buffer> <expr> ' . g:textools_snippet_prefix
-  \ . "; '<C-g>u' . textools#cite_select()"
-exe 'inoremap <buffer> <expr> ' . g:textools_snippet_prefix
-  \ . ": '<C-g>u' . textools#graphics_select()"
 
 "-----------------------------------------------------------------------------"
 " Text object integration
@@ -117,105 +102,114 @@ endif
 " Useful latex snippets
 " Todo: Integrate with some snippets plugin?
 "-----------------------------------------------------------------------------"
-" Snippet dictionaries. Each snippet is made into an <expr> map by prepending
-" and appending the strings with single quotes. This lets us make input()
-" dependent snippets as shown for the 'j', 'k', and 'E' mappings.
-" \xi is the weird curly one, pronounced 'zai'
-" \chi looks like an x, pronounced 'kai'
-" the 'u' used for {-} and {+} is for 'unary'
-let g:textools_snippet_map = {
-  \ '1': '\tiny',
-  \ '2': '\scriptsize',
-  \ '3': '\footnotesize',
-  \ '4': '\small',
-  \ '5': '\normalsize',
-  \ '6': '\large',
-  \ '7': '\Large',
-  \ '8': '\LARGE',
-  \ '9': '\huge',
-  \ '0': '\Huge',
-  \ '<': '\Longrightarrow',
-  \ '>': '\Longrightarrow',
-  \ '*': '\item',
-  \ '/': '\pause',
-  \ 'o': '\partial',
-  \ "'": '\textnormal{d}',
-  \ '"': '\textnormal{D}',
-  \ 'U': '${-}$',
-  \ 'u': '${+}$',
-  \ 'a': '\alpha',
-  \ 'b': '\beta',
-  \ 'c': '\xi',
-  \ 'C': '\Xi',
-  \ 'd': '\delta',
-  \ 'D': '\Delta',
-  \ 'f': '\phi',
-  \ 'F': '\Phi',
-  \ 'g': '\gamma',
-  \ 'G': '\Gamma',
-  \ 'K': '\kappa',
-  \ 'l': '\lambda',
-  \ 'L': '\Lambda',
-  \ 'm': '\mu',
-  \ 'n': '\nabla',
-  \ 'v': '\nu',
-  \ 'e': '\epsilon',
-  \ 'h': '\eta',
-  \ 'p': '\pi',
-  \ 'P': '\Pi',
-  \ 'q': '\theta',
-  \ 'Q': '\Theta',
-  \ 'r': '\rho',
-  \ 's': '\sigma',
-  \ 'S': '\Sigma',
-  \ 't': '\tau',
-  \ 'T': '\chi',
-  \ 'y': '\psi',
-  \ 'Y': '\Psi',
-  \ 'w': '\omega',
-  \ 'W': '\Omega',
-  \ 'z': '\zeta',
-  \ 'i': '\int',
-  \ 'I': '\iint',
-  \ '+': '\sum',
-  \ 'x': '\times',
-  \ 'X': '\prod',
-  \ 'O': '$^\circ$',
-  \ '=': '\equiv',
-  \ '~': '{\sim}',
-  \ '.': '\cdot',
-  \ ',': '$\,$',
-  \ 'M': ' \textCR<CR>',
-  \ 'k': ['Superscript: ', '$^{', '}$'],
-  \ 'j': ['Subscript: ', '$_{', '}$'],
-  \ 'E': ['Exponent: ', '$\times 10^{', '}$'],
-\ }
-" \ ':': '$\:$',
-" \ ';': '$\;$',
-" \ ',': '\, ',
-" \ ':': '\: ',
-" \ ';': '\; ',
-" \ 'q': '\quad ',
+if 1
+  " Snippet dictionaries. Each snippet is made into an <expr> map by prepending
+  " and appending the strings with single quotes. This lets us make input()
+  " dependent snippets as shown for the 'j', 'k', and 'E' mappings.
+  " * \xi is the weird curly one, pronounced 'zai'
+  " * \chi looks like an x, pronounced 'kai'
+  " * the 'u' used for {-} and {+} is for 'unary'
+  let g:textools_snippet_map = {
+    \ '1': '\tiny',
+    \ '2': '\scriptsize',
+    \ '3': '\footnotesize',
+    \ '4': '\small',
+    \ '5': '\normalsize',
+    \ '6': '\large',
+    \ '7': '\Large',
+    \ '8': '\LARGE',
+    \ '9': '\huge',
+    \ '0': '\Huge',
+    \ '<': '\Longrightarrow',
+    \ '>': '\Longrightarrow',
+    \ '*': '\item',
+    \ '/': '\pause',
+    \ 'o': '\partial',
+    \ "'": '\textnormal{d}',
+    \ '"': '\textnormal{D}',
+    \ 'U': '${-}$',
+    \ 'u': '${+}$',
+    \ 'a': '\alpha',
+    \ 'b': '\beta',
+    \ 'c': '\xi',
+    \ 'C': '\Xi',
+    \ 'd': '\delta',
+    \ 'D': '\Delta',
+    \ 'f': '\phi',
+    \ 'F': '\Phi',
+    \ 'g': '\gamma',
+    \ 'G': '\Gamma',
+    \ 'K': '\kappa',
+    \ 'l': '\lambda',
+    \ 'L': '\Lambda',
+    \ 'm': '\mu',
+    \ 'n': '\nabla',
+    \ 'v': '\nu',
+    \ 'e': '\epsilon',
+    \ 'h': '\eta',
+    \ 'p': '\pi',
+    \ 'P': '\Pi',
+    \ 'q': '\theta',
+    \ 'Q': '\Theta',
+    \ 'r': '\rho',
+    \ 's': '\sigma',
+    \ 'S': '\Sigma',
+    \ 't': '\tau',
+    \ 'T': '\chi',
+    \ 'y': '\psi',
+    \ 'Y': '\Psi',
+    \ 'w': '\omega',
+    \ 'W': '\Omega',
+    \ 'z': '\zeta',
+    \ 'i': '\int',
+    \ 'I': '\iint',
+    \ '+': '\sum',
+    \ 'x': '\times',
+    \ 'X': '\prod',
+    \ 'O': '$^\circ$',
+    \ '=': '\equiv',
+    \ '~': '{\sim}',
+    \ '.': '\cdot',
+    \ ',': '$\,$',
+    \ 'M': ' \textCR<CR>',
+    \ 'k': ['Superscript: ', '$^{', '}$'],
+    \ 'j': ['Subscript: ', '$_{', '}$'],
+    \ 'E': ['Exponent: ', '$\times 10^{', '}$'],
+  \ }
+  " \ ':': '$\:$',
+  " \ ';': '$\;$',
+  " \ ',': '\, ',
+  " \ ':': '\: ',
+  " \ ';': '\; ',
+  " \ 'q': '\quad ',
 
-" Apply snippets mappings
-exe 'inoremap <buffer> ' . g:textools_snippet_prefix . '<Esc> <Nop>'
-for [s:binding, s:snippet] in items(g:textools_snippet_map)
-  if type(s:snippet) == 3  " pass list of args to special function
-    let [s:prompt, s:prefix, s:suffix] = s:snippet
-    let s:snippet = "textools#insert_snippet('" . s:prompt . "', '" . s:prefix . "', '" . s:suffix . "')"
-  else
-    let s:snippet = "'" . s:snippet . "'"
-  endif
-  exe 'inoremap <expr> <buffer> ' . g:textools_snippet_prefix . s:binding . ' ' . s:snippet
-endfor
+  " Apply snippets mappings
+  exe 'inoremap <buffer> ' . g:textools_snippet_prefix . '<Esc> <Nop>'
+  for [s:binding, s:snippet] in items(g:textools_snippet_map)
+    if type(s:snippet) == 3  " pass list of args to special function
+      let [s:prompt, s:prefix, s:suffix] = s:snippet
+      let s:snippet = "textools#insert_snippet('" . s:prompt . "', '" . s:prefix . "', '" . s:suffix . "')"
+    else
+      let s:snippet = "'" . s:snippet . "'"
+    endif
+    exe 'inoremap <expr> <buffer> ' . g:textools_snippet_prefix . s:binding . ' ' . s:snippet
+  endfor
 
-" Table and find
-command! -nargs=0 SnippetShow echo textools#show_bindings(g:textools_snippet_prefix, g:textools_snippet_map)
-command! -nargs=+ SnippetFind echo textools#find_bindings(g:textools_snippet_prefix, g:textools_snippet_map, <q-args>)
+  " Add pseudo 'snippets' for inserting figures and bibtex citations
+  " Todo: Document this feature
+  exe 'inoremap <buffer> <expr> ' . g:textools_snippet_prefix
+    \ . "; '<C-g>u' . textools#cite_select()"
+  exe 'inoremap <buffer> <expr> ' . g:textools_snippet_prefix
+    \ . ": '<C-g>u' . textools#graphics_select()"
 
-" Map for showing snippets in insert mode
-exe 'inoremap <buffer> <silent> ' . repeat(g:textools_snippet_prefix, 2)
-  \ . ' <C-o>:echo textools#show_bindings(g:textools_snippet_prefix, g:textools_snippet_map)<CR>'
+  " Table and find
+  command! -buffer -nargs=0 SnippetShow echo textools#show_bindings(g:textools_snippet_prefix, g:textools_snippet_map)
+  command! -buffer -nargs=+ SnippetSearch echo textools#search_bindings(g:textools_snippet_prefix, g:textools_snippet_map, <q-args>)
+
+  " Map for showing snippets in insert mode
+  exe 'inoremap <buffer> <silent> ' . repeat(g:textools_snippet_prefix, 2)
+    \ . ' <C-o>:echo textools#show_bindings(g:textools_snippet_prefix, g:textools_snippet_map)<CR>'
+endif
 
 "-----------------------------------------------------------------------------"
 " Vim-surround integration
@@ -341,13 +335,6 @@ if exists('g:loaded_surround') && g:loaded_surround
     \ ],
   \ }
 
-  " Apply prefix mapping
-  " Note: Lowercase Isurround plug inserts delims without newlines. Instead of
-  " using ISurround we define special begin end delims with newlines baked in.
-  inoremap <Plug>ResetUndo <C-g>u
-  exe 'vmap <buffer> ' . g:textools_surround_prefix   . ' <Plug>VSurround'
-  exe 'imap <buffer> ' . g:textools_surround_prefix   . ' <Plug>ResetUndo<Plug>Isurround'
-
   " Apply delimiters mappings
   exe 'inoremap <buffer> ' . g:textools_surround_prefix   . '<Esc> <Nop>'
   for [s:binding, s:pair] in items(g:textools_surround_map)
@@ -355,13 +342,9 @@ if exists('g:loaded_surround') && g:loaded_surround
     let b:surround_{char2nr(s:binding)} = s:left . "\r" . s:right
   endfor
 
-  " Apply mappings for *changing* and *deleting* these matches
-  nnoremap <buffer> <silent> ds :call textools#delete_delims()<CR>
-  nnoremap <buffer> <silent> cs :call textools#change_delims()<CR>
-
   " Table and find
-  command! -nargs=0 SurroundShow echo textools#show_bindings(g:textools_surround_prefix, g:textools_surround_map)
-  command! -nargs=+ SurroundFind echo textools#find_bindings(g:textools_surround_prefix, g:textools_surround_map, <q-args>)
+  command! -buffer -nargs=0 SurroundShow echo textools#show_bindings(g:textools_surround_prefix, g:textools_surround_map)
+  command! -buffer -nargs=+ SurroundSearch echo textools#search_bindings(g:textools_surround_prefix, g:textools_surround_map, <q-args>)
 
 " Map for showing surround delims in insert mode
   exe 'inoremap <buffer> <silent> ' . repeat(g:textools_surround_prefix, 2)
