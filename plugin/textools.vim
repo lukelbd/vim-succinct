@@ -3,10 +3,10 @@
 "-----------------------------------------------------------------------------"
 " Define mappings and delimiters
 if !exists('g:textools_surround_prefix')
-  let g:textools_surround_prefix = '<C-j>'
+  let g:textools_surround_prefix = '<C-s>'
 endif
 if !exists('g:textools_snippet_prefix')
-  let g:textools_snippet_prefix = '<C-k>'
+  let g:textools_snippet_prefix = '<C-d>'
 endif
 if !exists('g:textools_prevdelim_map')
   let g:textools_prevdelim_map = '<C-h>'

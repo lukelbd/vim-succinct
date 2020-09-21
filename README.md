@@ -49,7 +49,7 @@ code to get the full picture.
 
 <!--
 ## Filetype settings
-* For most languages, added a normal mode `<C-j>` map
+* For most languages, added a normal mode `<C-d>` map
   for "running" the current file. See files in the `ftplugin` folder.
 * For LaTeX documents, this relies on having my custom script for typesetting documents,
   `https://github.com/lukelbd/dotfiles/blob/master/vimlatex`, somewhere in your `$PATH`.
@@ -70,8 +70,8 @@ code to get the full picture.
 
 | Mapping | Description |
 | ---- | ---- |
-| `<C-j><key>` | These are maps for inserting citation labels (`<C-j>;`), figure filenames (`<C-j>:`), and text snippets (`<C-j><KEY>`) in insert mode (see [surround.vim](after/plugin/surround.vim) for details).  Example usage includes typing `<C-j>a` in insert mode to insert the TeX alpha character `\alpha`. |
-| `<C-k><key>`, `ys<obj><key>`, ... | New `surround.vim` delimiter mappings. These are custom delimiters integrated with the `surround.vim` plugin, introducing a series of insert, visual, and normal mode maps (see [surround.vim](after/plugin/surround.vim) for details). Example usage includes making a visual selection and pressing `<C-k>*` to surround the selection with a `\begin{itemize}` `\end{itemize}` environment, or running `yswb` in normal mode to surround the word under the cursor with `\textbf{}`.
+| `<C-d><key>` | These are maps for inserting citation labels (`<C-d>;`), figure filenames (`<C-d>:`), and text snippets (`<C-d><KEY>`) in insert mode (see [surround.vim](after/plugin/surround.vim) for details).  Example usage includes typing `<C-d>a` in insert mode to insert the TeX alpha character `\alpha`. |
+| `<C-s><key>`, `ys<obj><key>`, ... | New `surround.vim` delimiter mappings. These are custom delimiters integrated with the `surround.vim` plugin, introducing a series of insert, visual, and normal mode maps (see [surround.vim](after/plugin/surround.vim) for details). Example usage includes making a visual selection and pressing `<C-s>*` to surround the selection with a `\begin{itemize}` `\end{itemize}` environment, or running `yswb` in normal mode to surround the word under the cursor with `\textbf{}`.
 | `va<key>`, `vi<key>`, ... | New text object mappings. These are custom delimiters integrated with the `vim-textobj-user` plugin for selecting, yanking, changing, and deleting blocks of text with `va<key>`, `ya<key>`, etc (see [textobjs.vim](after/plugin/textobjs.vim) for details). Example usage includes selecting a LaTeX `\begin{}` `\end{}` environment with `vaT`, or changing text inside a LaTeX command with `cit`. |
 | `<C-h>`, `<C-l>` | Jumps to the left, right of the previous, next bracket in insert mode (i.e. any of the characters `[]<>(){}`). This is handy when the cursor is inside a complex next of varying types of delimiters, a common difficulty when writing LaTeX equations. It stands in contrast to delimitMate's `<Plug>delimitMateJumpMany` map, which jumps to the far outside of nested delimiters. |
 
@@ -85,8 +85,8 @@ code to get the full picture.
 
 | Option | Description |
 | ---- | ---- |
-| `g:textools_surround_prefix` | Prefix for the insert and visual mode vim-surround mappings. The default is `<C-k>`, which is intuitive but requires adding `bind -r '"\C-k"'` to your `~/.bashrc` or `~/.bash_profile`. |
-| `g:textools_snippet_prefix` | Prefix for the citation label, figure filename, and snippet insert mappings. The default is `<C-j>`. |
+| `g:textools_surround_prefix` | Prefix for the insert and visual mode vim-surround mappings. The default is `<C-s>`, which is intuitive but requires adding `bind -r '"\C-s"'` to your `~/.bashrc` or `~/.bash_profile`. |
+| `g:textools_snippet_prefix` | Prefix for the citation label, figure filename, and snippet insert mappings. The default is `<C-d>`. |
 | `g:textools_prevdelim_map` | Insert mode mapping for jumping to the previous bracket. The default is `<C-h>`. |
 | `g:textools_nextdelim_map` | Insert mode mapping for jumping to the previous bracket. The default is `<C-l>`. |
 | `g:textools_latexmk_maps` | Dictionary of normal mode mappings and flags for the `:Latexmk`. This is empty by default. For example, `let g:textools_latexmk_maps = {'<C-x>':'', '<Leader>x':'--diff'}` adds maps that call `:Latexmk` with no flags and the `--diff` flag. |
