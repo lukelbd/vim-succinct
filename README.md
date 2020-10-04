@@ -19,8 +19,8 @@ features but with a different, minimal flavor.
 * Permits inserting citation labels from `.bib` files added with
   `\bibliography` and `\addbibresource` using fuzzy name selection powered by
   [fzf-bibtex](https://github.com/msprev/fzf-bibtex).
-* Permits adding figures inside the `\graphicspath` directories
-  with fuzzy name selection powered by [fzf](https://github.com/junegunn/fzf).
+* Permits adding figures inside the current directory and `\graphicspath` directories
+  using fuzzy name selection powered by [fzf](https://github.com/junegunn/fzf).
 * Permits loading arbitrary file templates stored in `g:textools_templates_path`
   (defaults to `~/templates`) when creating new files files using fuzzy name
   selection powered by [fzf](https://github.com/junegunn/fzf).
