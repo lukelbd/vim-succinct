@@ -8,53 +8,30 @@ features but with a different, minimal flavor.
 * Includes a simplified [latexmk](latexmk) shell script compared to the popular
   [PERL script of the same name](https://mg.readthedocs.io/latexmk.html).
   The latexmk script runs in a popup window parallel with your
-  vim session and opens/refreshes the [Skim PDF viewer](https://skim-app.sourceforge.io)
-  (in the future, the viewer will be configurable).
-  See ``~/.vim/plugged/vim-textools/latexmk --help`` for
-  the new features offered by this script.
+  vim session, opens/refreshes the [Skim PDF viewer](https://skim-app.sourceforge.io),
+  and optionally moves dependency files in a `~/latex` folder to the current directory.
+  See `~/.vim/plugged/vim-textools/bin/latexmk --help` for the full documentation.
 * Integrates with the
   [vim-text-obj](https://github.com/kana/vim-textobj-user)
   and [vim-surround](https://github.com/tpope/vim-surround) plugins
   by adding LaTeX-specific delimiters and text objects
   that make editing LaTeX documents a breeze.
-* Permits inserting citation labels from `.bib` files
-  added with `\bibliography` and `\addbibresource` using
-  fuzzy name selection powered by
-  [bibtex-cite](https://github.com/msprev/fzf-bibtex)
-  and [FZF](https://github.com/junegunn/fzf).
+* Permits inserting citation labels from `.bib` files added with
+  `\bibliography` and `\addbibresource` using fuzzy name selection powered by
+  [fzf-bibtex](https://github.com/msprev/fzf-bibtex).
 * Permits adding figures inside the `\graphicspath` directories
-  with fuzzy name selection powered by [FZF](https://github.com/junegunn/fzf).
-* Permits loading arbitrary `.tex` file templates
-  stored in a `~/latex` folder when creating new `.tex`
-  files using fuzzy name selection powered by [FZF](https://github.com/junegunn/fzf).
+  with fuzzy name selection powered by [fzf](https://github.com/junegunn/fzf).
+* Permits loading arbitrary file templates stored in `g:textools_templates_path`
+  (defaults to `~/templates`) when creating new files files using fuzzy name
+  selection powered by [fzf](https://github.com/junegunn/fzf).
 
 This set of tools is complex and would take quite a while to document. For now I will
 just give a broad summary of the features.
 
-<!--
-## Commands
-* `:TabToggle`: Toggles `expandtab` on-and-off.
--->
-
-<!--
-## Syntax highlighting
-* Added support for MATLAB, NCL, and "awk" script syntax highlighting. See
-  files in the `syntax` folder.
-* Added support for highlighting SLURM and PBS supercomputer directives in comments at
-  the head of shell scripts. See `after/syntax/sh.vim`.
-* Improved the default python and LaTeX highlighting. See
-  `syntax/python.vim` and `after/syntax/tex.vim`.
-* Improved comment highlighting for fortran and HTML syntax.
-  See files in the `after/syntax` folder.
--->
-
-<!--
-## Filetype settings
-* For most languages, added a normal mode `<C-d>` map
-  for "running" the current file. See files in the `ftplugin` folder.
-* For LaTeX documents, this relies on having my custom script for typesetting documents,
-  `https://github.com/lukelbd/dotfiles/blob/master/vimlatex`, somewhere in your `$PATH`.
--->
+**Note**: In the future, this package may be split up into a generalized
+`vim-delimtools` package that supports delimiters and snippets for
+several different languages and a `vim-latexmk` package that contains
+just the custom `latexmk` script.
 
 Documentation
 =============
@@ -97,14 +74,7 @@ Customization
 | `g:textools_snippet_prefix` | Prefix for the citation label, figure filename, and snippet insert mappings. The default is `<C-d>`. |
 | `g:textools_prevdelim_map` | Insert mode mapping for jumping to the previous bracket. The default is `<C-h>`. |
 | `g:textools_nextdelim_map` | Insert mode mapping for jumping to the previous bracket. The default is `<C-l>`. |
-| `g:textools_latexmk_maps` | Dictionary of normal mode mappings and flags for the `:Latexmk`. This is empty by default. For example, `let g:textools_latexmk_maps = {'<C-x>':'', '<Leader>x':'--diff'}` adds maps that call `:Latexmk` with no flags and the `--diff` flag. |
-
-<!--
-TODO:
-| `g:textools_tex_surround_maps` | Dictionary of keys corresponding to the vim-surround mappings. |
-| `g:textools_{filetype}_surround_maps` | As with `g:textools_tex_surround_maps` but for arbitrary filetypes -- because this feature is not just useful with TeX documents. |
-| `g:textools_surround_maps` | As with `g:textools_tex_surround_maps` but for all filetypes. |
--->
+| `g:textools_templates_path` | Location where templates are stored. These are optionally loaded when creating new files. |
 
 Installation
 ============
@@ -120,7 +90,7 @@ to your `~/.vimrc`.
 See also
 ========
 
-If you find this plugin useful, I also highly recommend two other tools I developed:
+If you find this plugin useful, I also highly recommend the following:
 
 * The [vim-scrollwrapped plugin](https://github.com/lukelbd/vim-scrollwrapped), which
   toggles "wrapped" lines automatically for non-code documents (like markdown, RST, and

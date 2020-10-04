@@ -104,7 +104,7 @@ else
 fi
 
 # Get paths
-templates=$HOME/latex  # location of LaTeX templates and style files
+src=$HOME/latex  # location of LaTeX style files
 echo "Filename: $filename"
 if [[ "$filename" =~ / ]]; then  # i.e. contains directory specifier
   directory=${filename%/*}  # trim shortest pattern matching <stuff>/*, keep "stuff"
@@ -230,15 +230,15 @@ texfind() {
     if [[ "${files[*]}" =~ "$file" ]] && ! [[ " ${files[*]}" =~ " ./${file}" ]]; then
       texlive+=("$file")
     # Get file from custom templates folder, copy over
-    elif [ -r "${templates}/${file}" ]; then
+    elif [ -r "${src}/${file}" ]; then
       copied+=("$file")
-      cp "${templates}/${file}" ./
+      cp "${src}/${file}" ./
     else
       raise "${file} not found"
     fi
   done
   [ ${#texlive[@]} -gt 0 ] && echo "$descrip found in TeXLive: ${texlive[*]}"
-  [ ${#copied[@]} -gt 0 ] && echo "$descrip copied from ~/${templates##*/}: ${copied[*]}"
+  [ ${#copied[@]} -gt 0 ] && echo "$descrip copied from ~/${src##*/}: ${copied[*]}"
 }
 
 # First the custom .cls files
@@ -295,6 +295,7 @@ case $latex in
   *) raise "Unknown compiler \"$latex\"." ;;
 esac
 echo 'Running with '"${stylized}..."
+
 # Aux file
 # WARNING: To keep exit code from pdflatex, pipe later on
 # run 0 $latex $flags "$filestem"
@@ -371,4 +372,3 @@ else
   open "$viewer" "$filestem.pdf"
 fi
 command open -a "$terminal" &  # bring terminal back into focus
-

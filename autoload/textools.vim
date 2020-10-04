@@ -34,7 +34,7 @@ function! textools#latex_background(...) abort
   " echom s:path . '/../latexmk'
   let num = bufnr(logfile)
   let g:tex_job = job_start(
-    \ s:path . '/../latexmk ' . texfile . opts,
+    \ s:path . '/../bin/latexmk ' . texfile . opts,
     \ { 'out_io': 'buffer', 'out_buf': num }
     \ )
 endfunction
@@ -42,8 +42,20 @@ endfunction
 "-----------------------------------------------------------------------------"
 " Displaying surround and snippet mappings
 "-----------------------------------------------------------------------------"
-function! s:bindings_table(table) abort
-  " Return a nice displayable list of bindings
+" Return the bindings table given the input variables
+function! s:get_bindings_table(type) abort
+  let prefix = 'b:' . a:type . '_'  " either b:surround_ or b:snippet_
+  let table = {}
+  let vars = getcompletion(prefix, 'var')
+  for var in vars
+    let nr = substitute(var, '^' . prefix, '', '')
+    let table[nr2char(nr)] = eval(var)
+  endfor
+  return table
+endfunction
+
+" Return a nice displayable list of bindings
+function! s:fmt_bindings_table(table) abort
   let nspace = max(map(keys(a:table), 'len(v:val)'))
   let mspace = max(map(values(a:table), 'type(v:val) == 1 ? len(v:val) : len(v:val[0])'))  " might be just string
   let bindings = []
@@ -74,16 +86,16 @@ function! s:bindings_table(table) abort
   return join(bindings, "\n")
 endfunction
 
-function! textools#show_bindings(prefix, table) abort
-  " Show the entire table
-  let header = a:prefix . "<key> bindings:\n"
-  return header . s:bindings_table(a:table)
+" Show the entire table (type must be 'surround' or 'snippet')
+function! textools#print_bindings(type) abort
+  return a:type . " bindings:\n" . s:fmt_bindings_table(s:get_bindings_table(a:type))
 endfunction
 
-function! textools#search_bindings(prefix, table, regex) abort
-  " Find the matching entry/entries
+" Find the matching entry/entries
+function! textools#search_bindings(type, regex) abort
   let table_filtered = {}
-  for [key, value] in items(a:table)
+  let table = s:get_bindings_table(a:type)
+  for [key, value] in items(table)
     if type(value) == 1
       let val = value
     else
@@ -99,26 +111,56 @@ function! textools#search_bindings(prefix, table, regex) abort
     echohl None
     return
   endif
-  if len(table_filtered) == 1
-    let header = ''
-  else
-    let header = a:prefix . "<key> bindings matching regex '" . a:regex . "':\n"
-  endif
-  return header . s:bindings_table(table_filtered)
+  let header = a:type . " bindings matching regex '" . a:regex . "':\n"
+  let body = s:fmt_bindings_table(table_filtered)
+  return (len(table_filtered) == 1 ? body : header . body)
 endfunction
 
 "-----------------------------------------------------------------------------"
 " Inserting complicatd snippets
 "-----------------------------------------------------------------------------"
-" Add user-defined snippet with fixed prefix and suffix. If the user
-" *cancels* input or writes nothing, insert nothing.
-function! textools#insert_snippet(prompt, prefix, suffix)
-  let result = input(a:prompt)
-  if empty(result)
+" Get character (copied from surround.vim)
+function! s:get_char()
+  let char = getchar()
+  if char =~# '^\d\+$'
+    let char = nr2char(char)
+  endif
+  if char =~# "\<Esc>" || char =~# "\<C-C>"
     return ''
   else
-    return a:prefix . result . a:suffix
+    return char
   endif
+endfunction
+
+" Add user-defined snippet, either a fixed string or input string with defined
+" prefix and suffix. If user *cancels* input or writes nothing, insert nothing.
+function! textools#insert_snippet()
+  let space = ''
+  let char = s:get_char()
+  if char ==# ' '  " similar to surround, permit <C-d><Space><Key> to surround with space
+    let space = char
+    let char = s:get_char()
+  endif
+  if empty(char)
+    return ''
+  endif
+  if exists('b:snippet_' . char2nr(char))
+    let snippet = b:snippet_{char2nr(char)}
+  elseif exists('g:snippet_' . char2nr(char))
+    let snippet = g:snippet_{char2nr(char)}
+  else
+    return ''
+  endif
+  let regex = '[a-zA-Z0-9_#]\+([^)]*)'  " search for valid vi function in string
+  let [cmd, idx1, idx2] = matchstrpos(snippet, regex)
+  if !empty(cmd)
+    let result = eval(cmd)  " replace with results of function
+    if empty(result)
+      return ''
+    endif
+    let snippet = substitute(snippet, regex, result, '')
+  endif
+  return space . snippet . space
 endfunction
 
 "-----------------------------------------------------------------------------"
