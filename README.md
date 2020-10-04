@@ -6,10 +6,8 @@ files in vim, reproducing most of [vimtex](https://github.com/lervag/vimtex)'s
 features but with a different, minimal flavor.
 
 * Includes a simplified [latexmk](latexmk) shell script compared to the popular
-  [PERL script of the same name](https://mg.readthedocs.io/latexmk.html).
-  The latexmk script runs in a popup window parallel with your
-  vim session, opens/refreshes the [Skim PDF viewer](https://skim-app.sourceforge.io),
-  and optionally moves dependency files in a `~/latex` folder to the current directory.
+  [PERL script of the same name](https://mg.readthedocs.io/latexmk.html),
+  and permits asynchronous typesetting with this script. See below for details.
 * Integrates with the
   [vim-text-obj](https://github.com/kana/vim-textobj-user)
   and [vim-surround](https://github.com/tpope/vim-surround) plugins
@@ -49,7 +47,7 @@ This script has the following features:
 * Automatically figures out which typesetting engine to use based on the packages
   imported (i.e. `pdflatex`, `xelatex`, etc.).
 * Automatically copies over custom user style and theme files from a
-  `~/latex` folder.
+  `~/latex` folder. This helps keep such files in a central location.
 * Optionally typeset the *changes* relative to the most recent version of your file
   using `texdiff` (the `--diff` flag). This only works if the current file and another
   file in the same folder ends with the date string `YYYY-MM.tex` or `YYYY-MM-DD.tex`.
