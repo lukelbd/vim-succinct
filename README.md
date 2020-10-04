@@ -1,4 +1,6 @@
-# TeX tools
+TeX tools
+=========
+
 This is a collection of custom tools and plugin enhancements for working with LaTeX
 files in vim, reproducing most of [vimtex](https://github.com/lervag/vimtex)'s
 features but with a different, minimal flavor.
@@ -27,8 +29,7 @@ features but with a different, minimal flavor.
   files using fuzzy name selection powered by [FZF](https://github.com/junegunn/fzf).
 
 This set of tools is complex and would take quite a while to document. For now I will
-just give a broad summary of the features and expect any users to dig into the vimscript
-code to get the full picture.
+just give a broad summary of the features.
 
 <!--
 ## Commands
@@ -55,8 +56,11 @@ code to get the full picture.
   `https://github.com/lukelbd/dotfiles/blob/master/vimlatex`, somewhere in your `$PATH`.
 -->
 
-# Documentation
-## Commands
+Documentation
+=============
+
+Commands
+--------
 
 | Command | Description |
 | ---- | ---- |
@@ -66,7 +70,8 @@ code to get the full picture.
 | `:SurroundFind` | Find the delimiter mapping that matches the input regex. |
 | `:SurroundShow` | Show a table of the current delimiter mappings. |
 
-## Mappings
+Mappings
+--------
 
 | Mapping | Description |
 | ---- | ---- |
@@ -75,13 +80,16 @@ code to get the full picture.
 | `va<key>`, `vi<key>`, ... | New text object mappings. These are custom delimiters integrated with the `vim-textobj-user` plugin for selecting, yanking, changing, and deleting blocks of text with `va<key>`, `ya<key>`, etc (see [textobjs.vim](after/plugin/textobjs.vim) for details). Example usage includes selecting a LaTeX `\begin{}` `\end{}` environment with `vaT`, or changing text inside a LaTeX command with `cit`. |
 | `<C-h>`, `<C-l>` | Jumps to the left, right of the previous, next bracket in insert mode (i.e. any of the characters `[]<>(){}`). This is handy when the cursor is inside a complex next of varying types of delimiters, a common difficulty when writing LaTeX equations. It stands in contrast to delimitMate's `<Plug>delimitMateJumpMany` map, which jumps to the far outside of nested delimiters. |
 
-## Functions
+Functions
+---------
+
 | Function | Description |
-  | ---- | ---- |
+| ---- | ---- |
 | `textools#delete_delims` | The existing [vim-surround](https://github.com/tpope/vim-surround) API can only handle deleting certain types of delimiters, not custom delimiters set with `g:surround_{num}` or `b:surround_{num}`. Calling this function deletes the *arbitrary* delimiter corresponding to the next keystroke (usage is `ds<key>`). |
 | `textools#change_delims` | The existing [vim-surround](https://github.com/tpope/vim-surround) API can only handle changing certain types of delimiters, not custom delimiters set with `g:surround_{num}` or `b:surround_{num}`. Calling this function changes the delimiter corresponding to the first keystroke to the *arbitrary* delimiter corresponding to the second keystroke (usage is `cs<key1><key2>`). |
 
-## Customization
+Customization
+-------------
 
 | Option | Description |
 | ---- | ---- |
@@ -98,17 +106,20 @@ TODO:
 | `g:textools_surround_maps` | As with `g:textools_tex_surround_maps` but for all filetypes. |
 -->
 
-# Installation
-Install with your favorite [plugin
-manager](https://vi.stackexchange.com/questions/388/what-is-the-difference-between-the-vim-plugin-managers).
-I highly recommend the [vim-plug](https://github.com/junegunn/vim-plug) manager. To
-install with vim-plug, add
+Installation
+============
+
+Install with your favorite [plugin manager](https://vi.stackexchange.com/q/388/8084).
+I highly recommend the [vim-plug](https://github.com/junegunn/vim-plug) manager.
+To install with vim-plug, add
 ```
 Plug 'lukelbd/vim-textools'
 ```
 to your `~/.vimrc`.
 
-# See also
+See also
+========
+
 If you find this plugin useful, I also highly recommend two other tools I developed:
 
 * The [vim-scrollwrapped plugin](https://github.com/lukelbd/vim-scrollwrapped), which
@@ -117,7 +128,6 @@ If you find this plugin useful, I also highly recommend two other tools I develo
   much easier.
 * The [idetools plugin](https://github.com/lukelbd/vim-idetools), which includes various
   refactoring commands and tools for jumping around documents based on ctags locations.
-* My [ctags preference file](https://github.com/lukelbd/dotfiles/blob/master/.ctags),
+* This [ctags preference file](https://github.com/lukelbd/dotfiles/blob/master/.ctags),
   which contains a bunch of new definitions for marking section, figure, table, etc.
   locations with ctags.
-
