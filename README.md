@@ -10,7 +10,6 @@ features but with a different, minimal flavor.
   The latexmk script runs in a popup window parallel with your
   vim session, opens/refreshes the [Skim PDF viewer](https://skim-app.sourceforge.io),
   and optionally moves dependency files in a `~/latex` folder to the current directory.
-  See `~/.vim/plugged/vim-textools/bin/latexmk --help` for the full documentation.
 * Integrates with the
   [vim-text-obj](https://github.com/kana/vim-textobj-user)
   and [vim-surround](https://github.com/tpope/vim-surround) plugins
@@ -36,12 +35,38 @@ just the custom `latexmk` script.
 Documentation
 =============
 
+Latexmk
+-------
+
+The `latexmk` script included with this package typesets the document and opens the
+file in the [Skim PDF viewer](https://en.wikipedia.org/wiki/Skim_(software)).
+This script has the following features:
+
+* Deletes *every* extra file generated during typesetting, except
+  for the `.bbl` and `.pdf` files.
+* Automatically figures out the number of times the typesetting command must be called,
+  like the original `latexmk`.
+* Automatically figures out which typesetting engine to use based on the packages
+  imported (i.e. `pdflatex`, `xelatex`, etc.).
+* Automatically copies over custom user style and theme files from a
+  `~/latex` folder.
+* Optionally typeset the *changes* relative to the most recent version of your file
+  using `texdiff` (the `--diff` flag). This only works if the current file and another
+  file in the same folder ends with the date string `YYYY-MM.tex` or `YYYY-MM-DD.tex`.
+* Optionally convert the final document to `.docx` using [pandoc](https://pandoc.org)
+  (the `--word` flag). This is ideal for communication with collaborators that
+  use Microsoft Word or Apple Pages.
+
+See `:Latexmk --help` for the full documentation. Note that `latexmk`
+requires GNU sed to function properly (this can be installed on macOS using
+[Homebrew](https://brew.sh) with `brew install gnu-sed`).
+
 Commands
 --------
 
 | Command | Description |
 | ---- | ---- |
-| `:Latexmk` | Runs the custom [latexmk script](latexmk). This typesets the document asynchronously, shows a condensed log in a popup split window, and opens the file in the [Skim PDF viewer](https://en.wikipedia.org/wiki/Skim_(software)). It automatically detects the number of times the typesetting command must be called, like the original `latexmk`, automatically figures out which typesetting engine to use based on the packages imported, automatically copies over custom user style and theme files from a `~/latex` folder, and deletes extra files generated during typesetting. Run `:Latexmk --help` for more info. Note that `latexmk` requires GNU sed to function properly (this can be installed on macOS using [Homebrew](https://brew.sh) with `brew install gnu-sed`). |
+| `:Latexmk` | Run the custom [latexmk script](latexmk) and asynchronously print the log in a popup split window. |
 | `:SnippetFind` | Find the snippet mapping that matches the input regex. |
 | `:SnippetShow` | Show a table of the current snippet mappings. |
 | `:SurroundFind` | Find the delimiter mapping that matches the input regex. |
