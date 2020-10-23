@@ -18,19 +18,21 @@ Positional arguments
 
 Optional arguments
 
-  -h|--help   Print this message.
-  -r|--raw    Print raw, unfiltered error messages. By default this script
-              filters and parses the latex engine output so it is much easier
-              to peruse.
-  -d|--diff   Run latexdiff on most 'recent' file. Requires files in your
-              directory are otherwise identically named, but end with unique
-              date strings YYYY-MM.tex or YYYY-MM-DD.tex
-  -w|--word   Pass -w or --word to automatically convert latex to the Microsoft
-              Word format using pandoc. Useful for colaborating with peers that
-              do not use latex.
-  -p|--pull   Run 'git pull origin master' before compiling the document.
-              This can be used to refresh figures updated from a remote
-              clone of this repository (e.g. a supercomputer) on the fly.
+  -h|--help      Print this message.
+  -r|--raw       Print raw, unfiltered error messages. By default this script
+                 filters and parses the latex engine output so it is much easier
+                 to peruse.
+  -d|--diff      Run latexdiff on most 'recent' file. Requires files in your
+                 directory are otherwise identically named, but end with unique
+                 date strings YYYY-MM.tex or YYYY-MM-DD.tex
+  -w|--word      Pass -w or --word to automatically convert latex to the Microsoft
+                 Word format using pandoc. Useful for colaborating with peers that
+                 do not use latex.
+  -p|--pull      Run 'git pull origin master' before compiling the document.
+                 This can be used to refresh figures updated from a remote
+                 clone of this repository (e.g. a supercomputer) on the fly.
+  [-l|--line]=N  The line number in the LaTeX document. If the viewer is Skim then
+                 we will jump to this line in the PDF document.
 
 Additional features
 
@@ -42,9 +44,12 @@ Additional features
     not found in the TeXLive distribution with 'kpsewhich'.
 "
 # Function for raising error
+echoerr() {
+  echo "$*" 1>&2
+}
 raise() {
-  echo "Usage: $usage" 1>&2
-  echo "Error: $*" 1>&2
+  echoerr "Usage: $usage"
+  echoerr "Error: $*"
   exit 1
 }
 # Exit trap function
@@ -63,8 +68,9 @@ cleanup() {
 }
 
 # Commands
+[[ "$OSTYPE" =~ darwin* ]] && macos=true || macos=false
 which gsed &>/dev/null && sedcmd=gsed || sedcmd=sed
-[ -n "$OSTYPE" ] && [[ "$OSTYPE" =~ darwin* ]] && [ "$sedcmd" == sed ] && \
+$macos && [ "$sedcmd" == sed ] && \
   raise "GNU sed needed when running this script on OSX. Can be installed from Homebrew with 'brew install gnu-sed'."
 
 # Parse args
@@ -78,11 +84,12 @@ texdiff=false   # get difference pdf?
 tex2docx=false  # option
 while [ $# -gt 0 ]; do
   case $1 in
-    -h|--help) echo "$doc" && exit 0 ;;
-    -r|--raw)  raw=true ;;
-    -d|--diff) texdiff=true ;;
-    -w|--word) tex2docx=true ;;
-    -p|--pull) pull=true ;;
+    -h|--help)     echo "$doc" && exit 0 ;;
+    -r|--raw)      raw=true ;;
+    -d|--diff)     texdiff=true ;;
+    -w|--word)     tex2docx=true ;;
+    -p|--pull)     pull=true ;;
+    -l=*|--line=*) line=${1#*=} ;;
     [^-]*)
       [ -n "$filename" ] && raise "Got multiple filenames."
       filename="$1"
@@ -225,7 +232,7 @@ texfind() {
   names=("${@:3}")
   read -r -a files < <(kpsewhich "${names[@]/%/.${ext}}" | xargs)
   for name in "${names[@]}"; do
-    file="${name}.${ext}"  # file we want
+    file=${name}.${ext}  # file we want
     # TeX distribution sees file, and it's not in current directory
     if [[ "${files[*]}" =~ "$file" ]] && ! [[ " ${files[*]}" =~ " ./${file}" ]]; then
       texlive+=("$file")
@@ -314,26 +321,26 @@ run 1 "$latex" "${flags[@]}" "$filestem"
 # Difference-LaTeX file, with track changes
 if $texdiff; then
   if [ -z "$dfilename" ]; then
-    echo "Warning: Previous version not found"
+    echoerr 'Warning: Previous version not found.'
     texdiff=false
   else
     # Get files that come *before* current one in alphanumeric sorting
-    prefix="${filename%[0-9][0-9][0-9][0-9]-[0-9][0-9]*.tex}"  # parameter expensions are fire yo
+    prefix=${filename%[0-9][0-9][0-9][0-9]-[0-9][0-9]*.tex}  # parameter expensions are fire yo
     pfiles=("$prefix"[0-9][0-9][0-9][0-9]-[0-9][0-9]*.tex)  # sorted manuscript files (glob is sorted by default)
     for index in "${!pfiles[@]}"; do
       [ "${pfiles[index]}" == "$filename" ] && break
     done
     if [ "$index" -ne 0 ]; then
       # Get difference PDF, with changes highlighted
-      pfilename="${pfiles[$((index-1))]}"
+      pfilename=${pfiles[$((index-1))]}
       echo "Running latexdiff on ${filename##*/} minus ${pfilename##*/}"
       [ -e "$dfilename" ] && rm "$dfilename"
       latexdiff "$pfilename" "$filename" > "$dfilename"
       # Finish the the pdflatex calls necessary to generate tables of contents, bibligrapyy, etc.
       if ! [ -r $dfilename ]; then
-        echo "Warning: Difference file not produced" && texdiff=false
+        echoerr 'Warning: Difference file not produced.' && texdiff=false
       else
-        dfilestem="${dfilename%.tex}"
+        dfilestem=${dfilename%.tex}
         if $bibliography; then
           $latex -draftmode "${flags[@]}" "$dfilestem" &>/dev/null
           $bibtex "$dfilestem"  #&>/dev/null
@@ -342,7 +349,7 @@ if $texdiff; then
         $latex -draftmode "${flags[@]}" "$dfilestem" &>/dev/null
         $latex "${flags[@]}" "$dfilestem" | errcat
         if ! [ -r "$dfilestem.pdf" ]; then
-          echo "Warning: Difference PDF not produced."
+          echoerr 'Warning: Difference PDF not produced.'
           texdiff=false
         fi
       fi
@@ -353,7 +360,7 @@ fi
 # Convert to docx with pandoc; keeps figures and formats sections with Word styling
 if $tex2docx; then
   if ! type pandoc &>/dev/null; then
-    echo "Warning: Pandoc not found; use brew install pandoc"
+    echoerr "Warning: Cannot convert to docx because pandoc is not installed. Try brew install pandoc."
   else
     echo "Running pandoc to convert tex --> docx"
     # echo pandoc --output="$filestem.docx" "${bibflags[@]}" "$filename"
@@ -362,8 +369,22 @@ if $tex2docx; then
   fi
 fi
 
-# Open the files
-open() { echo "Opening \"$2\""; command open -a "$1" "$2"; }
+# Open the file(s) on specific page if possible
+# See: https://sourceforge.net/p/skim-app/wiki/TeX_and_PDF_Synchronization/#setting-up-vim
+# See also: https://stackoverflow.com/a/2058251/4970632
+open() {
+  ! $macos && echoerr 'Warning: Can only automatically open PDF files on macOS.' && return 1
+  local appname fileview
+  appname="$1"
+  fileview="$2"
+  if [ "$appname" == 'Skim' ] && [ -n "$line" ]; then
+    echo "Opening \"$fileview\" and jumping to line $line"
+    /Applications/Skim.app/Contents/SharedSupport/displayline -r "$line" "$fileview" "$filename"
+  else
+    echo "Opening \"$fileview\""
+    command open -a "$appname" "$fileview" &
+  fi
+}
 if $texdiff; then
   open "$viewer" "$dfilestem.pdf"
 elif $tex2docx; then
@@ -371,4 +392,4 @@ elif $tex2docx; then
 else
   open "$viewer" "$filestem.pdf"
 fi
-command open -a "$terminal" &  # bring terminal back into focus
+$macos && command open -a "$terminal" &  # bring terminal back into focus

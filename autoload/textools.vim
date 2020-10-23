@@ -14,10 +14,7 @@ function! textools#latex_background(...) abort
   " Jump to logfile if it is open, else open one
   " Warning: Trailing space will be escaped as a flag! So trim it unless
   " we have any options
-  let opts = trim(a:0 ? a:1 : '') " flags
-  if opts !=# ''
-    let opts = ' ' . opts
-  endif
+  let opts = trim(a:0 ? a:1 : '') . ' -l=' . string(line('.'))
   let texfile = expand('%')
   let logfile = 'latexmk.log'
   let lognum = bufwinnr(logfile)
@@ -34,7 +31,7 @@ function! textools#latex_background(...) abort
   " echom s:path . '/../latexmk'
   let num = bufnr(logfile)
   let g:tex_job = job_start(
-    \ s:path . '/../bin/latexmk ' . texfile . opts,
+    \ s:path . '/../bin/latexmk ' . texfile . ' ' . opts,
     \ { 'out_io': 'buffer', 'out_buf': num }
     \ )
 endfunction
