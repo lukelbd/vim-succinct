@@ -378,7 +378,7 @@ open() {
   appname="$1"
   fileview="$2"
   if [ "$appname" == 'Skim' ] && [ -n "$line" ]; then
-    echo "Opening \"$fileview\" and jumping to line $line"
+    echo "Opening \"$fileview\" and jumping to line $line (source $filename)"
     /Applications/Skim.app/Contents/SharedSupport/displayline -r "$line" "$fileview" "$filename"
   else
     echo "Opening \"$fileview\""
