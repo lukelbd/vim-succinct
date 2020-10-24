@@ -399,7 +399,7 @@ endfunction
 " Functions for selecting from available graphics files
 "-----------------------------------------------------------------------------"
 " Related function that prints graphics files
-function! s:graphics_source() abort
+function! s:graphic_source() abort
   " Get graphics paths
   " Todo: Make this work when \graphicspath takes up more than one line
   " Not high priority because latexmk rarely accounts for this anyway
@@ -460,12 +460,37 @@ endfunction
 
 " Return graphics text
 " We can them use this function as an insert mode <expr> mapping
-function! textools#graphics_select() abort
+function! textools#graphic_select() abort
   let items = fzf#run({
-    \ 'source': s:graphics_source(),
+    \ 'source': s:graphic_source(),
     \ 'options': '--prompt="Figure> "',
     \ 'down': '~50%',
     \ })
   let items = map(items, 'fnamemodify(v:val, ":t")')
+  return join(items, ',')
+endfunction
+
+"-----------------------------------------------------------------------------"
+" Functions for selecting from available labels (integration with idetools)
+"-----------------------------------------------------------------------------"
+" Return graphics paths
+function! s:label_source() abort
+  if !exists('b:ctags_alph')
+    return []
+  endif
+  let ctags = filter(b:ctags_alph, 'v:val[2] ==# "l"')
+  echom 'Result!!! ' . join(ctags, ',')
+  let ctags = map(ctags, 'v:val[0] . " (" . v:val[1] . ")"')  " label (line number)
+  return ctags
+endfunction
+
+" Return label text
+function! textools#label_select() abort
+  let items = fzf#run({
+    \ 'source': s:label_source(),
+    \ 'options': '--prompt="Label> "',
+    \ 'down': '~50%',
+    \ })
+  let items = map(items, 'substitute(v:val, " (.*)$", "", "")')
   return join(items, ',')
 endfunction

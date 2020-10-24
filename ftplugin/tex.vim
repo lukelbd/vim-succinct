@@ -107,7 +107,7 @@ let s:textools_snippet_map = {
   \ '<': '\Longrightarrow',
   \ '>': '\Longrightarrow',
   \ '*': '\item',
-  \ '/': '\pause',
+  \ '?': '\pause',
   \ 'o': '\partial',
   \ "'": '\textnormal{d}',
   \ '"': '\textnormal{D}',
@@ -160,7 +160,8 @@ let s:textools_snippet_map = {
   \ 'j': '$_{input("Subscript: ")}$',
   \ 'E': '$\\times 10^{input("Exponent: ")}$',
   \ ';': 'textools#cite_select()',
-  \ ':': 'textools#graphics_select()',
+  \ ':': 'textools#graphic_select()',
+  \ '/': 'textools#label_select()',
 \ }
 
 " Define snippet variables (analogous to vim-surround approach)
