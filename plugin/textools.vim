@@ -21,6 +21,11 @@ if !exists('g:textools_delimjump_regex')
   let g:textools_delimjump_regex = '[()\[\]{}<>]' " list of 'outside' delimiters for jk matching
 endif
 
+" Function used with input() to prevent tab expansion and literal tab insertion
+function! NullList(...) abort
+  return []
+endfunction
+
 "-----------------------------------------------------------------------------"
 " Local functions
 "-----------------------------------------------------------------------------"
@@ -83,18 +88,6 @@ function! s:popup_close()
   endif
 endfunction
 
-" Functions that list and read templates
-function! s:template_list(ext)
-  let templates = split(globpath(g:textools_templates_path, '*.' . a:ext), "\n")
-  let templates = map(templates, 'fnamemodify(v:val, ":t")')
-  return [''] + templates " add blank entry as default choice
-endfunction
-function! s:template_read(file)
-  if !empty(a:file)
-    execute '0r ' . g:textools_templates_path . '/' . a:file
-  endif
-endfunction
-
 "-----------------------------------------------------------------------------"
 " Define commands and mappings
 "-----------------------------------------------------------------------------"
@@ -135,9 +128,9 @@ if exists('*fzf#run')
   augroup templates
     au!
     au BufNewFile * call fzf#run({
-      \ 'source': s:template_list(expand('<afile>:e')),
+      \ 'source': textools#template_list(expand('<afile>:e')),
       \ 'options': '--no-sort',
-      \ 'sink': function('s:template_read'),
+      \ 'sink': function('textools#template_read'),
       \ 'down': '~30%'
       \ })
   augroup END

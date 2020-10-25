@@ -148,7 +148,7 @@ function! textools#insert_snippet()
   else
     return ''
   endif
-  let regex = '[a-zA-Z0-9_#]\+([^)]*)'  " search for valid vi function in string
+  let regex = '[a-zA-Z0-9_#]\+(.*)'  " search for valid function or nested functions
   let [cmd, idx1, idx2] = matchstrpos(snippet, regex)
   if !empty(cmd)
     let result = eval(cmd)  " replace with results of function
@@ -493,4 +493,57 @@ function! textools#label_select() abort
     \ })
   let items = map(items, 'substitute(v:val, " (.*)$", "", "")')
   return join(items, ',')
+endfunction
+
+"-----------------------------------------------------------------------------"
+" Function for formatting units
+"-----------------------------------------------------------------------------"
+function! textools#format_units(input) abort
+  let output = ''
+  let input = substitute(a:input, '/', ' / ', 'g')  " pre-process
+  let parts = split(input)
+  let regex = '^\([a-zA-Z0-9.]\+\)\%(\^\|\*\*\)\?\([-+]\?[0-9.]\+\)\?$'
+  for idx in range(len(parts))
+    if parts[idx] ==# '/'
+      let part = parts[idx]
+    else
+      let items = matchlist(parts[idx], regex)
+      if empty(items)
+        echohl WarningMsg
+        echom 'Warning: Invalid units string.'
+        echohl None
+        return ''
+      endif
+      let part = '\\textnormal{' . items[1] . '}'
+      if !empty(items[2])
+        let part .= '^{' . items[2] . '}'
+      endif
+    endif
+    if idx != len(parts) - 1
+      let part = part . ' \\, '
+    endif
+    let output .= part
+  endfor
+  return '$' . output . '$'
+endfunction
+
+"-----------------------------------------------------------------------------"
+" Template functions
+"-----------------------------------------------------------------------------"
+" Return list of templates
+function! textools#template_list(ext) abort
+  let templates = ['']  " stand-in for 'load nothing'
+  if exists('g:textools_templates_path')
+    let paths = split(globpath(g:textools_templates_path, '*.' . a:ext), "\n")
+    let paths = map(paths, 'fnamemodify(v:val, ":t")')
+    let templates = templates + paths
+  endif
+  return templates
+endfunction
+
+" Load template contents
+function! textools#template_read(file)
+  if !empty(a:file) && exists('g:textools_templates_path')
+    execute '0r ' . g:textools_templates_path . '/' . a:file
+  endif
 endfunction

@@ -155,13 +155,13 @@ let s:textools_snippet_map = {
   \ '=': '\equiv',
   \ '~': '{\sim}',
   \ '.': '\cdot',
-  \ ',': '$\,$',
-  \ 'k': '$^{input("Superscript: ")}$',
-  \ 'j': '$_{input("Subscript: ")}$',
-  \ 'E': '$\\times 10^{input("Exponent: ")}$',
+  \ 'k': '$^{input("Superscript: ", "", "customlist,NullList")}$',
+  \ 'j': '$_{input("Subscript: ", "", "customlist,NullList")}$',
+  \ 'E': '$\\times 10^{input("Exponent: ", "", "customlist,NullList")}$',
   \ ';': 'textools#cite_select()',
   \ ':': 'textools#graphic_select()',
-  \ '/': 'textools#label_select()',
+  \ ',': 'textools#label_select()',
+  \ '/': 'textools#format_units(input("Units: ", "", "customlist,NullList"))',
 \ }
 
 " Define snippet variables (analogous to vim-surround approach)
