@@ -498,6 +498,24 @@ endfunction
 "-----------------------------------------------------------------------------"
 " Function for formatting units
 "-----------------------------------------------------------------------------"
+" Wrap in math environment only if cursor is not already inside one
+" Use TeX syntax to detect any and every math environment
+" Also detect when we are on the *end* of a '$' sign
+function! textools#math_wrap(input) abort
+  let output = a:input
+  if synIDattr(synID(line('.'), col('.'), 1), 'name') !~? 'math'
+    let line = getline('.')
+    let idx = col('.') - 1
+    if line[idx] ==# '$' && count(line[:idx], '$') % 2 == 0
+      let output = output
+    else
+      let output = '$' . output . '$'
+    endif
+  endif
+  return output
+endfunction
+
+" Format unit string for LaTeX for LaTeX for LaTeX for LaTeX
 function! textools#format_units(input) abort
   let output = ''
   let input = substitute(a:input, '/', ' / ', 'g')  " pre-process
@@ -524,7 +542,7 @@ function! textools#format_units(input) abort
     endif
     let output .= part
   endfor
-  return '$' . output . '$'
+  return textools#math_wrap(output)
 endfunction
 
 "-----------------------------------------------------------------------------"
