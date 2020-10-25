@@ -517,7 +517,7 @@ endfunction
 
 " Format unit string for LaTeX for LaTeX for LaTeX for LaTeX
 function! textools#format_units(input) abort
-  let output = ''
+  let output = '\\, '  " add space between number and unit
   let input = substitute(a:input, '/', ' / ', 'g')  " pre-process
   let parts = split(input)
   let regex = '^\([a-zA-Z0-9.]\+\)\%(\^\|\*\*\)\?\([-+]\?[0-9.]\+\)\?$'
