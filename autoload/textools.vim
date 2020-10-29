@@ -500,17 +500,12 @@ endfunction
 "-----------------------------------------------------------------------------"
 " Wrap in math environment only if cursor is not already inside one
 " Use TeX syntax to detect any and every math environment
-" Also detect when we are on the *end* of a '$' sign
+" Note: Check syntax of point to *left* of cursor because that's the environment
+" where we are inserting text. Does not wrap if in first column.
 function! textools#math_wrap(input) abort
   let output = a:input
-  if synIDattr(synID(line('.'), col('.'), 1), 'name') !~? 'math'
-    let line = getline('.')
-    let idx = col('.') - 1
-    if line[idx] ==# '$' && count(line[:idx], '$') % 2 == 0
-      let output = output
-    else
-      let output = '$' . output . '$'
-    endif
+  if empty(filter(synstack(line('.'), col('.') - 1), 'synIDattr(v:val, "name") =~? "math"'))
+    let output = '$' . output . '$'
   endif
   return output
 endfunction
