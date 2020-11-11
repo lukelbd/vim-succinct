@@ -512,6 +512,9 @@ endfunction
 
 " Format unit string for LaTeX for LaTeX for LaTeX for LaTeX
 function! textools#format_units(input) abort
+  if empty(input)
+    return ''
+  endif
   let output = '\\, '  " add space between number and unit
   let input = substitute(a:input, '/', ' / ', 'g')  " pre-process
   let parts = split(input)
