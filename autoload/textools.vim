@@ -479,7 +479,6 @@ function! s:label_source() abort
     return []
   endif
   let ctags = filter(b:ctags_alph, 'v:val[2] ==# "l"')
-  echom 'Result!!! ' . join(ctags, ',')
   let ctags = map(ctags, 'v:val[0] . " (" . v:val[1] . ")"')  " label (line number)
   return ctags
 endfunction
@@ -512,7 +511,7 @@ endfunction
 
 " Format unit string for LaTeX for LaTeX for LaTeX for LaTeX
 function! textools#format_units(input) abort
-  if empty(input)
+  if empty(a:input)
     return ''
   endif
   let output = '\\, '  " add space between number and unit

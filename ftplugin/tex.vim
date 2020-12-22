@@ -158,7 +158,7 @@ let s:textools_snippet_map = {
   \ ';': 'textools#cite_select()',
   \ ':': 'textools#graphic_select()',
   \ ',': 'textools#label_select()',
-  \ '/': 'textools#format_units(input("Units: ", "", "customlist,NullList"))',
+  \ '/': 'textools#format_units("" . input("Units: ", "", "customlist,NullList"))',
   \ 'k': 'textools#math_wrap("^{" . input("Superscript: ", "", "customlist,NullList") . "}")',
   \ 'j': 'textools#math_wrap("_{" . input("Subscript: ", "", "customlist,NullList") . "}")',
   \ 'E': 'textools#math_wrap("\\\\times 10^{" . input("Exponent: ", "", "customlist,NullList") . "}")',
