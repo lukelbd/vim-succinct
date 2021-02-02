@@ -4,10 +4,13 @@
 " LaTeX specific settings
 "-----------------------------------------------------------------------------"
 " Latexmk integration
-" Todo: This should be aprt of independent plugin, and snippets stuff put into
+" Todo: This should be part of independent plugin, and snippets stuff put into
 " idetools plugin... except things like templates, citations integration, and
 " graphics path detection are extremely tex-specific so hard to see how to divide
 " things up! Maybe consider vim-delimtools plugin or something.
+" Todo: For vim-delimtools should add set-and-forget global dictionaries for filetype
+" specific text objects, snippets, and delimiters. Then plugin automatically syncs
+" those with textobj and defines buffer-local snippet and surround vars.
 " Warning: Imperfection is ok! This stuff is still really useful!
 command! -buffer -nargs=* Latexmk call textools#latex_background(<q-args>)
 
@@ -288,6 +291,5 @@ let s:textools_surround_map = {
 
 " Apply delimiter mappings
 for [s:key, s:pair] in items(s:textools_surround_map)
-  let [s:left, s:right] = s:pair
-  let b:surround_{char2nr(s:key)} = s:left . "\r" . s:right
+  let b:surround_{char2nr(s:key)} = s:pair[0] . "\r" . s:pair[1]
 endfor

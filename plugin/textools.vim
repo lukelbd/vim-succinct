@@ -80,10 +80,10 @@ endfunction
 function! s:popup_close()
   if !pumvisible()
     return ''
-  elseif b:menupos == 0 " exit
+  elseif b:menupos == 0  " exit
     return "\<C-e>"
   else
-    let b:menupos = 0 " approve and exit
+    let b:menupos = 0  " approve and exit
     return "\<C-y>"
   endif
 endfunction

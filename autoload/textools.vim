@@ -45,8 +45,9 @@ function! s:get_bindings_table(type) abort
   let table = {}
   let vars = getcompletion(prefix, 'var')
   for var in vars
-    let nr = substitute(var, '^' . prefix, '', '')
-    let table[nr2char(nr)] = eval(var)
+    let key = nr2char(substitute(var, '^' . prefix, '', ''))
+    let value = substitute(eval(var), "[\n\r\1]", '', 'g')
+    let table[key] = value
   endfor
   return table
 endfunction
