@@ -115,7 +115,68 @@ function! textools#search_bindings(type, regex) abort
 endfunction
 
 "-----------------------------------------------------------------------------"
-" Inserting complicatd snippets
+" Shared utiltiies
+"-----------------------------------------------------------------------------"
+function! s:evaluate_function(input) abort
+  let regex = '[a-zA-Z0-9_#]\+(.*)'  " search for valid function or nested functions
+  let [output, idx1, idx2] = matchstrpos(a:input, regex)
+  if !empty(output)
+    let result = eval(output)  " replace with results of function
+    if empty(result)
+      return ''
+    endif
+    let snippet = substitute(snippet, regex, result, '')
+  endif
+  return snippet
+endfunction
+
+" Wrap in math environment only if cursor is not already inside one
+" Use TeX syntax to detect any and every math environment
+" Note: Check syntax of point to *left* of cursor because that's the environment
+" where we are inserting text. Does not wrap if in first column.
+function! textools#math_wrap(input) abort
+  let output = a:input
+  if empty(filter(synstack(line('.'), col('.') - 1), 'synIDattr(v:val, "name") =~? "math"'))
+    let output = '$' . output . '$'
+  endif
+  return output
+endfunction
+
+" Format unit string for LaTeX for LaTeX for LaTeX for LaTeX
+function! textools#format_units(input) abort
+  if empty(a:input)
+    return ''
+  endif
+  let output = '\\, '  " add space between number and unit
+  let input = substitute(a:input, '/', ' / ', 'g')  " pre-process
+  let parts = split(input)
+  let regex = '^\([a-zA-Z0-9.]\+\)\%(\^\|\*\*\)\?\([-+]\?[0-9.]\+\)\?$'
+  for idx in range(len(parts))
+    if parts[idx] ==# '/'
+      let part = parts[idx]
+    else
+      let items = matchlist(parts[idx], regex)
+      if empty(items)
+        echohl WarningMsg
+        echom 'Warning: Invalid units string.'
+        echohl None
+        return ''
+      endif
+      let part = '\\textnormal{' . items[1] . '}'
+      if !empty(items[2])
+        let part .= '^{' . items[2] . '}'
+      endif
+    endif
+    if idx != len(parts) - 1
+      let part = part . ' \\, '
+    endif
+    let output .= part
+  endfor
+  return textools#math_wrap(output)
+endfunction
+
+"-----------------------------------------------------------------------------"
+" Inserting complicated snippets
 "-----------------------------------------------------------------------------"
 " Get character (copied from surround.vim)
 function! s:get_char()
@@ -132,6 +193,7 @@ endfunction
 
 " Add user-defined snippet, either a fixed string or input string with defined
 " prefix and suffix. If user *cancels* input or writes nothing, insert nothing.
+" Todo: Support literal functions in surround definitions too
 function! textools#insert_snippet()
   let space = ''
   let char = s:get_char()
@@ -493,54 +555,6 @@ function! textools#label_select() abort
     \ })
   let items = map(items, 'substitute(v:val, " (.*)$", "", "")')
   return join(items, ',')
-endfunction
-
-"-----------------------------------------------------------------------------"
-" Function for formatting units
-"-----------------------------------------------------------------------------"
-" Wrap in math environment only if cursor is not already inside one
-" Use TeX syntax to detect any and every math environment
-" Note: Check syntax of point to *left* of cursor because that's the environment
-" where we are inserting text. Does not wrap if in first column.
-function! textools#math_wrap(input) abort
-  let output = a:input
-  if empty(filter(synstack(line('.'), col('.') - 1), 'synIDattr(v:val, "name") =~? "math"'))
-    let output = '$' . output . '$'
-  endif
-  return output
-endfunction
-
-" Format unit string for LaTeX for LaTeX for LaTeX for LaTeX
-function! textools#format_units(input) abort
-  if empty(a:input)
-    return ''
-  endif
-  let output = '\\, '  " add space between number and unit
-  let input = substitute(a:input, '/', ' / ', 'g')  " pre-process
-  let parts = split(input)
-  let regex = '^\([a-zA-Z0-9.]\+\)\%(\^\|\*\*\)\?\([-+]\?[0-9.]\+\)\?$'
-  for idx in range(len(parts))
-    if parts[idx] ==# '/'
-      let part = parts[idx]
-    else
-      let items = matchlist(parts[idx], regex)
-      if empty(items)
-        echohl WarningMsg
-        echom 'Warning: Invalid units string.'
-        echohl None
-        return ''
-      endif
-      let part = '\\textnormal{' . items[1] . '}'
-      if !empty(items[2])
-        let part .= '^{' . items[2] . '}'
-      endif
-    endif
-    if idx != len(parts) - 1
-      let part = part . ' \\, '
-    endif
-    let output .= part
-  endfor
-  return textools#math_wrap(output)
 endfunction
 
 "-----------------------------------------------------------------------------"
