@@ -44,7 +44,7 @@ function! s:prev_delim()
   let pos = 0
   for i in range(max([v:count, 1]))
     let result = match(string, g:textools_delimjump_regex, pos) " get info on *first* match
-    if result==-1 | break | endif
+    if result == -1 | break | endif
     let pos = result + 1  " go to next one
   endfor
   if pos == 0 " relative position is zero, i.e. don't move
@@ -62,10 +62,10 @@ function! s:next_delim()
   let pos = 0
   for i in range(max([v:count,1]))
     let result = match(string, g:textools_delimjump_regex, pos) " get info on *first* match
-    if result==-1 | break | endif
+    if result == -1 | break | endif
     let pos = result + 1 " go to next one
   endfor
-  if mode()!~#'[rRiI]' && pos+col('.') >= col('$') " want to put cursor at end-of-line, but can't because not in insert mode
+  if mode() !~# '[rRiI]' && pos + col('.') >= col('$') " want to put cursor at end-of-line, but can't because not in insert mode
     let pos = col('$')-col('.')-1
   endif
   if pos == 0 " relative position is zero, i.e. don't move
