@@ -28,9 +28,6 @@ Optional arguments
   -w|--word      Pass -w or --word to automatically convert latex to the Microsoft
                  Word format using pandoc. Useful for colaborating with peers that
                  do not use latex.
-  -p|--pull      Run 'git pull origin master' before compiling the document.
-                 This can be used to refresh figures updated from a remote
-                 clone of this repository (e.g. a supercomputer) on the fly.
   [-l|--line]=N  The line number in the LaTeX document. If the viewer is Skim then
                  we will jump to this line in the PDF document.
 
@@ -77,7 +74,6 @@ $macos && [ "$sedcmd" == sed ] && \
 trap cleanup EXIT  # remove files on exit or interruption!
 shopt -s nullglob  # glob-expand into zero entries
 raw=false
-pull=false
 latex=pdflatex  # by default use pdflatex
 bibtex=bibtex   # for compiling bibliographies
 texdiff=false   # get difference pdf?
@@ -88,7 +84,6 @@ while [ $# -gt 0 ]; do
     -r|--raw)      raw=true ;;
     -d|--diff)     texdiff=true ;;
     -w|--word)     tex2docx=true ;;
-    -p|--pull)     pull=true ;;
     -l=*|--line=*) line=${1#*=} ;;
     [^-]*)
       [ -n "$filename" ] && raise "Got multiple filenames."
@@ -119,11 +114,6 @@ if [[ "$filename" =~ / ]]; then  # i.e. contains directory specifier
   cd "$directory" || raise "Directory $directory does not exist."
 fi
 filestem=${filename%.tex}  # simple
-
-# Update repository
-if $pull; then
-  git pull origin master
-fi
 
 #-----------------------------------------------------------------------------#
 # Helper regex functions
