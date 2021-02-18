@@ -380,9 +380,7 @@ endfunction
 " The gsed executable
 let s:gsed = '/usr/local/bin/gsed'  " Todo: defer to 'gsed' alias?
 if !executable(s:gsed)
-  echohl ErrorMsg
-  echom 'Error: gsed not available. Please install it with brew install gnu-sed.'
-  echohl None
+  echoerr 'GNU sed not available. Please install it with brew install gnu-sed.'
   finish
 endif
 
@@ -391,69 +389,57 @@ function! s:cite_source() abort
   " Set the plugin source variables
   " Get biligraphies using grep, copied from latexmk
   " Easier than using search() because we want to get *all* results
+  let biblist = []
   let bibfiles = system(
     \ 'grep -o ''^[^%]*'' ' . shellescape(@%) . ' | '
-    \ . s:gsed . ' -n ''s/\\\(bibliography\|nobibliography\|addbibresource\){\(.*\)}/\2/p'''
+    \ . s:gsed . ' -n ''s@^\s*\\\(bibliography\|nobibliography\|addbibresource\){\(.*\)}@\2@p'''
     \ )
-  if v:shell_error != 0
-    echohl ErrorMsg
-    echom 'Error: Failed to get list of bibliography files.'
-    echohl None
-  endif
 
   " Check that files all exist
-  let filedir = expand('%:h')
-  let biblist = []
-  for bibfile in split(bibfiles, "\n")
-    if bibfile !~? '.bib$'
-      let bibfile .= '.bib'
-    endif
-    let bibpath = filedir . '/' . bibfile
-    if filereadable(bibpath)
-      call add(biblist, bibpath)
-    else
-      echohl WarningMsg
-      echom "Warning: Bibtex file '" . bibpath . "' does not exist.'"
-      echohl None
-    endif
-  endfor
+  if v:shell_error == 0
+    let filedir = expand('%:h')
+    for bibfile in split(bibfiles, "\n")
+      if bibfile !~? '.bib$'
+        let bibfile .= '.bib'
+      endif
+      let bibpath = filedir . '/' . bibfile
+      if filereadable(bibpath)
+        call add(biblist, bibpath)
+      else
+        echohl WarningMsg
+        echom "Warning: Bib file '" . bibpath . "' does not exist.'"
+        echohl None
+      endif
+    endfor
+  endif
 
   " Set the environment variable and return command-line command used to
   " generate fuzzy list from the selected files.
-  let $FZF_BIBTEX_SOURCES = join(biblist, ':')
+  let result = []
   if len(biblist) == 0
-    echohl WarningMsg
-    echom 'Warning: No bibtex files found.'
-    echohl None
-  endif
-  if executable('bibtex-ls')
-    return 'bibtex-ls ' . join(biblist, ' ')
+    echoerr 'Bib files were not defined or do not exist.'
+  elseif ! executable('bibtex-ls')
+    echoerr 'Command bibtex-ls not found.'
   else
-    echohl ErrorMsg
-    echom 'Error: bibtex-ls not found.'
-    echohl None
-    return ''
+    let $FZF_BIBTEX_SOURCES = join(biblist, ':')
+    let result = 'bibtex-ls ' . join(biblist, ' ')
   endif
-  " return biblist
+  return result
 endfunction
 
 " Return citation text
 " We can them use this function as an insert mode <expr> mapping
 " Note: To get multiple items just hit <Tab>
 function! textools#cite_select() abort
-  let result = ''
   let items = fzf#run({
     \ 'source': s:cite_source(),
     \ 'options': '--prompt="Source> "',
     \ 'down': '~50%',
     \ })
+  let result = ''
   if executable('bibtex-cite')
     let result = system('bibtex-cite ', items)
     let result = substitute(result, '@', '', 'g')
-  else
-    echohl ErrorMsg
-    echom 'Error: bibtex-cite not found.'
-    echohl None
   endif
   return result
 endfunction
@@ -464,46 +450,38 @@ endfunction
 " Related function that prints graphics files
 function! s:graphic_source() abort
   " Get graphics paths
+  " Note: Negative indexing evidently does not work with strings
   " Todo: Make this work when \graphicspath takes up more than one line
   " Not high priority because latexmk rarely accounts for this anyway
   let paths = system(
     \ 'grep -o ''^[^%]*'' ' . shellescape(@%) . ' | '
-    \ . s:gsed . ' -n ''s/\\graphicspath{\(.*\)}/\1/p'''
+    \ . s:gsed . ' -n ''s@\\graphicspath{\(.*\)}@\1@p'''
     \ )
-  if v:shell_error != 0
-    echohl ErrorMsg
-    echom 'Error: Failed to get list of graphics paths.'
-    echohl None
-  endif
   let paths = substitute(paths, "\n", '', 'g')  " in case multiple \graphicspath calls, even though this is illegal
+  if !empty(paths) && (paths[0] !=# '{' || paths[len(paths) - 1] !=# '}')
+    echohl WarningMsg
+    echom "Incorrect syntax '" . paths . "'. Surround paths with curly braces."
+    echohl None
+    let paths = '{' . paths . '}'
+  endif
 
   " Check syntax
-  " Note: Negative indexing evidently does not work with strings
+  " Make paths relative to *latex file* not cwd
   let filedir = expand('%:h')
   let pathlist = []
-  if paths[0] !=# '{' || paths[len(paths) - 1] !=# '}'
-    " Syntax is \graphicspath{{path1}{path2}}
-    echohl WarningMsg
-    echom 'Warning: Incorrect syntax ''' . paths . ''''
-    echohl None
-  else
-    " Make paths relative to *latex file* not cwd
-    let pathlist = []
-    for path in split(paths[1:len(paths) - 2], '}{')
-      let abspath = expand(filedir . '/' . path)
-      if isdirectory(abspath)
-        call add(pathlist, abspath)
-      else
-        echohl WarningMsg
-        echom 'Warning: Directory ''' . abspath . ''' does not exist.'
-        echohl None
-      endif
-    endfor
-  endif
+  for path in split(paths[1:len(paths) - 2], '}{')
+    let abspath = expand(filedir . '/' . path)
+    if isdirectory(abspath)
+      call add(pathlist, abspath)
+    else
+      echohl WarningMsg
+      echom "Warning: Directory '" . abspath . "' does not exist."
+      echohl None
+    endif
+  endfor
 
   " Get graphics files in each path
   let figlist = []
-  echom join(pathlist, ', ')
   call add(pathlist, expand('%:h'))
   for path in pathlist
     for ext in ['png', 'jpg', 'jpeg', 'pdf', 'eps']
@@ -514,9 +492,7 @@ function! s:graphic_source() abort
 
   " Return figure files
   if len(figlist) == 0
-    echohl WarningMsg
-    echom 'Warning: No graphics files found.'
-    echohl None
+    echoerr 'No graphics files found.'
   endif
   return figlist
 endfunction
@@ -561,19 +537,21 @@ endfunction
 " Template functions
 "-----------------------------------------------------------------------------"
 " Return list of templates
-function! textools#template_list(ext) abort
-  let templates = ['']  " stand-in for 'load nothing'
+function! textools#template_source(ext) abort
+  let paths = []
   if exists('g:textools_templates_path')
     let paths = split(globpath(g:textools_templates_path, '*.' . a:ext), "\n")
     let paths = map(paths, 'fnamemodify(v:val, ":t")')
-    let templates = templates + paths
   endif
-  return templates
+  if !empty(paths)
+    let paths = [''] + paths  " add stand-in for 'load nothing'
+  endif
+  return paths
 endfunction
 
 " Load template contents
 function! textools#template_read(file)
-  if !empty(a:file) && exists('g:textools_templates_path')
+  if exists('g:textools_templates_path') && !empty(a:file)
     execute '0r ' . g:textools_templates_path . '/' . a:file
   endif
 endfunction

@@ -18,7 +18,7 @@ if !exists('g:textools_nextdelim_map')
   let g:textools_nextdelim_map = '<C-l>'
 endif
 if !exists('g:textools_delimjump_regex')
-  let g:textools_delimjump_regex = '[()\[\]{}<>]' " list of 'outside' delimiters for jk matching
+  let g:textools_delimjump_regex = '[()\[\]{}<>\$]' " list of 'outside' delimiters for jk matching
 endif
 
 " Function used with input() to prevent tab expansion and literal tab insertion
@@ -40,10 +40,10 @@ endfunction
 " a 'next to the cursor' position; want to test line even further to the left.
 function! s:prev_delim()
   let string = getline('.')[:col('.') - 3]
-  let string = join(reverse(split(string, '.\zs')), '') " search the *reversed* string
+  let string = join(reverse(split(string, '.\zs')), '')  " search the *reversed* string
   let pos = 0
   for i in range(max([v:count, 1]))
-    let result = match(string, g:textools_delimjump_regex, pos) " get info on *first* match
+    let result = match(string, g:textools_delimjump_regex, pos)  " get info on *first* match
     if result == -1 | break | endif
     let pos = result + 1  " go to next one
   endfor
@@ -58,15 +58,17 @@ endfunction
 " Why starting from current position? Even if cursor is
 " on delimiter, want to find it and move to the right of it
 function! s:next_delim()
-  let string = getline('.')[col('.')-1:]
+  let string = getline('.')[col('.') - 1:]
   let pos = 0
-  for i in range(max([v:count,1]))
-    let result = match(string, g:textools_delimjump_regex, pos) " get info on *first* match
+  echom 'Start!'
+  for i in range(max([v:count, 1]))
+    let result = match(string, g:textools_delimjump_regex, pos)  " get info on *first* match
     if result == -1 | break | endif
-    let pos = result + 1 " go to next one
+    let pos = result + 1  " go to next one
+    echom 'Move! ' . pos
   endfor
   if mode() !~# '[rRiI]' && pos + col('.') >= col('$') " want to put cursor at end-of-line, but can't because not in insert mode
-    let pos = col('$')-col('.')-1
+    let pos = col('$') - col('.') - 1
   endif
   if pos == 0 " relative position is zero, i.e. don't move
     return ''
@@ -128,10 +130,10 @@ if exists('*fzf#run')
   augroup templates
     au!
     au BufNewFile * call fzf#run({
-      \ 'source': textools#template_list(expand('<afile>:e')),
-      \ 'options': '--no-sort',
+      \ 'source': textools#template_source(expand('<afile>:e')),
+      \ 'options': '--no-sort --prompt="Template> "',
+      \ 'down': '~30%',
       \ 'sink': function('textools#template_read'),
-      \ 'down': '~30%'
       \ })
   augroup END
 endif
