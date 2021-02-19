@@ -115,71 +115,15 @@ function! textools#search_bindings(type, regex) abort
 endfunction
 
 "-----------------------------------------------------------------------------"
-" Shared utiltiies
-"-----------------------------------------------------------------------------"
-function! s:evaluate_function(input) abort
-  let regex = '[a-zA-Z0-9_#]\+(.*)'  " search for valid function or nested functions
-  let [output, idx1, idx2] = matchstrpos(a:input, regex)
-  if !empty(output)
-    let result = eval(output)  " replace with results of function
-    if empty(result)
-      return ''
-    endif
-    let snippet = substitute(snippet, regex, result, '')
-  endif
-  return snippet
-endfunction
-
-" Wrap in math environment only if cursor is not already inside one
-" Use TeX syntax to detect any and every math environment
-" Note: Check syntax of point to *left* of cursor because that's the environment
-" where we are inserting text. Does not wrap if in first column.
-function! textools#math_wrap(input) abort
-  let output = a:input
-  if empty(filter(synstack(line('.'), col('.') - 1), 'synIDattr(v:val, "name") =~? "math"'))
-    let output = '$' . output . '$'
-  endif
-  return output
-endfunction
-
-" Format unit string for LaTeX for LaTeX for LaTeX for LaTeX
-function! textools#format_units(input) abort
-  if empty(a:input)
-    return ''
-  endif
-  let output = '\\, '  " add space between number and unit
-  let input = substitute(a:input, '/', ' / ', 'g')  " pre-process
-  let parts = split(input)
-  let regex = '^\([a-zA-Z0-9.]\+\)\%(\^\|\*\*\)\?\([-+]\?[0-9.]\+\)\?$'
-  for idx in range(len(parts))
-    if parts[idx] ==# '/'
-      let part = parts[idx]
-    else
-      let items = matchlist(parts[idx], regex)
-      if empty(items)
-        echohl WarningMsg
-        echom 'Warning: Invalid units string.'
-        echohl None
-        return ''
-      endif
-      let part = '\\textnormal{' . items[1] . '}'
-      if !empty(items[2])
-        let part .= '^{' . items[2] . '}'
-      endif
-    endif
-    if idx != len(parts) - 1
-      let part = part . ' \\, '
-    endif
-    let output .= part
-  endfor
-  return textools#math_wrap(output)
-endfunction
-
-"-----------------------------------------------------------------------------"
 " Inserting complicated snippets
 "-----------------------------------------------------------------------------"
+" Request user input with no-op tab expansion and custom prompt
+function! s:user_input(prompt) abort
+  return input(a:prompt . ': ', '', 'customlist,NullList')
+endfunction
+
 " Get character (copied from surround.vim)
-function! s:get_char()
+function! s:get_char() abort
   let char = getchar()
   if char =~# '^\d\+$'
     let char = nr2char(char)
@@ -191,36 +135,99 @@ function! s:get_char()
   endif
 endfunction
 
+" Return the string or evaluate a funcref, then optionally add a prefix and suffix
+function! s:make_snippet(input, ...) abort
+  let prefix = a:0 > 0 ? a:1 : ''
+  let suffix = a:0 > 1 ? a:2 : ''
+  if type(a:input) == 2  " funcref
+    let output = a:input()
+  else
+    let output = a:input
+  endif
+  if !empty(output)
+    let output = prefix . output . suffix
+  endif
+  return output
+endfunction
+
+" Wrap in math environment only if cursor is not already inside one
+" Use TeX syntax to detect any and every math environment
+" Note: Check syntax of point to *left* of cursor because that's the environment
+" where we are inserting text. Does not wrap if in first column.
+function! s:ensure_math(...) abort
+  let output = call('s:make_snippet', a:000)
+  if empty(filter(synstack(line('.'), col('.') - 1), 'synIDattr(v:val, "name") =~? "math"'))
+    let output = '$' . output . '$'
+  endif
+  return output
+endfunction
+
+" Format unit string for LaTeX for LaTeX for LaTeX for LaTeX
+function! s:format_units(...) abort
+  let input = call('s:make_snippet', a:000)
+  if empty(input)
+    return ''
+  endif
+  let input = substitute(input, '/', ' / ', 'g')  " pre-process
+  let parts = split(input)
+  let regex = '^\([a-zA-Z0-9.]\+\)\%(\^\|\*\*\)\?\([-+]\?[0-9.]\+\)\?$'
+  let output = '\, '  " add space between number and unit
+  for idx in range(len(parts))
+    if parts[idx] ==# '/'
+      let part = parts[idx]
+    else
+      let items = matchlist(parts[idx], regex)
+      if empty(items)
+        echohl WarningMsg | echom 'Warning: Invalid units string.' | echohl None
+        return ''
+      endif
+      let part = '\textnormal{' . items[1] . '}'
+      if !empty(items[2])
+        let part .= '^{' . items[2] . '}'
+      endif
+    endif
+    if idx != len(parts) - 1
+      let part = part . ' \, '
+    endif
+    let output .= part
+  endfor
+  return s:ensure_math(output)
+endfunction
+
+" Functions that return funcrefs for assignment in snippet dictionary
+function! textools#user_input(...)
+  return function('s:user_input', a:000)
+endfunction
+function! textools#make_snippet(...)
+  return function('s:make_snippet', a:000)
+endfunction
+function! textools#ensure_math(...) abort
+  return function('s:ensure_math', a:000)
+endfunction
+function! textools#format_units(...) abort
+  return function('s:format_units', a:000)
+endfunction
+
 " Add user-defined snippet, either a fixed string or input string with defined
 " prefix and suffix. If user *cancels* input or writes nothing, insert nothing.
 " Todo: Support literal functions in surround definitions too
 function! textools#insert_snippet()
-  let space = ''
+  let pad = ''
   let char = s:get_char()
   if char ==# ' '  " similar to surround, permit <C-d><Space><Key> to surround with space
-    let space = char
+    let pad = char
     let char = s:get_char()
   endif
-  if empty(char)
-    return ''
-  endif
-  if exists('b:snippet_' . char2nr(char))
-    let snippet = b:snippet_{char2nr(char)}
-  elseif exists('g:snippet_' . char2nr(char))
-    let snippet = g:snippet_{char2nr(char)}
-  else
-    return ''
-  endif
-  let regex = '[a-zA-Z0-9_#]\+(.*)'  " search for valid function or nested functions
-  let [cmd, idx1, idx2] = matchstrpos(snippet, regex)
-  if !empty(cmd)
-    let result = eval(cmd)  " replace with results of function
-    if empty(result)
-      return ''
+  let snippet = ''
+  for scope in [g:, b:]
+    if !empty(char) && empty(snippet)
+      let varname = 'snippet_' . char2nr(char)
+      " echom 'Varname! ' . varname
+      " echom 'Result! ' . string(get(scope, varname, ''))
+      let snippet = s:make_snippet(get(scope, varname, ''))
     endif
-    let snippet = substitute(snippet, regex, result, '')
-  endif
-  return space . snippet . space
+  endfor
+  return pad . snippet . pad
 endfunction
 
 "-----------------------------------------------------------------------------"
@@ -519,6 +526,9 @@ function! s:label_source() abort
   endif
   let ctags = filter(b:ctags_alph, 'v:val[2] ==# "l"')
   let ctags = map(ctags, 'v:val[0] . " (" . v:val[1] . ")"')  " label (line number)
+  if empty(ctags)
+    echoerr 'No ctag labels found.'
+  endif
   return ctags
 endfunction
 
