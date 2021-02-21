@@ -115,41 +115,171 @@ function! textools#search_bindings(type, regex) abort
 endfunction
 
 "-----------------------------------------------------------------------------"
-" Inserting complicated snippets
+" Functions for selecting from tex labels (integration with idetools)
 "-----------------------------------------------------------------------------"
-" Request user input with no-op tab expansion and custom prompt
-function! s:user_input(prompt) abort
-  return input(a:prompt . ': ', '', 'customlist,NullList')
+" Return graphics paths
+function! s:label_source() abort
+  if !exists('b:ctags_alph')
+    return []
+  endif
+  let ctags = filter(b:ctags_alph, 'v:val[2] ==# "l"')
+  let ctags = map(ctags, 'v:val[0] . " (" . v:val[1] . ")"')  " label (line number)
+  if empty(ctags)
+    echoerr 'No ctag labels found.'
+  endif
+  return ctags
 endfunction
 
-" Get character (copied from surround.vim)
-function! s:get_char() abort
-  let char = getchar()
-  if char =~# '^\d\+$'
-    let char = nr2char(char)
+" Return label text
+function! s:label_select() abort
+  let items = fzf#run({
+    \ 'source': s:label_source(),
+    \ 'options': '--prompt="Label> "',
+    \ 'down': '~50%',
+    \ })
+  let items = map(items, 'substitute(v:val, " (.*)$", "", "")')
+  return join(items, ',')
+endfunction
+
+"-----------------------------------------------------------------------------"
+" Functions for selecting citations from bibtex files
+" See: https://github.com/msprev/fzf-bibtex
+"-----------------------------------------------------------------------------"
+" The gsed executable
+let s:gsed = '/usr/local/bin/gsed'  " Todo: defer to 'gsed' alias?
+if !executable(s:gsed)
+  echoerr 'GNU sed not available. Please install it with brew install gnu-sed.'
+  finish
+endif
+
+" Basic function called every time
+function! s:cite_source() abort
+  " Set the plugin source variables
+  " Get biligraphies using grep, copied from latexmk
+  " Easier than using search() because we want to get *all* results
+  let biblist = []
+  let bibfiles = system(
+    \ 'grep -o ''^[^%]*'' ' . shellescape(@%) . ' | '
+    \ . s:gsed . ' -n ''s@^\s*\\\(bibliography\|nobibliography\|addbibresource\){\(.*\)}@\2@p'''
+    \ )
+
+  " Check that files all exist
+  if v:shell_error == 0
+    let filedir = expand('%:h')
+    for bibfile in split(bibfiles, "\n")
+      if bibfile !~? '.bib$'
+        let bibfile .= '.bib'
+      endif
+      let bibpath = filedir . '/' . bibfile
+      if filereadable(bibpath)
+        call add(biblist, bibpath)
+      else
+        echohl WarningMsg
+        echom "Warning: Bib file '" . bibpath . "' does not exist.'"
+        echohl None
+      endif
+    endfor
   endif
-  if char =~# "\<Esc>" || char =~# "\<C-C>"
-    return ''
+
+  " Set the environment variable and return command-line command used to
+  " generate fuzzy list from the selected files.
+  let result = []
+  if len(biblist) == 0
+    echoerr 'Bib files were not defined or do not exist.'
+  elseif ! executable('bibtex-ls')
+    echoerr 'Command bibtex-ls not found.'
   else
-    return char
+    let $FZF_BIBTEX_SOURCES = join(biblist, ':')
+    let result = 'bibtex-ls ' . join(biblist, ' ')
   endif
+  return result
 endfunction
 
-" Return the string or evaluate a funcref, then optionally add a prefix and suffix
-function! s:make_snippet(input, ...) abort
-  let prefix = a:0 > 0 ? a:1 : ''
-  let suffix = a:0 > 1 ? a:2 : ''
-  if type(a:input) == 2  " funcref
-    let output = a:input()
-  else
-    let output = a:input
+" Return citation text
+" We can them use this function as an insert mode <expr> mapping
+" Note: To get multiple items just hit <Tab>
+function! s:cite_select() abort
+  let items = fzf#run({
+    \ 'source': s:cite_source(),
+    \ 'options': '--prompt="Source> "',
+    \ 'down': '~50%',
+    \ })
+  let result = ''
+  if executable('bibtex-cite')
+    let result = system('bibtex-cite ', items)
+    let result = substitute(result, '@', '', 'g')
   endif
-  if !empty(output)
-    let output = prefix . output . suffix
-  endif
-  return output
+  return result
 endfunction
 
+"-----------------------------------------------------------------------------"
+" Functions for selecting from available graphics files
+"-----------------------------------------------------------------------------"
+" Related function that prints graphics files
+function! s:graphic_source() abort
+  " Get graphics paths
+  " Note: Negative indexing evidently does not work with strings
+  " Todo: Make this work when \graphicspath takes up more than one line
+  " Not high priority because latexmk rarely accounts for this anyway
+  let paths = system(
+    \ 'grep -o ''^[^%]*'' ' . shellescape(@%) . ' | '
+    \ . s:gsed . ' -n ''s@\\graphicspath{\(.*\)}@\1@p'''
+    \ )
+  let paths = substitute(paths, "\n", '', 'g')  " in case multiple \graphicspath calls, even though this is illegal
+  if !empty(paths) && (paths[0] !=# '{' || paths[len(paths) - 1] !=# '}')
+    echohl WarningMsg
+    echom "Incorrect syntax '" . paths . "'. Surround paths with curly braces."
+    echohl None
+    let paths = '{' . paths . '}'
+  endif
+
+  " Check syntax
+  " Make paths relative to *latex file* not cwd
+  let filedir = expand('%:h')
+  let pathlist = []
+  for path in split(paths[1:len(paths) - 2], '}{')
+    let abspath = expand(filedir . '/' . path)
+    if isdirectory(abspath)
+      call add(pathlist, abspath)
+    else
+      echohl WarningMsg
+      echom "Warning: Directory '" . abspath . "' does not exist."
+      echohl None
+    endif
+  endfor
+
+  " Get graphics files in each path
+  let figlist = []
+  call add(pathlist, expand('%:h'))
+  for path in pathlist
+    for ext in ['png', 'jpg', 'jpeg', 'pdf', 'eps']
+      call extend(figlist, globpath(path, '*.' . ext, v:true, v:true))
+    endfor
+  endfor
+  let figlist = map(figlist, 'fnamemodify(v:val, ":p:h:t") . "/" . fnamemodify(v:val, ":t")')
+
+  " Return figure files
+  if len(figlist) == 0
+    echoerr 'No graphics files found.'
+  endif
+  return figlist
+endfunction
+
+" Return graphics text
+" We can them use this function as an insert mode <expr> mapping
+function! s:graphic_select() abort
+  let items = fzf#run({
+    \ 'source': s:graphic_source(),
+    \ 'options': '--prompt="Figure> "',
+    \ 'down': '~50%',
+    \ })
+  let items = map(items, 'fnamemodify(v:val, ":t")')
+  return join(items, ',')
+endfunction
+
+"-----------------------------------------------------------------------------"
+" Functions for checking math mode and making units
+"-----------------------------------------------------------------------------"
 " Wrap in math environment only if cursor is not already inside one
 " Use TeX syntax to detect any and every math environment
 " Note: Check syntax of point to *left* of cursor because that's the environment
@@ -194,7 +324,41 @@ function! s:format_units(...) abort
   return s:ensure_math(output)
 endfunction
 
+"-----------------------------------------------------------------------------"
+" Inserting complex snippets
+"-----------------------------------------------------------------------------"
+" Get character (copied from surround.vim)
+function! s:get_char() abort
+  let char = getchar()
+  if char =~# '^\d\+$'
+    let char = nr2char(char)
+  endif
+  if char =~# "\<Esc>" || char =~# "\<C-C>"
+    return ''
+  else
+    return char
+  endif
+endfunction
+
+" Return the string or evaluate a funcref, then optionally add a prefix and suffix
+function! s:make_snippet(input, ...) abort
+  let prefix = a:0 > 0 ? a:1 : ''
+  let suffix = a:0 > 1 ? a:2 : ''
+  if type(a:input) == 2  " funcref
+    let output = a:input()
+  else
+    let output = a:input
+  endif
+  if !empty(output)
+    let output = prefix . output . suffix
+  endif
+  return output
+endfunction
+
 " Functions that return funcrefs for assignment in snippet dictionary
+function! s:user_input(prompt) abort  " general user input request with no-op tab expansion
+  return input(a:prompt . ': ', '', 'customlist,NullList')
+endfunction
 function! textools#user_input(...)
   return function('s:user_input', a:000)
 endfunction
@@ -206,6 +370,15 @@ function! textools#ensure_math(...) abort
 endfunction
 function! textools#format_units(...) abort
   return function('s:format_units', a:000)
+endfunction
+function! textools#label_select(...) abort
+  return function('s:label_select', a:000)
+endfunction
+function! textools#cite_select(...) abort
+  return function('s:cite_select', a:000)
+endfunction
+function! textools#graphic_select(...) abort
+  return function('s:graphic_select', a:000)
 endfunction
 
 " Add user-defined snippet, either a fixed string or input string with defined
@@ -222,8 +395,6 @@ function! textools#insert_snippet()
   for scope in [g:, b:]
     if !empty(char) && empty(snippet)
       let varname = 'snippet_' . char2nr(char)
-      " echom 'Varname! ' . varname
-      " echom 'Result! ' . string(get(scope, varname, ''))
       let snippet = s:make_snippet(get(scope, varname, ''))
     endif
   endfor
@@ -378,169 +549,6 @@ function! textools#change_delims() abort
     \ '"_c`z' . left_new . "\<Delete>",
     \ '"_c`z' . right_new . "\<Delete>",
   \ )
-endfunction
-
-"-----------------------------------------------------------------------------"
-" Functions for selecting citations from bibtex files
-" See: https://github.com/msprev/fzf-bibtex
-"-----------------------------------------------------------------------------"
-" The gsed executable
-let s:gsed = '/usr/local/bin/gsed'  " Todo: defer to 'gsed' alias?
-if !executable(s:gsed)
-  echoerr 'GNU sed not available. Please install it with brew install gnu-sed.'
-  finish
-endif
-
-" Basic function called every time
-function! s:cite_source() abort
-  " Set the plugin source variables
-  " Get biligraphies using grep, copied from latexmk
-  " Easier than using search() because we want to get *all* results
-  let biblist = []
-  let bibfiles = system(
-    \ 'grep -o ''^[^%]*'' ' . shellescape(@%) . ' | '
-    \ . s:gsed . ' -n ''s@^\s*\\\(bibliography\|nobibliography\|addbibresource\){\(.*\)}@\2@p'''
-    \ )
-
-  " Check that files all exist
-  if v:shell_error == 0
-    let filedir = expand('%:h')
-    for bibfile in split(bibfiles, "\n")
-      if bibfile !~? '.bib$'
-        let bibfile .= '.bib'
-      endif
-      let bibpath = filedir . '/' . bibfile
-      if filereadable(bibpath)
-        call add(biblist, bibpath)
-      else
-        echohl WarningMsg
-        echom "Warning: Bib file '" . bibpath . "' does not exist.'"
-        echohl None
-      endif
-    endfor
-  endif
-
-  " Set the environment variable and return command-line command used to
-  " generate fuzzy list from the selected files.
-  let result = []
-  if len(biblist) == 0
-    echoerr 'Bib files were not defined or do not exist.'
-  elseif ! executable('bibtex-ls')
-    echoerr 'Command bibtex-ls not found.'
-  else
-    let $FZF_BIBTEX_SOURCES = join(biblist, ':')
-    let result = 'bibtex-ls ' . join(biblist, ' ')
-  endif
-  return result
-endfunction
-
-" Return citation text
-" We can them use this function as an insert mode <expr> mapping
-" Note: To get multiple items just hit <Tab>
-function! textools#cite_select() abort
-  let items = fzf#run({
-    \ 'source': s:cite_source(),
-    \ 'options': '--prompt="Source> "',
-    \ 'down': '~50%',
-    \ })
-  let result = ''
-  if executable('bibtex-cite')
-    let result = system('bibtex-cite ', items)
-    let result = substitute(result, '@', '', 'g')
-  endif
-  return result
-endfunction
-
-"-----------------------------------------------------------------------------"
-" Functions for selecting from available graphics files
-"-----------------------------------------------------------------------------"
-" Related function that prints graphics files
-function! s:graphic_source() abort
-  " Get graphics paths
-  " Note: Negative indexing evidently does not work with strings
-  " Todo: Make this work when \graphicspath takes up more than one line
-  " Not high priority because latexmk rarely accounts for this anyway
-  let paths = system(
-    \ 'grep -o ''^[^%]*'' ' . shellescape(@%) . ' | '
-    \ . s:gsed . ' -n ''s@\\graphicspath{\(.*\)}@\1@p'''
-    \ )
-  let paths = substitute(paths, "\n", '', 'g')  " in case multiple \graphicspath calls, even though this is illegal
-  if !empty(paths) && (paths[0] !=# '{' || paths[len(paths) - 1] !=# '}')
-    echohl WarningMsg
-    echom "Incorrect syntax '" . paths . "'. Surround paths with curly braces."
-    echohl None
-    let paths = '{' . paths . '}'
-  endif
-
-  " Check syntax
-  " Make paths relative to *latex file* not cwd
-  let filedir = expand('%:h')
-  let pathlist = []
-  for path in split(paths[1:len(paths) - 2], '}{')
-    let abspath = expand(filedir . '/' . path)
-    if isdirectory(abspath)
-      call add(pathlist, abspath)
-    else
-      echohl WarningMsg
-      echom "Warning: Directory '" . abspath . "' does not exist."
-      echohl None
-    endif
-  endfor
-
-  " Get graphics files in each path
-  let figlist = []
-  call add(pathlist, expand('%:h'))
-  for path in pathlist
-    for ext in ['png', 'jpg', 'jpeg', 'pdf', 'eps']
-      call extend(figlist, globpath(path, '*.' . ext, v:true, v:true))
-    endfor
-  endfor
-  let figlist = map(figlist, 'fnamemodify(v:val, ":p:h:t") . "/" . fnamemodify(v:val, ":t")')
-
-  " Return figure files
-  if len(figlist) == 0
-    echoerr 'No graphics files found.'
-  endif
-  return figlist
-endfunction
-
-" Return graphics text
-" We can them use this function as an insert mode <expr> mapping
-function! textools#graphic_select() abort
-  let items = fzf#run({
-    \ 'source': s:graphic_source(),
-    \ 'options': '--prompt="Figure> "',
-    \ 'down': '~50%',
-    \ })
-  let items = map(items, 'fnamemodify(v:val, ":t")')
-  return join(items, ',')
-endfunction
-
-"-----------------------------------------------------------------------------"
-" Functions for selecting from available labels (integration with idetools)
-"-----------------------------------------------------------------------------"
-" Return graphics paths
-function! s:label_source() abort
-  if !exists('b:ctags_alph')
-    return []
-  endif
-  let ctags = filter(b:ctags_alph, 'v:val[2] ==# "l"')
-  let ctags = map(ctags, 'v:val[0] . " (" . v:val[1] . ")"')  " label (line number)
-  if empty(ctags)
-    echoerr 'No ctag labels found.'
-  endif
-  return ctags
-endfunction
-
-" Return label text
-function! textools#label_select() abort
-  let items = fzf#run({
-    \ 'source': s:label_source(),
-    \ 'options': '--prompt="Label> "',
-    \ 'down': '~50%',
-    \ })
-  let items = map(items, 'substitute(v:val, " (.*)$", "", "")')
-  return join(items, ',')
 endfunction
 
 "-----------------------------------------------------------------------------"
