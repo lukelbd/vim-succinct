@@ -16,7 +16,7 @@ function! textools#latex_background(...) abort
   " we have any options
   let opts = trim(a:0 ? a:1 : '') . ' -l=' . string(line('.'))
   let texfile = expand('%')
-  let logfile = 'latexmk.log'
+  let logfile = expand('%:t:r') . '.latexmk'
   let lognum = bufwinnr(logfile)
   if lognum == -1
     silent! exe string(winheight('.') / 4) . 'split ' . logfile
