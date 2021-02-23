@@ -46,39 +46,25 @@ function! s:get_bindings_table(type) abort
   let vars = getcompletion(prefix, 'var')
   for var in vars
     let key = nr2char(substitute(var, '^' . prefix, '', ''))
-    let value = substitute(eval(var), "[\n\r\1]", '', 'g')
-    let table[key] = value
+    let s:val = eval(var)  " cannot assign funcref to local variable!
+    if type(s:val) == 2
+      let s:val = join(filter(get(s:val, 'args'), 'type(v:val) == 1'), '')
+    elseif type(s:val) != 1
+      let s:val = string(s:val)
+    endif
+    let table[key] = substitute(s:val, "[\n\r\1]", '', 'g')
   endfor
   return table
 endfunction
 
 " Return a nice displayable list of bindings
 function! s:fmt_bindings_table(table) abort
-  let nspace = max(map(keys(a:table), 'len(v:val)'))
-  let mspace = max(map(values(a:table), 'type(v:val) == 1 ? len(v:val) : len(v:val[0])'))  " might be just string
+  let space = max(map(keys(a:table), 'len(v:val)'))
   let bindings = []
-  for [key, value] in items(a:table)
-    " Support for tables with 'value' and ['left', 'right'] values
-    if type(value) == 1  " string
-      let values = [value]
-    elseif type(value) == 3  " list
-      let values = value
-    else
-      echohl WarningMsg
-      echom 'Error: Invalid table dictionary'
-      echohl None
-      return
-    endif
-    " Get key and value strings
-    let keystring = key . ':' . repeat(' ', nspace - len(key) + 1)
-    let valstring = ''
-    for i in range(len(values))
-      let val = substitute(values[i], "\n", '\\n', 'g')
-      let quote = (val =~# "'" ? '"' : "'")
-      let suffix = (i < len(values) - 1 && len(values) > 1 ? ',' : '')
-      let suffix .= (i == 0 ? repeat(' ', mspace - len(val) + 3) : '')
-      let valstring .= quote . val . quote . suffix
-    endfor
+  for [key, val] in items(a:table)
+    let quote = val =~# "'" ? '"' : "'"
+    let keystring = key . ':' . repeat(' ', space - len(key) + 1)
+    let valstring = quote . val . quote
     call add(bindings, keystring . valstring)
   endfor
   return join(bindings, "\n")
