@@ -479,8 +479,10 @@ function! s:pair_action(left, right, lexpr, rexpr) abort
   endif
 
   " Get positions for *start* of matches
-  let [l1, c11] = searchpairpos(a:left, '', a:right, 'bnW') " set '' mark at current location
-  let [l2, c21] = searchpairpos(a:left, '', a:right, 'nW')
+  let left = '\V' . a:left  " nomagic
+  let right = '\V' . a:right
+  let [l1, c11] = searchpairpos(left, '', right, 'bnW') " set '' mark at current location
+  let [l2, c21] = searchpairpos(left, '', right, 'nW')
   if l1 == 0 || l2 == 0
     echohl WarningMsg
     echom 'Warning: Cursor is not inside ' . a:left . a:right . ' pair.'
@@ -491,14 +493,14 @@ function! s:pair_action(left, right, lexpr, rexpr) abort
   " Delete or change right delim. If this leaves an empty line, delete it.
   " Note: Right must come first!
   call cursor(l2, c21)
-  let [l2, c22] = searchpos(a:right, 'cen')
+  let [l2, c22] = searchpos(right, 'cen')
   call setpos("'z", [0, l2, c22, 0])
   set paste | exe 'normal! ' . a:rexpr | set nopaste
   if len(s:strip(getline(l2))) == 0 | exe l2 . 'd' | endif
 
   " Delete or change left delim
   call cursor(l1, c11)
-  let [l1, c12] = searchpos(a:left, 'cen')
+  let [l1, c12] = searchpos(left, 'cen')
   call setpos("'z", [0, l1, c12, 0])
   set paste | exe 'normal! ' . a:lexpr | set nopaste
   if len(s:strip(getline(l1))) == 0 | exe l1 . 'd' | endif
