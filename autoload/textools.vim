@@ -48,7 +48,7 @@ function! s:get_bindings_table(type) abort
     let key = nr2char(substitute(var, '^' . prefix, '', ''))
     let s:val = eval(var)  " cannot assign funcref to local variable!
     if type(s:val) == 2
-      let s:val = join(filter(get(s:val, 'args'), 'type(v:val) == 1'), '')
+      let s:val = join(filter(copy(get(s:val, 'args')), 'type(v:val) == 1'), '')
     elseif type(s:val) != 1
       let s:val = string(s:val)
     endif
@@ -108,7 +108,7 @@ function! s:label_source() abort
   if !exists('b:ctags_alph')
     return []
   endif
-  let ctags = filter(b:ctags_alph, 'v:val[2] ==# "l"')
+  let ctags = filter(copy(b:ctags_alph), 'v:val[2] ==# "l"')
   let ctags = map(ctags, 'v:val[0] . " (" . v:val[1] . ")"')  " label (line number)
   if empty(ctags)
     echoerr 'No ctag labels found.'
