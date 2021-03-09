@@ -397,40 +397,40 @@ endfunction
 
 " Copied from vim-surround source code, use this to obtain string
 " delimiters from the b:surround_{num} and g:surround_{num} variables
-" even when they accept variable input. Can return delimiters themselves or
-" regex suitable for *searching* for delimiters with searchpair().
+" even when they accept variable input.
+" If a:regex is true return regex suitable for *searching* for delimiters with
+" searchpair(), else return delimiters themselves.
 " Todo: Use builtin function if it gets moved to autoload
-function! s:process(string, regex) abort
+function! s:process_delim(string, regex) abort
   " Get delimiter string with filled replacement placeholders \1, \2, \3, ...
   " Note that char2nr("\1") is 1, char2nr("\2") is 2, etc.
-  " Note: We permit overriding the dumjy spot with a dummy search pattern. This
+  " Note: We permit overriding the dummy spot with a dummy search pattern. This
   " is used when we want to use the delimiters returned by this function to
   " *search* for matches rather than *insert* them... and if a delimiter accepts
   " arbitrary input then we need to search for arbitrary text in that spot.
-  let fill = '\%(\k\|\.\)'  " valid character
-  for i in range(7)
+  let filled = '\%(\k\|\.\)'  " valid character
+  for insert in range(7)
+    " Todo: For now try to match superset of all possible items that
+    " can be contained inside patterns with variable input. Includes latex
+    " environment names, tag names, and python methods and functions.
     if a:regex
-      " Todo: For now try to match superset of all possible items that
-      " can be contained inside patterns with variable input. Includes latex
-      " environment names, tag names, and python methods and functions.
-      " let repl_{i} = '\S\{-1,}'
-      " let repl_{i} = '\k\+'
-      let repl_{i} = fill . '\+'  " any valid fill character
+      " let repl_{insert} = '\S\{-1,}'  " any non-whitespace char
+      let repl_{insert} = filled . '\+'  " any valid fill character
     else
-      let repl_{i} = ''
-      let m = matchstr(a:string, nr2char(i) . '.\{-\}\ze' . nr2char(i))
+      let repl_{insert} = ''
+      let m = matchstr(a:string, nr2char(insert) . '.\{-\}\ze' . nr2char(insert))
       if m !=# ''
         let m = substitute(strpart(m, 1), '\r.*', '', '')
-        let repl_{i} = input(match(m, '\w\+$') >= 0 ? m . ': ' : m)
+        let repl_{insert} = input(match(m, '\w\+$') >= 0 ? m . ': ' : m)
       endif
     endif
   endfor
 
   " Build up string
-  let i = 0
+  let idx = 0
   let string = ''
-  while i < strlen(a:string)
-    let char = strpart(a:string, i, 1)
+  while idx < strlen(a:string)
+    let char = strpart(a:string, idx, 1)
     if a:regex && char =~# '[.\\\[\]]'
       " Escape character
       let string .= '\' . char
@@ -442,12 +442,12 @@ function! s:process(string, regex) abort
       let string .= char
     else
       " Handle insertions between subsequent \1...\1, \2...\2, etc. occurrences
-      let next = stridx(a:string, char, i + 1)
+      let next = stridx(a:string, char, idx + 1)
       if next == -1
         let string .= char  " if we just found one \1, etc. instance, put back
       else
         let insertion = repl_{char2nr(char)}
-        let substring = strpart(a:string, i + 1, next - i - 1)
+        let substring = strpart(a:string, idx + 1, next - idx - 1)
         let substring = matchstr(substring, '\r.*')
         while substring =~# '^\r.*\r'
           let matchstring = matchstr(substring, "^\r\\zs[^\r]*\r[^\r]*")
@@ -455,15 +455,15 @@ function! s:process(string, regex) abort
           let r = stridx(matchstring, "\r")
           let insertion = substitute(insertion, strpart(matchstring, 0, r), strpart(matchstring, r + 1), '')
         endwhile
-        if a:regex && i == 0  " add start-of-word marker
+        if a:regex && idx == 0  " add start-of-word marker
           " asdfa.heloo.asdfasd( asdfasa )
-          let insertion = fill . '\@<!' . insertion
+          let insertion = filled . '\@<!' . insertion
         endif
-        let i = next
+        let idx = next
         let string .= insertion
       endif
     endif
-    let i += 1
+    let idx += 1
   endwhile
   return string
 endfunction
@@ -474,14 +474,16 @@ endfunction
 " Note: Mark motion commands only work up until and excluding the mark, so
 " make sure your command accounts for that!
 function! s:pair_action(left, right, lexpr, rexpr) abort
-  if !exists('*searchpairpos') " older versions
+  if !exists('*searchpairpos')  " older versions
     return
   endif
 
   " Get positions for *start* of matches
-  let left = '\V' . a:left  " nomagic
-  let right = '\V' . a:right
-  let [l1, c11] = searchpairpos(left, '', right, 'bnW') " set '' mark at current location
+  " let left = '\V' . a:left  " nomagic
+  " let right = '\V' . a:right
+  let left = a:left
+  let right = a:right
+  let [l1, c11] = searchpairpos(left, '', right, 'bnW')  " set '' mark at current location
   let [l2, c21] = searchpairpos(left, '', right, 'nW')
   if l1 == 0 || l2 == 0
     echohl WarningMsg
@@ -494,6 +496,7 @@ function! s:pair_action(left, right, lexpr, rexpr) abort
   " Note: Right must come first!
   call cursor(l2, c21)
   let [l2, c22] = searchpos(right, 'cen')
+  " echom 'Right (' . right . '): ' . c21 . '-' . c22
   call setpos("'z", [0, l2, c22, 0])
   set paste | exe 'normal! ' . a:rexpr | set nopaste
   if len(s:strip(getline(l2))) == 0 | exe l2 . 'd' | endif
@@ -501,6 +504,7 @@ function! s:pair_action(left, right, lexpr, rexpr) abort
   " Delete or change left delim
   call cursor(l1, c11)
   let [l1, c12] = searchpos(left, 'cen')
+  " echom 'Left (' . left . '): ' . c11 . '-' . c12
   call setpos("'z", [0, l1, c12, 0])
   set paste | exe 'normal! ' . a:lexpr | set nopaste
   if len(s:strip(getline(l1))) == 0 | exe l1 . 'd' | endif
@@ -516,7 +520,8 @@ function! s:get_delims(regex) abort
   else
     let string = nr2char(cnum) . "\r" . nr2char(cnum)
   endif
-  let delims = s:process(string, a:regex)
+  let delims = s:process_delim(string, a:regex)
+  " echom 'Delim: ' . delims
   return map(split(delims, "\r"), 's:strip(v:val)')
 endfunction
 
@@ -530,7 +535,7 @@ endfunction
 " or existing mapped surround character
 function! textools#change_delims() abort
   let [left, right] = s:get_delims(1)  " disallow user input
-  let [left_new, right_new] = s:get_delims(0)
+  let [left_new, right_new] = s:get_delims(0)  " replacement delims possibly with user input
   call s:pair_action(
     \ left,
     \ right,

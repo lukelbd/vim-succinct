@@ -114,6 +114,7 @@ if [[ "$filename" =~ / ]]; then  # i.e. contains directory specifier
   cd "$directory" || raise "Directory $directory does not exist."
 fi
 filestem=${filename%.tex}  # simple
+diffname=${filename%.tex}_changes.tex
 
 #-----------------------------------------------------------------------------#
 # Helper regex functions
@@ -192,10 +193,6 @@ if [ "${#bibnames[@]}" -gt 0 ]; then
   bibfiles=("${bibnames[@]/%/.bib}")  # add back extension
   echo "Bibliographies: ${bibfiles[*]}"
 fi
-
-# Detect if we want to run latexdiff on this file
-[[ "$filename" =~ .*[0-9][0-9][0-9][0-9]-[0-9][0-9]*.tex ]] \
-  && dfilename=${filename%.tex}_changes.tex
 
 # Automatically choose from xelatex and pdflatex; just need xelatex for
 # tex files that load fontspec, or use modules that themselves load fontspec
@@ -310,38 +307,38 @@ run 1 "$latex" "${flags[@]}" "$filestem"
 
 # Difference-LaTeX file, with track changes
 if $texdiff; then
-  if [ -z "$dfilename" ]; then
-    echoerr 'Warning: Previous version not found.'
+  # Get files that come *before* current one in alphanumeric sorting
+  prefix=${filename%-[0-9][0-9].tex}  # ending in YYYY-MM-DD, YYYY-MM, or 2-digit counter
+  prevnames=("$prefix"-[0-9][0-9].tex)  # sorted manuscript files (glob is sorted by default)
+  for index in "${!prevnames[@]}"; do  # expands to array of indices
+    [ "${prevnames[index]}" == "$filename" ] && break
+  done
+  if [ "$index" -eq 0 ]; then
+    # Need at least one file with date before this file
+    echoerr 'Warning: Failed to find earlier version for generating difference file.'
     texdiff=false
   else
-    # Get files that come *before* current one in alphanumeric sorting
-    prefix=${filename%[0-9][0-9][0-9][0-9]-[0-9][0-9]*.tex}  # parameter expensions are fire yo
-    pfiles=("$prefix"[0-9][0-9][0-9][0-9]-[0-9][0-9]*.tex)  # sorted manuscript files (glob is sorted by default)
-    for index in "${!pfiles[@]}"; do
-      [ "${pfiles[index]}" == "$filename" ] && break
-    done
-    if [ "$index" -ne 0 ]; then
-      # Get difference PDF, with changes highlighted
-      pfilename=${pfiles[$((index-1))]}
-      echo "Running latexdiff on ${filename##*/} minus ${pfilename##*/}"
-      [ -e "$dfilename" ] && rm "$dfilename"
-      latexdiff "$pfilename" "$filename" > "$dfilename"
-      # Finish the the pdflatex calls necessary to generate tables of contents, bibligrapyy, etc.
-      if ! [ -r $dfilename ]; then
-        echoerr 'Warning: Difference file not produced.' && texdiff=false
-      else
-        dfilestem=${dfilename%.tex}
-        if $bibliography; then
-          $latex -draftmode "${flags[@]}" "$dfilestem" &>/dev/null
-          $bibtex "$dfilestem"  #&>/dev/null
-        fi
-        # $latex "${flags[@]}" "$dfilestem" | errfilt | tail +2
-        $latex -draftmode "${flags[@]}" "$dfilestem" &>/dev/null
-        $latex "${flags[@]}" "$dfilestem" | errcat
-        if ! [ -r "$dfilestem.pdf" ]; then
-          echoerr 'Warning: Difference PDF not produced.'
-          texdiff=false
-        fi
+    # Get difference PDF, with changes highlighted
+    prevname=${prevnames[index - 1]}
+    echo "Running latexdiff on ${filename##*/} minus ${prevname##*/}"
+    [ -e "$diffname" ] && rm "$diffname"
+    latexdiff "$prevname" "$filename" > "$diffname"
+    # Finish the the pdflatex calls necessary to generate tables of contents, bibligrapyy, etc.
+    if ! [ -r $diffname ]; then
+      echoerr 'Warning: Failed to produce difference file.'
+      texdiff=false
+    else
+      diffstem=${diffname%.tex}
+      if $bibliography; then
+        $latex -draftmode "${flags[@]}" "$diffstem" &>/dev/null
+        $bibtex "$diffstem"  #&>/dev/null
+      fi
+      # $latex "${flags[@]}" "$diffstem" | errfilt | tail +2
+      $latex -draftmode "${flags[@]}" "$diffstem" &>/dev/null
+      $latex "${flags[@]}" "$diffstem" | errcat
+      if ! [ -r "$diffstem.pdf" ]; then
+        echoerr 'Warning: Failed to produce difference PDF.'
+        texdiff=false
       fi
     fi
   fi
@@ -375,11 +372,7 @@ open() {
     command open -a "$appname" "$fileview" &
   fi
 }
-if $texdiff; then
-  open "$viewer" "$dfilestem.pdf"
-elif $tex2docx; then
-  open "Pages" "$filestem.docx"
-else
-  open "$viewer" "$filestem.pdf"
-fi
+open "$viewer" "$filestem.pdf"
+$texdiff && open "$viewer" "$diffstem.pdf"
+$tex2docx && open "Pages" "$filestem.docx"
 $macos && command open -a "$terminal" &  # bring terminal back into focus
