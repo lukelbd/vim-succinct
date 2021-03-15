@@ -401,7 +401,7 @@ endfunction
 " If a:regex is true return regex suitable for *searching* for delimiters with
 " searchpair(), else return delimiters themselves.
 " Todo: Use builtin function if it gets moved to autoload
-function! s:process_delim(string, regex) abort
+function! s:process_delims(string, regex) abort
   " Get delimiter string with filled replacement placeholders \1, \2, \3, ...
   " Note that char2nr("\1") is 1, char2nr("\2") is 2, etc.
   " Note: We permit overriding the dummy spot with a dummy search pattern. This
@@ -413,13 +413,12 @@ function! s:process_delim(string, regex) abort
     " Todo: For now try to match superset of all possible items that
     " can be contained inside patterns with variable input. Includes latex
     " environment names, tag names, and python methods and functions.
+    let repl_{insert} = ''
     if a:regex
-      " let repl_{insert} = '\S\{-1,}'  " any non-whitespace char
       let repl_{insert} = filled . '\+'  " any valid fill character
     else
-      let repl_{insert} = ''
       let m = matchstr(a:string, nr2char(insert) . '.\{-\}\ze' . nr2char(insert))
-      if m !=# ''
+      if m !=# ''  " get user input if pair was found
         let m = substitute(strpart(m, 1), '\r.*', '', '')
         let repl_{insert} = input(match(m, '\w\+$') >= 0 ? m . ': ' : m)
       endif
@@ -431,38 +430,30 @@ function! s:process_delim(string, regex) abort
   let string = ''
   while idx < strlen(a:string)
     let char = strpart(a:string, idx, 1)
-    if a:regex && char =~# '[.\\\[\]]'
-      " Escape character
-      let string .= '\' . char
-    elseif a:regex && char ==# "\n"
-      " Ignore newlines e.g. from \begin{}...\end{} environments
-      let string .= ''
-    elseif char2nr(char) >= 8
-      " Nothing needs to be done
-      let string .= char
+    if char2nr(char) >= 8
+      " Add character, escaping magic characters
+      let char = a:regex && char ==# "\n" ? '' : a:regex && char =~# '[][\.*]' ? '\' . char : char  " see :help \]
     else
       " Handle insertions between subsequent \1...\1, \2...\2, etc. occurrences
+      " Note: char2nr("\1") is 1, char2nr("\2") is 2, etc.
       let next = stridx(a:string, char, idx + 1)
-      if next == -1
-        let string .= char  " if we just found one \1, etc. instance, put back
-      else
-        let insertion = repl_{char2nr(char)}
+      if next != -1  " found more than one \1 instance
+        let char = repl_{char2nr(char)}
         let substring = strpart(a:string, idx + 1, next - idx - 1)
         let substring = matchstr(substring, '\r.*')
         while substring =~# '^\r.*\r'
           let matchstring = matchstr(substring, "^\r\\zs[^\r]*\r[^\r]*")
           let substring = strpart(substring, strlen(matchstring) + 1)
           let r = stridx(matchstring, "\r")
-          let insertion = substitute(insertion, strpart(matchstring, 0, r), strpart(matchstring, r + 1), '')
+          let char = substitute(char, strpart(matchstring, 0, r), strpart(matchstring, r + 1), '')
         endwhile
         if a:regex && idx == 0  " add start-of-word marker
-          " asdfa.heloo.asdfasd( asdfasa )
-          let insertion = filled . '\@<!' . insertion
+          let char = filled . '\@<!' . char
         endif
         let idx = next
-        let string .= insertion
       endif
     endif
+    let string .= char
     let idx += 1
   endwhile
   return string
@@ -481,10 +472,8 @@ function! s:pair_action(left, right, lexpr, rexpr) abort
   " Get positions for *start* of matches
   " let left = '\V' . a:left  " nomagic
   " let right = '\V' . a:right
-  let left = a:left
-  let right = a:right
-  let [l1, c11] = searchpairpos(left, '', right, 'bnW')  " set '' mark at current location
-  let [l2, c21] = searchpairpos(left, '', right, 'nW')
+  let [l1, c11] = searchpairpos(a:left, '', a:right, 'bnW')  " set '' mark at current location
+  let [l2, c21] = searchpairpos(a:left, '', a:right, 'nW')
   if l1 == 0 || l2 == 0
     echohl WarningMsg
     echom 'Warning: Cursor is not inside ' . a:left . a:right . ' pair.'
@@ -495,16 +484,16 @@ function! s:pair_action(left, right, lexpr, rexpr) abort
   " Delete or change right delim. If this leaves an empty line, delete it.
   " Note: Right must come first!
   call cursor(l2, c21)
-  let [l2, c22] = searchpos(right, 'cen')
-  " echom 'Right (' . right . '): ' . c21 . '-' . c22
+  let [l2, c22] = searchpos(a:right, 'cen')
+  " echom a:right . ': ' . c21 . '-' . c22
   call setpos("'z", [0, l2, c22, 0])
   set paste | exe 'normal! ' . a:rexpr | set nopaste
   if len(s:strip(getline(l2))) == 0 | exe l2 . 'd' | endif
 
   " Delete or change left delim
   call cursor(l1, c11)
-  let [l1, c12] = searchpos(left, 'cen')
-  " echom 'Left (' . left . '): ' . c11 . '-' . c12
+  let [l1, c12] = searchpos(a:left, 'cen')
+  " echom a:left . ': ' . c11 . '-' . c12
   call setpos("'z", [0, l1, c12, 0])
   set paste | exe 'normal! ' . a:lexpr | set nopaste
   if len(s:strip(getline(l1))) == 0 | exe l1 . 'd' | endif
@@ -520,7 +509,7 @@ function! s:get_delims(regex) abort
   else
     let string = nr2char(cnum) . "\r" . nr2char(cnum)
   endif
-  let delims = s:process_delim(string, a:regex)
+  let delims = s:process_delims(string, a:regex)
   " echom 'Delim: ' . delims
   return map(split(delims, "\r"), 's:strip(v:val)')
 endfunction
