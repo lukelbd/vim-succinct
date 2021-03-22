@@ -25,11 +25,6 @@ features but with a different, minimal flavor.
 This set of tools is complex and would take quite a while to document. For now I will
 just give a broad summary of the features.
 
-**Note**: In the future, this package may be split up into a generalized
-`vim-delimtools` package that supports delimiters and snippets for
-several different languages and a `vim-latexmk` package that contains
-just the custom `latexmk` script.
-
 Documentation
 =============
 
@@ -116,11 +111,7 @@ See also
 If you find this plugin useful, I also highly recommend the following:
 
 * The [vim-scrollwrapped plugin](https://github.com/lukelbd/vim-scrollwrapped), which
-  toggles "wrapped" lines automatically for non-code documents (like markdown, RST, and
-  LaTeX files) and makes scrolling through vim windows with heavily wrapped lines much,
-  much easier.
+  toggles "wrapped" lines automatically for non-code documents and makes scrolling
+  through vim windows with heavily wrapped lines much easier.
 * The [idetools plugin](https://github.com/lukelbd/vim-idetools), which includes various
   refactoring commands and tools for jumping around documents based on ctags locations.
-* This [ctags preference file](https://github.com/lukelbd/dotfiles/blob/master/.ctags),
-  which contains a bunch of new definitions for marking section, figure, table, etc.
-  locations with ctags.
