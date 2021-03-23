@@ -22,9 +22,6 @@ features but with a different, minimal flavor.
   (defaults to `~/templates`) when creating new files files using fuzzy name
   selection powered by [fzf](https://github.com/junegunn/fzf).
 
-This set of tools is complex and would take quite a while to document. For now I will
-just give a broad summary of the features.
-
 Documentation
 =============
 
