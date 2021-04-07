@@ -126,14 +126,12 @@ command! -nargs=+ SurroundSearch echo textools#search_bindings('surround', <q-ar
 " Add autocommands
 " Todo: Support additional filetypes!
 " Note: Arguments passed to function() partial are passed to underlying func first.
-if exists('*fzf#run')
-  augroup templates
-    au!
-    au BufNewFile * call fzf#run({
-      \ 'source': textools#template_source(expand('<afile>:e')),
-      \ 'options': '--no-sort --prompt="Template> "',
-      \ 'down': '~30%',
-      \ 'sink': function('textools#template_read'),
-      \ })
-  augroup END
-endif
+augroup templates
+  au!
+  au BufNewFile * if exists('*fzf#run') | call fzf#run({
+    \ 'source': textools#template_source(expand('<afile>:e')),
+    \ 'options': '--no-sort --prompt="Template> "',
+    \ 'down': '~30%',
+    \ 'sink': function('textools#template_read'),
+    \ }) | endif
+augroup END
