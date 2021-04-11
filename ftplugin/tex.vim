@@ -49,7 +49,7 @@ let s:tex_textobjs_dict = {
   \     'select-i': '<buffer> i{',
   \   },
   \  'angle-math': {
-  \     'pattern': ['\\left<', '\\right>'],
+  \     'pattern': ['\\left\\langle ', '\\right\\rangle'],
   \     'select-a': '<buffer> a<',
   \     'select-i': '<buffer> i<',
   \   },
@@ -204,7 +204,7 @@ let s:textools_surround_map = {
   \ '9': "\\label{\r}",
   \ ':': "\\begin{alertblock}{}\r\n\\end{alertblock}",
   \ ';': "\\begin{block}{}\r\n\\end{block}",
-  \ '<': "\\left<\r\\right>",
+  \ '<': "\\left\\langle \r\\right\\rangle",
   \ '>': "\\uncover<X>{%\r\n\}",
   \ '?': "\\dfrac{\r}{}",
   \ '@': "\\begin{enumerate}[label=\\alph*.]\r\n\\end{enumerate}",
