@@ -28,11 +28,10 @@ function! textools#latex_background(...) abort
   endif
 
   " Run job in realtime
-  " echom s:path . '/../latexmk'
   let num = bufnr(logfile)
   let g:tex_job = job_start(
     \ s:path . '/../bin/latexmk ' . texfile . ' ' . opts,
-    \ { 'out_io': 'buffer', 'out_buf': num }
+    \ {'out_io': 'buffer', 'out_buf': num, 'err_io': 'buffer', 'err_buf': num}
     \ )
 endfunction
 
