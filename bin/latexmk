@@ -308,14 +308,18 @@ run 1 "$latex" "${flags[@]}" "$filestem"
 # Difference-LaTeX file, with track changes
 if $texdiff; then
   # Get files that come *before* current one in alphanumeric sorting
-  prefix=${filename%-[0-9][0-9].tex}  # ending in YYYY-MM-DD, YYYY-MM, or 2-digit counter
-  prevnames=("$prefix"-[0-9][0-9].tex)  # sorted manuscript files (glob is sorted by default)
+  prefix=$(sed -E 's/_([0-9]{4}-)?([0-9]{2}-)?[0-9]{2}\.tex//g' <<< "$filename")
+  prevnames=("$prefix"*-[0-9][0-9].tex)  # sorted manuscript files (glob is sorted by default)
   for index in "${!prevnames[@]}"; do  # expands to array of indices
     [ "${prevnames[index]}" == "$filename" ] && break
   done
-  if [ "$index" -eq 0 ]; then
+  if [ "$prefix" == "$filename" ]; then
+    # Invalid format
+    echoerr "Warning: Invalid filename for generating difference file: $filename"
+    texdiff=false
+  elif [ "$index" -eq 0 ]; then
     # Need at least one file with date before this file
-    echoerr 'Warning: Failed to find earlier version for generating difference file.'
+    echoerr "Warning: Failed to find earlier version of current file: $filename"
     texdiff=false
   else
     # Get difference PDF, with changes highlighted
@@ -345,14 +349,33 @@ if $texdiff; then
 fi
 
 # Convert to docx with pandoc; keeps figures and formats sections with Word styling
+# * For citeproc see: https://github.com/jgm/citeproc
+# * For xnos see: https://github.com/tomduck/pandoc-xnos
+# Unfortunately neither xnos nor crossref work for numbering equations and figures
 if $tex2docx; then
   if ! type pandoc &>/dev/null; then
     echoerr "Warning: Cannot convert to docx because pandoc is not installed. Try brew install pandoc."
   else
-    echo "Running pandoc to convert tex --> docx"
-    # echo pandoc --output="$filestem.docx" "${bibflags[@]}" "$filename"
-    $bibliography && bibflags=("${bibfiles[@]/#/--bibliography=}")
-    pandoc --output="$filestem.docx" "${bibflags[@]}" "$filename"
+    # flags=(-M cref=true --citeproc)
+    # flags=(--citeproc --filter=pandoc-crossref)
+    flags=(-M cref=true --citeproc)
+    flags=(-M cref=true --filter pandoc-xnos)
+    flags=(-M cref=true --filter pandoc-crossref --citeproc)
+    check=("${required[@]}" "${packages[@]}")
+    # flags=()
+    # flags=(-M cref=true)
+    # flags=(-M cref=true --citeproc --filter=pandoc-crossref)
+    [[ " ${check[*]} " =~ natbib ]] && flags+=(--natbib)
+    [[ " ${check[*]} " =~ biblatex ]] && flags+=(--biblatex)
+    $bibliography && flags+=("${bibfiles[@]/#/--bibliography=}")
+    # if $bibliography && ! [[ " ${flags[*]} " =~ ' --natbib ' ]] && ! [[ " ${flags[*]} " =~ ' --biblatex ' ]]; then
+    if false; then
+      echoerr "Warning: Cannot convert to docx because bibliography package is unknown. Found packages: ${check[*]}"
+      # echo "Error: Cannot convert to docx because bibliography package is unknown."
+    else
+      echo "Running pandoc to convert tex --> docx with flags ${flags[*]}"
+      pandoc --output="$filestem.docx" "${flags[@]}" "$filename"
+    fi
   fi
 fi
 
