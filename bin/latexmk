@@ -395,7 +395,7 @@ open() {
     command open -a "$appname" "$fileview" &
   fi
 }
-open "$viewer" "$filestem.pdf"
+! $texdiff && ! $tex2docx && open "$viewer" "$filestem.pdf"  # too jumpy if open everything!
 $texdiff && open "$viewer" "$diffstem.pdf"
 $tex2docx && open "Pages" "$filestem.docx"
 $macos && command open -a "$terminal" &  # bring terminal back into focus
