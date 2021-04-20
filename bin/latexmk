@@ -117,11 +117,11 @@ filestem=${filename%.tex}  # simple
 diffname=${filename%.tex}_changes.tex
 
 #-----------------------------------------------------------------------------#
-# Helper regex functions
+# Get compile options and required packages for file
 #-----------------------------------------------------------------------------#
 # General utilities
 nocomments() {  # ignore comments. TODO: Maybe awk is better?
-  [ $# -eq 1 ] || raise "Incorrect usage of nocomments."
+  [ $# -eq 1 ] || raise "Incorrect usage of nocomments()."
   grep -o '^[^%]*' "$1"
 }
 inbraces() {  # get content inside braces
@@ -129,88 +129,32 @@ inbraces() {  # get content inside braces
 }
 
 # Search tex file for various dependencies
-get_bibnames() {  # show bibliography files
-  [ $# -eq 1 ] || raise "Incorrect usage of get_bibnames."
-  nocomments "$1" \
-    | $sedcmd -n 's/\\\(bibliography\|nobibliography\|addbibresource\){\(.*\)}/\2/p' \
-    | xargs
-}
-get_bibstyles() {
-  [ $# -eq 1 ] || raise "Incorrect usage of get_bibstyles."
-  nocomments "$1" | grep '\\bibliographystyle' \
-    | inbraces | xargs
-}
-get_packages() {  # show package names
-  [ $# -eq 1 ] || raise "Incorrect usage of get_packages."
+packages() {  # show package names
+  [ $# -eq 1 ] || raise "Incorrect usage of packages()."
   nocomments "$1" | grep -E '\\RequirePackage|\\usepackage' \
     | $sedcmd 's/\[[^][]*\]//g' | $sedcmd '/\[\|\]/d' \
     | $sedcmd 's/AtEndOfClass{//g' | $sedcmd '/newcommand\|#/d' \
     | inbraces | xargs
 }
-get_themes () {  # fintd \beamerthemeTHEME and \beamercolorthemeTHEME files
-  [ $# -eq 2 ] || raise "Incorrect usage of get_themes."
+themes() {  # fintd \beamerthemeTHEME and \beamercolorthemeTHEME files
+  [ $# -eq 2 ] || raise "Incorrect usage of themes()."
   nocomments "$1" | grep '\\use'"$2" | inbraces \
     | $sedcmd 's/^/beamer'"$2"'/' | xargs
 }
-
-#------------------------------------------------------------------------------#
-# Get compile options from LaTeX commands
-#------------------------------------------------------------------------------#
-# Helper functions
-errfilt() {  # show only error messages separated by blank lines
-  $sedcmd -E '/^! |^l\./!d' | $sedcmd $'s/^! /\\\n/g'
+bibnames() {  # show bibliography files
+  [ $# -eq 1 ] || raise "Incorrect usage of bibnames()."
+  nocomments "$1" \
+    | $sedcmd -n 's/\\\(bibliography\|nobibliography\|addbibresource\){\(.*\)}/\2/p' \
+    | xargs
 }
-errcat() {  # ignore messages about packages and remove empty lines
-  errfilt | grep -A2 '^$' | $sedcmd '/^$/d'
-}
-
-# Run latex comand, first arg is 1 or 0, indicates whether to always print message
-run() {
-  local res cmd
-  res=$("${@:2}" 2>&1)
-  # shellcheck disable=2181
-  if [ $? -ne 0 ] || [ "$1" -eq 1 ]; then
-    if $raw || [[ "${*:2}" =~ "bibtex" ]]; then
-      cmd=cat
-    else
-      cmd=errcat
-    fi
-    echo "$res" | $cmd | $sedcmd 's/^/  /'
-  fi
+bibstyles() {
+  [ $# -eq 1 ] || raise "Incorrect usage of bibstyles()."
+  nocomments "$1" | grep '\\bibliographystyle' \
+    | inbraces | xargs
 }
 
-# First if GIF/animation in file, need to change from Skim to compatible viewer
-nocomments "$filename" | grep '\\animategraphics' &>/dev/null \
-  && viewer='Adobe Acrobat Reader DC' || viewer='Skim'
-
-# Get actual .bib file or resource; needed for pandoc
-# The -n flag prevents printing every single line after running command
-read -r -a bibnames < <(get_bibnames "$filename")
-bibliography=false
-if [ "${#bibnames[@]}" -gt 0 ]; then
-  bibliography=true
-  bibnames=("${bibnames[@]%.bib}")  # remove extension, if present
-  bibfiles=("${bibnames[@]/%/.bib}")  # add back extension
-  echo "Bibliographies: ${bibfiles[*]}"
-fi
-
-# Automatically choose from xelatex and pdflatex; just need xelatex for
-# tex files that load fontspec, or use modules that themselves load fontspec
-nocomments "$filename" | grep -E 'fontspec|xltxtra' &>/dev/null \
-  && latex=xelatex
-
-# Use Lua if beamer present, will be faster
-# Also required for beamerposter, not sure about other cases
-nocomments "$filename" | grep 'documentclass.*{beamer}' &>/dev/null \
-  && latex=lualatex
-
-#------------------------------------------------------------------------------#
-# Move required packages and sty files from custom folder
-#------------------------------------------------------------------------------#
 # Find LaTeX files with kpsewhich, and if not present, copy from custom folder
-# Important to call kpsewhich with a list of files rather than calling it
-# successively; otherwise can be extremely slow, for some strange reason
-# echo "$descrip (${#names[@]}): ${names[@]}"
+# Must call kpsewhich with list of files; otherwise extremely slow
 texfind() {
   local ext descrip texlive copied names files
   ext=$1
@@ -235,14 +179,36 @@ texfind() {
   [ ${#copied[@]} -gt 0 ] && echo "$descrip copied from ~/${src##*/}: ${copied[*]}"
 }
 
+# Change from Skim to Adobe if GIF/animation in file
+nocomments "$filename" | grep '\\animategraphics' &>/dev/null \
+  && viewer='Adobe Acrobat Reader DC' || viewer='Skim'
+
+# Choose xelatex for tex files that load fontspec, or use modules that load fontspec
+nocomments "$filename" | grep -E 'fontspec|xltxtra' &>/dev/null \
+  && latex=xelatex
+
+# Choose Lua if beamer present, for speed (required for beamerposter)
+nocomments "$filename" | grep 'documentclass.*{beamer}' &>/dev/null \
+  && latex=lualatex
+
+# Get actual .bib file or resource; needed for pandoc
+# The -n flag prevents printing every single line after running command
+read -r -a bibnames < <(bibnames "$filename")
+bibliography=false
+if [ "${#bibnames[@]}" -gt 0 ]; then
+  bibliography=true
+  bibnames=("${bibnames[@]%.bib}")  # remove extension, if present
+  bibfiles=("${bibnames[@]/%/.bib}")  # add back extension
+  echo "Bibliographies: ${bibfiles[*]}"
+fi
+
 # First the custom .cls files
 read -r -a classes < <(nocomments "$filename" | grep '\\documentclass' | inbraces)
 [ ${#classes[@]} -eq 1 ] || raise "Ambiguous document class: '${classes[*]}'."
 class=${classes[0]}
 texfind cls "Class file" "$class"
 
-# As above but for the RequirePackage lines in the .cls file. Note this is
-# *incomplete*, as it cannot handle multi-line requirepackage commands.
+# As above but for the RequirePackage lines in the .cls file.
 # * Must delete stuff inside [] to account for possible nested {} argument
 #   found there; see the regex from here: https://unix.stackexchange.com/a/14840/112647
 # * Then we ignore lines with stray brackets; see https://stackoverflow.com/a/17050349/4970632
@@ -251,31 +217,68 @@ texfind cls "Class file" "$class"
 #   do by deleting lines containing a '#' character
 classfile=$(kpsewhich "$class.cls")
 [ -n "$classfile" ] || raise "You should never see this error, already checked for $class.cls existence, check code."
-read -r -a required < <(get_packages "$classfile")
+read -r -a required < <(packages "$classfile")
 texfind sty 'Class sty dependenc(ies)' "${required[@]}"
 
 # As above but for .sty files
 # Will also detect \usepackage{package1,package2} lists
-read -r -a packages < <(get_packages "$filename")
+read -r -a packages < <(packages "$filename")
 texfind sty 'Preamble sty file(s)' "${packages[@]}"
 
 # As above but for .bst file
-read -r -a bibstyle < <(get_bibstyles "$filename")
+read -r -a bibstyle < <(bibstyles "$filename")
 texfind bst 'Bibstyle file(s)' "${bibstyle[@]}"
 
 # Next beamer theme
-read -r -a themes < <(get_themes "$filename" 'theme')
+read -r -a themes < <(themes "$filename" 'theme')
 texfind sty 'Theme file(s)' "${themes[@]}"
 
 # And beamer color theme
-read -r -a colorthemes < <(get_themes "$filename" 'colortheme')
+read -r -a colorthemes < <(themes "$filename" 'colortheme')
 texfind sty 'Color theme file(s)' "${colorthemes[@]}"
 
 #------------------------------------------------------------------------------#
-# Compile the document(s) and display them
-# If bibliography present, compile once to get .aux file, run bibtex
-# on the auxfile, then run *twice* for glossary/equation references.
+# Compile the document(s) as many times as necessary and display them
 #------------------------------------------------------------------------------#
+# Run and filter output of latex comand
+# First arg is 1 or 0, indicates whether to always print message
+errfilt() {  # show only error messages separated by blank lines
+  $sedcmd -E '/^! |^l\./!d' | $sedcmd $'s/^! /\\\n/g'
+}
+errcat() {  # ignore messages about packages and remove empty lines
+  errfilt | grep -A2 '^$' | $sedcmd '/^$/d'
+}
+run() {
+  local res cmd
+  res=$("${@:2}" 2>&1)
+  # shellcheck disable=2181
+  if [ $? -ne 0 ] || [ "$1" -eq 1 ]; then
+    if $raw || [[ "${*:2}" =~ "bibtex" ]]; then
+      cmd=cat
+    else
+      cmd=errcat
+    fi
+    echo "$res" | $cmd | $sedcmd 's/^/  /'
+  fi
+}
+
+# Open the file(s) on specific page if possible
+# See: https://sourceforge.net/p/skim-app/wiki/TeX_and_PDF_Synchronization/#setting-up-vim
+# See also: https://stackoverflow.com/a/2058251/4970632
+open() {
+  ! $macos && echoerr 'Warning: Can only automatically open PDF files on macOS.' && return 1
+  local appname fileview
+  appname="$1"
+  fileview="$2"
+  if [ "$appname" == 'Skim' ] && [ -n "$line" ]; then
+    echo "Opening \"$fileview\" and jumping to line $line (source $filename)"
+    /Applications/Skim.app/Contents/SharedSupport/displayline -r "$line" "$fileview" "$filename"
+  else
+    echo "Opening \"$fileview\""
+    command open -a "$appname" "$fileview" &
+  fi
+}
+
 # Set the flags for compiling
 # * Nonstop mode means no interaction, but keep trying to compile if encounter errors.
 # * The shellescape option helps use eps figures that aren't in actual .tex directory.
@@ -290,20 +293,22 @@ case $latex in
 esac
 echo 'Running with '"${stylized}..."
 
-# Aux file
+# Standard run
 # WARNING: To keep exit code from pdflatex, pipe later on
 # run 0 $latex $flags "$filestem"
-echo 'Generating aux file...'  # maybe just need to generate glossary!
-run 0 "$latex" -draftmode "${flags[@]}" "$filestem"
-if "$bibliography"; then
-  echo 'Generating bibliography...'
-  run 0 "$bibtex" "$filestem"
-  echo 'Incorporating bbl file...'
+if ! $texdiff && ! $tex2docx; then
+  echo 'Generating aux file...'  # maybe just need to generate glossary!
   run 0 "$latex" -draftmode "${flags[@]}" "$filestem"
+  if "$bibliography"; then
+    echo 'Generating bibliography...'
+    run 0 "$bibtex" "$filestem"
+    echo 'Incorporating bbl file...'
+    run 0 "$latex" -draftmode "${flags[@]}" "$filestem"
+  fi
+  echo 'Generating PDF...'
+  run 1 "$latex" "${flags[@]}" "$filestem"
+  [ -r "$filestem.pdf" ] || raise "PDF not produced."
 fi
-echo 'Generating PDF...'
-run 1 "$latex" "${flags[@]}" "$filestem"
-[ -r "$filestem.pdf" ] || raise "PDF not produced."
 
 # Difference-LaTeX file, with track changes
 if $texdiff; then
@@ -379,22 +384,6 @@ if $tex2docx; then
   fi
 fi
 
-# Open the file(s) on specific page if possible
-# See: https://sourceforge.net/p/skim-app/wiki/TeX_and_PDF_Synchronization/#setting-up-vim
-# See also: https://stackoverflow.com/a/2058251/4970632
-open() {
-  ! $macos && echoerr 'Warning: Can only automatically open PDF files on macOS.' && return 1
-  local appname fileview
-  appname="$1"
-  fileview="$2"
-  if [ "$appname" == 'Skim' ] && [ -n "$line" ]; then
-    echo "Opening \"$fileview\" and jumping to line $line (source $filename)"
-    /Applications/Skim.app/Contents/SharedSupport/displayline -r "$line" "$fileview" "$filename"
-  else
-    echo "Opening \"$fileview\""
-    command open -a "$appname" "$fileview" &
-  fi
-}
 ! $texdiff && ! $tex2docx && open "$viewer" "$filestem.pdf"  # too jumpy if open everything!
 $texdiff && open "$viewer" "$diffstem.pdf"
 $tex2docx && open "Pages" "$filestem.docx"
