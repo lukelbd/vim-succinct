@@ -131,11 +131,18 @@ endfunction
 " See: https://github.com/msprev/fzf-bibtex
 "-----------------------------------------------------------------------------"
 " The gsed executable
-let s:gsed = '/usr/local/bin/gsed'  " Todo: defer to 'gsed' alias?
-if !executable(s:gsed)
-  echoerr 'GNU sed not available. Please install it with brew install gnu-sed.'
-  finish
-endif
+function! s:sed_cmd() abort
+  if has('macunix')
+    let gsed = '/usr/local/bin/gsed'  " Todo: defer to 'gsed' alias?
+  elseif has('unix')
+    let gsed = '/usr/bin/sed'
+  else
+    let gsed = ''
+  endif
+  if empty(gsed) || !executable(gsed)
+    throw 'GNU sed not available.'
+  endif
+endfunction
 
 " Basic function called every time
 function! s:cite_source() abort
@@ -145,7 +152,7 @@ function! s:cite_source() abort
   let biblist = []
   let bibfiles = system(
     \ 'grep -o ''^[^%]*'' ' . shellescape(@%) . ' | '
-    \ . s:gsed . ' -n ''s@^\s*\\\(bibliography\|nobibliography\|addbibresource\){\(.*\)}@\2@p'''
+    \ . s:sed_cmd() . ' -n ''s@^\s*\\\(bibliography\|nobibliography\|addbibresource\){\(.*\)}@\2@p'''
     \ )
 
   " Check that files all exist
@@ -208,7 +215,7 @@ function! s:graphic_source() abort
   " Not high priority because latexmk rarely accounts for this anyway
   let paths = system(
     \ 'grep -o ''^[^%]*'' ' . shellescape(@%) . ' | '
-    \ . s:gsed . ' -n ''s@\\graphicspath{\(.*\)}@\1@p'''
+    \ . s:sed_cmd() . ' -n ''s@\\graphicspath{\(.*\)}@\1@p'''
     \ )
   let paths = substitute(paths, "\n", '', 'g')  " in case multiple \graphicspath calls, even though this is illegal
   if !empty(paths) && (paths[0] !=# '{' || paths[len(paths) - 1] !=# '}')
