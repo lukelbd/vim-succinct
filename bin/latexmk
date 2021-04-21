@@ -106,7 +106,7 @@ else
 fi
 
 # Get paths
-src=$HOME/latex  # location of LaTeX style files
+srcs=($HOME/latex $HOME/templates)  # location of LaTeX style files
 echo "Filename: $filename"
 if [[ "$filename" =~ / ]]; then  # i.e. contains directory specifier
   directory=${filename%/*}  # trim shortest pattern matching <stuff>/*, keep "stuff"
@@ -164,19 +164,23 @@ texfind() {
   read -r -a files < <(kpsewhich "${names[@]/%/.${ext}}" | xargs)
   for name in "${names[@]}"; do
     file=${name}.${ext}  # file we want
-    # TeX distribution sees file, and it's not in current directory
-    if [[ "${files[*]}" =~ "$file" ]] && ! [[ " ${files[*]}" =~ " ./${file}" ]]; then
+    if [[ " ${files[*]##*/} " =~ " $file " ]] && ! [[ " ${files[*]} " =~ " ./$file " ]]; then
+      # TeX distribution sees file, and it's not in current directory
       texlive+=("$file")
-    # Get file from custom templates folder, copy over
-    elif [ -r "${src}/${file}" ]; then
-      copied+=("$file")
-      cp "${src}/${file}" ./
     else
-      raise "${file} not found"
+      # Find file in custom templates folder, copy over
+      for src in "${srcs[@]}"; do
+        if [ -r "${src}/${file}" ]; then
+          copied+=("$file")
+          cp "${src}/${file}" ./ 2>/dev/null  # ignore 'same file' error
+          break
+        fi
+      done
+      [[ " ${copied[*]} " =~ " $file " ]] || raise "${file} not found"
     fi
   done
   [ ${#texlive[@]} -gt 0 ] && echo "$descrip found in TeXLive: ${texlive[*]}"
-  [ ${#copied[@]} -gt 0 ] && echo "$descrip copied from ~/${src##*/}: ${copied[*]}"
+  [ ${#copied[@]} -gt 0 ] && echo "$descrip copied from ${srcs[*]##*/}: ${copied[*]}"
 }
 
 # Change from Skim to Adobe if GIF/animation in file
