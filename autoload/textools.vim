@@ -116,10 +116,11 @@ function! s:label_source() abort
 endfunction
 
 " Return label text
+" Note: To get multiple items hit <Shift><Tab>
 function! s:label_select() abort
   let items = fzf#run({
     \ 'source': s:label_source(),
-    \ 'options': '--prompt="Label> "',
+    \ 'options': '--multi --prompt="Label> "',
     \ 'down': '~50%',
     \ })
   let items = map(items, 'substitute(v:val, " (.*)$", "", "")')
@@ -142,6 +143,7 @@ function! s:sed_cmd() abort
   if empty(gsed) || !executable(gsed)
     throw 'GNU sed not available.'
   endif
+  return gsed
 endfunction
 
 " Basic function called every time
@@ -179,6 +181,7 @@ function! s:cite_source() abort
   if len(biblist) == 0
     echoerr 'Bib files were not defined or do not exist.'
   elseif ! executable('bibtex-ls')
+    " Note: See https://github.com/msprev/fzf-bibtex
     echoerr 'Command bibtex-ls not found.'
   else
     let $FZF_BIBTEX_SOURCES = join(biblist, ':')
@@ -189,16 +192,19 @@ endfunction
 
 " Return citation text
 " We can them use this function as an insert mode <expr> mapping
-" Note: To get multiple items just hit <Tab>
+" Note: To get multiple items hit <Shift><Tab>
 function! s:cite_select() abort
   let items = fzf#run({
     \ 'source': s:cite_source(),
-    \ 'options': '--prompt="Source> "',
+    \ 'options': '--multi --prompt="Source> "',
     \ 'down': '~50%',
     \ })
   let result = ''
-  if executable('bibtex-cite')
-    let result = system('bibtex-cite ', items)
+  if ! executable('bibtex-cite')
+  " Note: See https://github.com/msprev/fzf-bibtex
+    echoerr 'Command bibtex-cite not found.'
+  else
+    let result = system("bibtex-cite -prefix='@' -postfix='' -separator=','", items)
     let result = substitute(result, '@', '', 'g')
   endif
   return result
