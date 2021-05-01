@@ -23,7 +23,7 @@ function! textools#latex_background(...) abort
     silent! exe winnr('#') . 'wincmd w'
   else
     silent! exe bufwinnr(logfile) . 'wincmd w'
-    silent! 1,$d
+    silent! 1,$d _
     silent! exe winnr('#') . 'wincmd w'
   endif
 
