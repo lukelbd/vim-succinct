@@ -335,7 +335,7 @@ if $texdiff; then
     prevname=${prevnames[index - 1]}
     echo "Running latexdiff on ${filename##*/} minus ${prevname##*/}"
     [ -e "$diffname" ] && rm "$diffname"
-    latexdiff "$prevname" "$filename" > "$diffname"
+    latexdiff --append-context2cmd=abstract "$prevname" "$filename" > "$diffname"
     # Finish the the pdflatex calls necessary to generate tables of contents, bibligrapyy, etc.
     if ! [ -r $diffname ]; then
       echoerr 'Warning: Failed to produce difference file.'
