@@ -89,15 +89,22 @@ endif
 " * \xi is the weird curly one, pronounced 'zai'
 " * \chi looks like an x, pronounced 'kai'
 " * the 'u' used for {-} and {+} is for 'unary'
+" Rejected maps:
+" \ "'": textools#make_snippet(textools#graphic_select(), '\includegraphics{', '}'),
+" \ '"': textools#make_snippet(textools#graphic_select(), '\makebox[\textwidth][c]{\includegraphics{', '}}'),
+" \ '/': textools#make_snippet(textools#label_select(), '\cref{', '}'),
+" \ '?': textools#make_snippet(textools#label_select(), '\ref{', '}'),
+" \ ':': textools#make_snippet(textools#cite_select(), '\citet{', '}'),
+" \ ';': textools#make_snippet(textools#cite_select(), '\citep{', '}'),
 let s:textools_snippet_map = {
-  \ "'": textools#make_snippet(textools#graphic_select(), '\includegraphics{', '}'),
-  \ '"': textools#make_snippet(textools#graphic_select(), '\makebox[\textwidth][c]{\includegraphics{', '}}'),
+  \ "\<CR>": " \\textCR\r",
+  \ "'": textools#graphic_select(),
   \ '*': '\item',
   \ '+': textools#ensure_math('\sum'),
   \ ',': textools#format_units(textools#user_input('Units'), ''),
+  \ '-': '\pause',
   \ '.': textools#ensure_math('\cdot'),
-  \ '/': textools#make_snippet(textools#label_select(), '\cref{', '}'),
-  \ '?': textools#make_snippet(textools#label_select(), '\ref{', '}'),
+  \ '/': textools#label_select(),
   \ '0': '\Huge',
   \ '1': '\tiny',
   \ '2': '\scriptsize',
@@ -108,12 +115,10 @@ let s:textools_snippet_map = {
   \ '7': '\Large',
   \ '8': '\LARGE',
   \ '9': '\huge',
-  \ ':': textools#make_snippet(textools#cite_select(), '\citet{', '}'),
-  \ ';': textools#make_snippet(textools#cite_select(), '\citep{', '}'),
+  \ ';': textools#cite_select(),
   \ '<': textools#ensure_math('\Longrightarrow'),
   \ '=': textools#ensure_math('\equiv'),
   \ '>': textools#ensure_math('\Longrightarrow'),
-  \ '-': '\pause',
   \ 'C': textools#ensure_math('\Xi'),
   \ 'D': textools#ensure_math('\Delta'),
   \ 'E': textools#ensure_math(textools#user_input('Exponent'), '\times 10^{', '}'),
@@ -122,7 +127,6 @@ let s:textools_snippet_map = {
   \ 'I': textools#ensure_math('\iint'),
   \ 'K': textools#ensure_math('\kappa'),
   \ 'L': textools#ensure_math('\Lambda'),
-  \ 'M': " \\textCR\r",
   \ 'P': textools#ensure_math('\Pi'),
   \ 'Q': textools#ensure_math('\Theta'),
   \ 'S': textools#ensure_math('\Sigma'),
@@ -169,9 +173,8 @@ for [s:key, s:snippet] in items(s:textools_snippet_map)
 endfor
 
 " Surround tools
-" * rejected maps:
+" Rejected maps:
 " \ ':': ['\newpage\hspace{0pt}\vfill', "\n".'\vfill\hspace{0pt}\newpage'],
-" \ 'F': ['\begin{subfigure}{.5\textwidth}'."\n".'\centering'."\n".'\includegraphics{', "}\n".'\end{subfigure}'],
 " \ 'y': ['\begin{python}',       "\n".'\end{python}'],
 " \ 'v': ['\begin{verbatim}',     "\n".'\end{verbatim}'],
 " \ 'a': ['<',                                '>'],
@@ -217,6 +220,7 @@ let s:textools_surround_map = {
   \ 'L': "\\href{\1Link: \1}{\r}",
   \ 'M': "\\mathbb{\r}",
   \ 'O': "\\mathbf{\r}",
+  \ 'Q': "\\citet{\r}",
   \ 'S': "\\begin{frame}[fragile]\r\n\\end{frame}",
   \ 'T': "\\begin{\1\\begin{\1}\r\n\\end{\1\1}",
   \ 'V': "\\verb$\r$",
@@ -236,6 +240,7 @@ let s:textools_surround_map = {
   \ 'd': "\\dot{\r}",
   \ 'e': "\\emph{\r}",
   \ 'f': "\\begin{figure}\n\\centering\n\r\n\\end{figure}",
+  \ 'g': "\\includegraphics{\r}",
   \ 'h': "\\hat{\r}",
   \ 'i': "\\textit{\r}",
   \ 'j': "_{\r}",
@@ -245,9 +250,10 @@ let s:textools_surround_map = {
   \ 'n': "\\pdfcomment{%\n\r\n}",
   \ 'o': "\\textbf{\r}",
   \ 'p': "\\begin{minipage}{\\linewidth}\r\n\\end{minipage}",
+  \ 'q': "\\citep{\r}",
   \ 'r': "[\r]",
   \ 's': "\\begin{frame}\r\n\\end{frame}",
-  \ 't': "\\\1Command: \1{\r}",
+  \ 't': "\\\1\\\1{\r}",
   \ 'u': "\\underline{\r}",
   \ 'v': "\\vec{\r}",
   \ 'w': "{\\usebackgroundtemplate{}\begin{frame}\r\n\\end{frame}}",
