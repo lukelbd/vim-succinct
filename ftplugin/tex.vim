@@ -25,13 +25,13 @@ let b:delimitMate_matchpairs = "(:),{:},[:],`:'"
 let s:tex_textobjs_dict = {
   \   'environment': {
   \     'pattern': ['\\begin{[^}]\+}.*\n', '\\end{[^}]\+}'],
-  \     'select-a': '<buffer> aT',
-  \     'select-i': '<buffer> iT',
+  \     'select-a': '<buffer> a,',
+  \     'select-i': '<buffer> i,',
   \   },
   \  'command': {
   \     'pattern': ['\\\S\+{', '}'],
-  \     'select-a': '<buffer> at',
-  \     'select-i': '<buffer> it',
+  \     'select-a': '<buffer> a.',
+  \     'select-i': '<buffer> i.',
   \   },
   \  'paren-math': {
   \     'pattern': ['\\left(', '\\right)'],
@@ -172,7 +172,8 @@ for [s:key, s:snippet] in items(s:textools_snippet_map)
   let b:snippet_{char2nr(s:key)} = s:snippet
 endfor
 
-" Surround tools
+" Surround tools. Currently only overwrite 'r' and 'a' global bracket surrounds
+" the 'f', 'p', and 'A' surrounds, and the '(', '[', '{', and '<' surrounds
 " Rejected maps:
 " \ ':': ['\newpage\hspace{0pt}\vfill', "\n".'\vfill\hspace{0pt}\newpage'],
 " \ 'y': ['\begin{python}',       "\n".'\end{python}'],
@@ -191,10 +192,10 @@ let s:textools_surround_map = {
   \ '(': "\\left(\r\\right)",
   \ ')': "\\begin{pmatrix}\r\n\\end{pmatrix}",
   \ '*': "\\begin{itemize}\r\n\\end{itemize}",
-  \ ',': "\\begin{tabular}{\r}\n\\end{tabular}",
-  \ '.': "\\begin{table}\n\\centering\n\\begin{tabular}{\r}\n\\end{tabular}\n\\end{table}",
   \ '-': "\\overline{\r}",
   \ '/': "\\frac{\r}{}",
+  \ ',': "\\begin{\1\\begin{\1}\r\n\\end{\1\1}",
+  \ '.': "\\\1\\\1{\r}",
   \ '0': "\\tag{\r}",
   \ '1': "\\section{\r}",
   \ '2': "\\subsection{\r}",
@@ -220,11 +221,10 @@ let s:textools_surround_map = {
   \ 'L': "\\href{\1Link: \1}{\r}",
   \ 'M': "\\mathbb{\r}",
   \ 'O': "\\mathbf{\r}",
-  \ 'Q': "\\citet{\r}",
-  \ 'S': "\\begin{frame}[fragile]\r\n\\end{frame}",
-  \ 'T': "\\begin{\1\\begin{\1}\r\n\\end{\1\1}",
+  \ 'R': "\\citet{\r}",
+  \ 'S': "{\\usebackgroundtemplate{}\begin{frame}[]\r\n\\end{frame}}",
+  \ 'T': "\\begin{table}\n\\centering\r\n\\end{table}",
   \ 'V': "\\verb$\r$",
-  \ 'W': "\\begin{wrapfigure}{r}{0.5\\textwidth}\n\\centering\n\r\n\\end{wrapfigure}",
   \ 'X': "\\fbox{\\parbox{\\textwidth}{\r}}\\medskip",
   \ 'Y': "\\pyth$\r$",
   \ 'Z': "\\begin{columns}\r\n\\end{columns}",
@@ -235,8 +235,6 @@ let s:textools_surround_map = {
   \ '_': "\\cancelto{}{\r}",
   \ '`': "\\tilde{\r}",
   \ 'a': "\\caption{\r}",
-  \ 'b': "(\r)",
-  \ 'c': "{\r}",
   \ 'd': "\\dot{\r}",
   \ 'e': "\\emph{\r}",
   \ 'f': "\\begin{figure}\n\\centering\n\r\n\\end{figure}",
@@ -250,13 +248,12 @@ let s:textools_surround_map = {
   \ 'n': "\\pdfcomment{%\n\r\n}",
   \ 'o': "\\textbf{\r}",
   \ 'p': "\\begin{minipage}{\\linewidth}\r\n\\end{minipage}",
-  \ 'q': "\\citep{\r}",
-  \ 'r': "[\r]",
-  \ 's': "\\begin{frame}\r\n\\end{frame}",
-  \ 't': "\\\1\\\1{\r}",
+  \ 'r': "\\citep{\r}",
+  \ 's': "\\begin{frame}[]\r\n\\end{frame}",
+  \ 't': "\\begin{tabular}{\r}\n\\end{tabular}",
   \ 'u': "\\underline{\r}",
   \ 'v': "\\vec{\r}",
-  \ 'w': "{\\usebackgroundtemplate{}\begin{frame}\r\n\\end{frame}}",
+  \ 'w': "\\begin{wrapfigure}{r}{0.5\\textwidth}\n\\centering\n\r\n\\end{wrapfigure}",
   \ 'x': "\\boxed{\r}",
   \ 'y': "\\texttt{\r}",
   \ 'z': "\\begin{column}{0.5\\textwidth}\r\n\\end{column}",
