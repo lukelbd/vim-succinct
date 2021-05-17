@@ -131,25 +131,36 @@ inbraces() {  # get content inside braces
 # Search tex file for various dependencies
 packages() {  # show package names
   [ $# -eq 1 ] || raise "Incorrect usage of packages()."
-  nocomments "$1" | grep -E '\\RequirePackage|\\usepackage' \
-    | $sedcmd 's/\[[^][]*\]//g' | $sedcmd '/\[\|\]/d' \
-    | $sedcmd 's/AtEndOfClass{//g' | $sedcmd '/newcommand\|#/d' \
+  nocomments "$1" \
+    | grep -E '\\RequirePackage|\\usepackage' \
+    | $sedcmd 's/\[[^][]*\]//g' \
+    | $sedcmd 's/AtEndOfClass{//g' \
+    | $sedcmd '/\[\|\]\|newcommand\|#/d' \
     | inbraces | xargs
 }
 themes() {  # fintd \beamerthemeTHEME and \beamercolorthemeTHEME files
   [ $# -eq 2 ] || raise "Incorrect usage of themes()."
-  nocomments "$1" | grep '\\use'"$2" | inbraces \
-    | $sedcmd 's/^/beamer'"$2"'/' | xargs
+  nocomments "$1" \
+    | grep '\\use'"$2" \
+    | inbraces | $sedcmd 's/^/beamer'"$2"'/' | xargs
 }
 bibnames() {  # show bibliography files
   [ $# -eq 1 ] || raise "Incorrect usage of bibnames()."
+  # | $sedcmd -n 's/\\\(bibliography\|nobibliography\|addbibresource\){\(.*\)}/\2/p' \
   nocomments "$1" \
-    | $sedcmd -n 's/\\\(bibliography\|nobibliography\|addbibresource\){\(.*\)}/\2/p' \
-    | xargs
+    | grep -E '\\bibliography|\\nobibliography|\\addbibresource' \
+    | inbraces | xargs
 }
 bibstyles() {
   [ $# -eq 1 ] || raise "Incorrect usage of bibstyles()."
-  nocomments "$1" | grep '\\bibliographystyle' \
+  nocomments "$1" \
+    | grep '\\bibliographystyle' \
+    | inbraces | xargs
+}
+graphics() {
+  [ $# -eq 1 ] || raise "Incorrect usage of graphics()."
+  nocomments "$1" \
+    | grep '\\includegraphics' \
     | inbraces | xargs
 }
 
@@ -212,7 +223,7 @@ read -r -a classes < <(nocomments "$filename" | grep '\\documentclass' | inbrace
 class=${classes[0]}
 texfind cls "Class file" "$class"
 
-# As above but for the RequirePackage lines in the .cls file.
+# The RequirePackage lines in .cls file.
 # * Must delete stuff inside [] to account for possible nested {} argument
 #   found there; see the regex from here: https://unix.stackexchange.com/a/14840/112647
 # * Then we ignore lines with stray brackets; see https://stackoverflow.com/a/17050349/4970632
@@ -224,22 +235,30 @@ classfile=$(kpsewhich "$class.cls")
 read -r -a required < <(packages "$classfile")
 texfind sty 'Class sty dependenc(ies)' "${required[@]}"
 
-# As above but for .sty files
+# The usepackage lines
 # Will also detect \usepackage{package1,package2} lists
 read -r -a packages < <(packages "$filename")
 texfind sty 'Preamble sty file(s)' "${packages[@]}"
 
-# As above but for .bst file
+# The bibliography style(s)
 read -r -a bibstyle < <(bibstyles "$filename")
 texfind bst 'Bibstyle file(s)' "${bibstyle[@]}"
 
-# Next beamer theme
+# The beamer theme
 read -r -a themes < <(themes "$filename" 'theme')
 texfind sty 'Theme file(s)' "${themes[@]}"
 
-# And beamer color theme
+# The beamer font theme
+read -r -a fontthemes < <(themes "$filename" 'fonttheme')
+texfind sty 'Font theme file(s)' "${fontthemes[@]}"
+
+# The beamer color theme
 read -r -a colorthemes < <(themes "$filename" 'colortheme')
 texfind sty 'Color theme file(s)' "${colorthemes[@]}"
+
+# The graphics, e.g. logos? Too complicated, copy manually
+# read -r -a graphics < <(themes "$filename")
+# texfind sty 'Color theme file(s)' "${colorthemes[@]}"
 
 #------------------------------------------------------------------------------#
 # Compile the document(s) as many times as necessary and display them
