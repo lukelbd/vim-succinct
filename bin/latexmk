@@ -106,7 +106,7 @@ else
 fi
 
 # Get paths
-srcs=($HOME/latex $HOME/templates)  # location of LaTeX style files
+src=$HOME/templates  # location of LaTeX style files and templates
 echo "Filename: $filename"
 if [[ "$filename" =~ / ]]; then  # i.e. contains directory specifier
   directory=${filename%/*}  # trim shortest pattern matching <stuff>/*, keep "stuff"
@@ -150,13 +150,11 @@ texfind() {  # find files with kpsewhich and copy from folders it not present
   for name in "${names[@]}"; do
     name=${name}.${ext}  # file we want
     [[ " ${texfiles[*]##*/} " =~ " $name " ]] && continue
-    for src in "${srcs[@]}"; do
-      file="$src/$name"
-      if [ -r "$file" ]; then
-        cp "$file" ./ 2>/dev/null  # ignore 'same file' error e.g. when inside templates directory
-        [[ " ${localfiles[*]##*/} " =~ " ${file##*/} " ]] || localfiles+=("$file")
-      fi
-    done
+    file="$src/$name"
+    if [ -r "$file" ]; then
+      cp "$file" ./ 2>/dev/null  # ignore 'same file' error e.g. when inside templates directory
+      [[ " ${localfiles[*]##*/} " =~ " ${file##*/} " ]] || localfiles+=("$file")
+    fi
     if [[ " ${files[*]} " =~ " ./$name " ]]; then
       localfiles+=("./$name")
     elif ! [[ " ${localfiles[*]##*/} " =~ " ${file##*/} " ]]; then
