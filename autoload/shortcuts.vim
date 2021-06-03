@@ -4,8 +4,8 @@
 " Return list of templates
 function! shortcuts#template_source(ext) abort
   let paths = []
-  if exists('g:textools_templates_path')
-    let paths = split(globpath(g:textools_templates_path, '*.' . a:ext), "\n")
+  if exists('g:shortcuts_templates_path')
+    let paths = split(globpath(g:shortcuts_templates_path, '*.' . a:ext), "\n")
     let paths = map(paths, 'fnamemodify(v:val, ":t")')
   endif
   if !empty(paths)
@@ -16,8 +16,8 @@ endfunction
 
 " Load template contents
 function! shortcuts#template_read(file)
-  if exists('g:textools_templates_path') && !empty(a:file)
-    execute '0r ' . g:textools_templates_path . '/' . a:file
+  if exists('g:shortcuts_templates_path') && !empty(a:file)
+    execute '0r ' . g:shortcuts_templates_path . '/' . a:file
   endif
 endfunction
 

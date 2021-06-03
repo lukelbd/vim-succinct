@@ -12,7 +12,7 @@ and file templates. Includes the following features:
 * Changing and deleting custom [vim-surround](https://github.com/tpope/vim-surround)
   delimiters with operations like `cs-` and `ds-`. Natively, vim-surround does
   not support this -- it only supports *inserting* custom delimiters with
-  commands like `yss-` and `ysS-`.
+  operations like `yss-` and `ysS-`.
 * Adding custom snippets with `shortcuts#add_snippets`. Implementation is similar
   to the internal [vim-surround](https://github.com/tpope/vim-surround) implementation;
   `<C-d>-` is used to insert snippets, similar to `<C-s>-` for surround-delimiters.
