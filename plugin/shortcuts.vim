@@ -87,34 +87,9 @@ function! s:popup_close()
 endfunction
 
 "-----------------------------------------------------------------------------"
-" Define commands and mappings
+" Default commands, mappings, delims, and text objects
 "-----------------------------------------------------------------------------"
-" Apply plugin mappings
-" Note: Lowercase Isurround plug inserts delims without newlines. Instead of
-" using ISurround we define special begin end delims with newlines baked in.
-inoremap <Plug>ResetUndo <C-g>u
-inoremap <silent> <Plug>IsurroundInsert <C-o>:call shortcuts#insert_surround()<CR>
-inoremap <silent> <Plug>IsnippetInsert <C-o>:call shortcuts#insert_snippet()<CR>
-inoremap <silent> <expr> <Plug>Isnippet shortcuts#insert_snippet()
-inoremap <silent> <expr> <Plug>PrevDelim <sid>popup_close() . <sid>prev_delim()
-inoremap <silent> <expr> <Plug>NextDelim <sid>popup_close() . <sid>next_delim()
-
-" Apply custom prefixes
-" Todo: Support surround-like '\1' notation for user input-dependent snippets...
-" ...or not. While current method prohibits snippets with function substrings, it
-" permits custom user-input functions that call FZF instead of input().
-exe 'vmap ' . g:shortcuts_surround_prefix   . ' <Plug>VSurround'
-exe 'imap ' . g:shortcuts_surround_prefix   . ' <Plug>ResetUndo<Plug>Isurround'
-exe 'imap ' . g:shortcuts_snippet_prefix . ' <Plug>ResetUndo<Plug>Isnippet'
-exe 'imap ' . repeat(g:shortcuts_surround_prefix, 2) . ' <Plug>IsurroundInsert'
-exe 'imap ' . repeat(g:shortcuts_snippet_prefix, 2) . ' <Plug>IsnippetInsert'
-exe 'imap ' . g:shortcuts_prevdelim_map . ' <Plug>PrevDelim'
-exe 'imap ' . g:shortcuts_nextdelim_map . ' <Plug>NextDelim'
-nnoremap <silent> ds :call shortcuts#delete_delims()<CR>
-nnoremap <silent> cs :call shortcuts#change_delims()<CR>
-
-" Add autocommands
-" Todo: Support additional filetypes!
+" Template selection
 " Note: Arguments passed to function() partial are passed to underlying func first.
 augroup templates
   au!
@@ -125,3 +100,112 @@ augroup templates
     \ 'sink': function('shortcuts#template_read'),
     \ }) | endif
 augroup END
+
+" Apply plugin mappings
+" Note: Lowercase Isurround plug inserts delims without newlines. Instead of
+" using ISurround we define special begin end delims with newlines baked in.
+inoremap <Plug>ResetUndo <C-g>u
+inoremap <silent> <Plug>IsurroundPick <C-o>:call shortcuts#insert_surround()<CR>
+inoremap <silent> <Plug>IsnippetPick <C-o>:call shortcuts#insert_snippet()<CR>
+inoremap <silent> <expr> <Plug>Isnippet shortcuts#insert_snippet()
+inoremap <silent> <expr> <Plug>PrevDelim <sid>popup_close() . <sid>prev_delim()
+inoremap <silent> <expr> <Plug>NextDelim <sid>popup_close() . <sid>next_delim()
+
+" Apply custom prefixes
+exe 'vmap ' . g:shortcuts_surround_prefix   . ' <Plug>VSurround'
+exe 'imap ' . g:shortcuts_surround_prefix   . ' <Plug>ResetUndo<Plug>Isurround'
+exe 'imap ' . g:shortcuts_snippet_prefix . ' <Plug>ResetUndo<Plug>Isnippet'
+exe 'imap ' . repeat(g:shortcuts_surround_prefix, 2) . ' <Plug>IsurroundPick'
+exe 'imap ' . repeat(g:shortcuts_snippet_prefix, 2) . ' <Plug>IsnippetPick'
+exe 'imap ' . g:shortcuts_prevdelim_map . ' <Plug>PrevDelim'
+exe 'imap ' . g:shortcuts_nextdelim_map . ' <Plug>NextDelim'
+nnoremap <silent> ds :call shortcuts#delete_delims()<CR>
+nnoremap <silent> cs :call shortcuts#change_delims()<CR>
+
+" Define *global* surround mappings
+" Todo: Sync with
+let s:global_surround = {
+  \ "'": "'\r'",
+  \ '"': "\"\r\"",
+  \ 'q': "‘\r’",
+  \ 'Q': "“\r”",
+  \ 'b': "(\r)",
+  \ 'c': "{\r}",
+  \ 'B': "{\r}",
+  \ 'r': "[\r]",
+  \ 'a': "<\r>",
+  \ '(': "(\r)",
+  \ '{': "{\r}",
+  \ '[': "[\r]",
+  \ '<': "<\r>",
+  \ '\': "\\\"\r\\\"",
+  \ 'p': "print(\r)",
+  \ 'f': "\1function: \1(\r)",
+  \ 'A': "\1array: \1[\r]",
+  \ "\t": " \r ",
+  \ '': "\n\r\n",
+\ }
+for [s:binding, s:pair] in items(s:global_surround)
+  let g:surround_{char2nr(s:binding)} = s:pair
+endfor
+
+" Define custom text objects
+" Todo: Auto-define ] and [ navigation of text objects and delimiters?
+if exists('*textobj#user#plugin')
+  let s:universal_textobjs_map = {
+    \   'line': {
+    \     'sfile': expand('<sfile>:p'),
+    \     'select-a-function': 'shortcuts#current_line_a',
+    \     'select-a': 'al',
+    \     'select-i-function': 'shortcuts#current_line_i',
+    \     'select-i': 'il',
+    \   },
+    \   'blanklines': {
+    \     'sfile': expand('<sfile>:p'),
+    \     'select-a-function': 'shortcuts#blank_lines',
+    \     'select-a': 'a<Space>',
+    \     'select-i-function': 'shortcuts#blank_lines',
+    \     'select-i': 'i<Space>',
+    \   },
+    \   'nonblanklines': {
+    \     'sfile': expand('<sfile>:p'),
+    \     'select-a-function': 'shortcuts#nonblank_lines',
+    \     'select-a': 'aP',
+    \     'select-i-function': 'shortcuts#nonblank_lines',
+    \     'select-i': 'iP',
+    \   },
+    \   'uncommented': {
+    \     'sfile': expand('<sfile>:p'),
+    \     'select-a-function': 'shortcuts#uncommented_lines',
+    \     'select-i-function': 'shortcuts#uncommented_lines',
+    \     'select-a': 'a<CR>',
+    \     'select-i': 'i<CR>',
+    \   },
+    \   'function': {
+    \     'pattern': ['\<\K\k*(', ')'],
+    \     'select-a': 'af',
+    \     'select-i': 'if',
+    \   },
+    \   'method': {
+    \     'pattern': ['\_[^A-Za-z_.]\zs\h[0-9A-Za-z_.]*(', ')'],
+    \     'select-a': 'am',
+    \     'select-i': 'im',
+    \   },
+    \   'array': {
+    \     'pattern': ['\<\K\k*\[', '\]'],
+    \     'select-a': 'aA',
+    \     'select-i': 'iA',
+    \   },
+    \  'curly': {
+    \     'pattern': ['‘', '’'],
+    \     'select-a': 'aq',
+    \     'select-i': 'iq',
+    \   },
+    \  'curly-double': {
+    \     'pattern': ['“', '”'],
+    \     'select-a': 'aQ',
+    \     'select-i': 'iQ',
+    \   },
+    \ }
+  call textobj#user#plugin('universal', s:universal_textobjs_map)
+endif
