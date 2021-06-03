@@ -1,66 +1,33 @@
-TeX tools
-=========
+Vim shortcuts
+=============
 
-This is a collection of custom tools and plugin enhancements for working with LaTeX
-files in vim, reproducing most of [vimtex](https://github.com/lervag/vimtex)'s
-features but with a different, minimal flavor.
+A set of utilities for efficiently working with delimiters, text objects, text snippets,
+and file templates. Includes the following features:
 
-* Includes a simplified [latexmk](latexmk) shell script compared to the popular
-  [PERL script of the same name](https://mg.readthedocs.io/latexmk.html),
-  and permits asynchronous typesetting with this script. See below for details.
-* Integrates with the
-  [vim-text-obj](https://github.com/kana/vim-textobj-user)
-  and [vim-surround](https://github.com/tpope/vim-surround) plugins
-  by adding LaTeX-specific delimiters and text objects
-  that make editing LaTeX documents a breeze.
-* Permits inserting citation labels from `.bib` files added with
-  `\bibliography` and `\addbibresource` using fuzzy name selection powered by
-  [fzf-bibtex](https://github.com/msprev/fzf-bibtex).
-* Permits adding figures inside the current directory and `\graphicspath` directories
-  using fuzzy name selection powered by [fzf](https://github.com/junegunn/fzf).
-* Permits loading arbitrary file templates stored in `g:textools_templates_path`
-  (defaults to `~/templates`) when creating new files files using fuzzy name
-  selection powered by [fzf](https://github.com/junegunn/fzf).
+* Adding custom delimiter keys with `shortcuts#add_delims`. This
+  simultaneously defines [vim-surround](https://github.com/tpope/vim-surround)
+  delimiters for operations like `yss-` and `<C-s>-`, and [vim-textobj](https://github.com/kana/vim-textobj-user)
+  text objects for operations like `ca-`, `ci-`, `da-`, `di-`.
+  Delimiters can include prompts requiring user input.
+* Changing and deleting custom [vim-surround](https://github.com/tpope/vim-surround)
+  delimiters with operations like `cs-` and `ds-`. Natively, vim-surround does
+  not support this -- it only supports *inserting* custom delimiters with
+  commands like `yss-` and `ysS-`.
+* Adding custom snippets with `shortcuts#add_snippets`. Implementation is similar
+  to the internal [vim-surround](https://github.com/tpope/vim-surround) implementation;
+  `<C-d>-` is used to insert snippets, similar to `<C-s>-` for surround-delimiters.
+  Snippets can be function handles that prompt for user input and return strings.
+* Displaying the custom snippets and surround-delimiters or fuzzy-search selecting
+  them using [fzf](https://github.com/junegunn/fzf). The fuzzy search
+  is invoked using `<C-d><C-d>` or `<C-s><C-s>`.
+* Loading arbitrary file templates stored in `g:shortcuts_templates_path`
+  using [fzf](https://github.com/junegunn/fzf) fuzzy-search selection. The fuzzy
+  search is invoked when creating a new file and there are files in the templates
+  folder with the same extension.
+
 
 Documentation
 =============
-
-Latexmk
--------
-
-The `latexmk` script included with this package typesets the document and opens the
-file in the [Skim PDF viewer](https://en.wikipedia.org/wiki/Skim_(software)).
-This script has the following features:
-
-* Deletes *every* extra file generated during typesetting, except
-  for the `.bbl` and `.pdf` files.
-* Automatically figures out the number of times the typesetting command must be called,
-  like the original `latexmk`.
-* Automatically figures out which typesetting engine to use based on the packages
-  imported (i.e. `pdflatex`, `xelatex`, etc.).
-* Automatically copies over custom user style and theme files from a
-  `~/latex` folder. This helps keep such files in a central location.
-* Optionally typeset the *changes* relative to the most recent version of your file
-  using `texdiff` (the `--diff` flag). This only works if the current file and another
-  file in the same folder ends with the date string `YYYY-MM.tex` or `YYYY-MM-DD.tex`.
-* Optionally convert the final document to `.docx` using [pandoc](https://pandoc.org)
-  (the `--word` flag). This is ideal for communication with collaborators that
-  use Microsoft Word or Apple Pages.
-
-See `:Latexmk --help` for the full documentation. Note that `latexmk`
-requires GNU sed to function properly (this can be installed on macOS using
-[Homebrew](https://brew.sh) with `brew install gnu-sed`).
-
-Commands
---------
-
-| Command | Description |
-| ---- | ---- |
-| `:Latexmk` | Run the custom [latexmk script](latexmk) and asynchronously print the log in a popup split window. |
-| `:SnippetFind` | Find the snippet mapping that matches the input regex. |
-| `:SnippetShow` | Show a table of the current snippet mappings. |
-| `:SurroundFind` | Find the delimiter mapping that matches the input regex. |
-| `:SurroundShow` | Show a table of the current delimiter mappings. |
 
 Mappings
 --------
@@ -77,19 +44,19 @@ Functions
 
 | Function | Description |
 | ---- | ---- |
-| `textools#delete_delims` | The existing [vim-surround](https://github.com/tpope/vim-surround) API can only handle deleting certain types of delimiters, not custom delimiters set with `g:surround_{num}` or `b:surround_{num}`. Calling this function deletes the *arbitrary* delimiter corresponding to the next keystroke (usage is `ds<key>`). |
-| `textools#change_delims` | The existing [vim-surround](https://github.com/tpope/vim-surround) API can only handle changing certain types of delimiters, not custom delimiters set with `g:surround_{num}` or `b:surround_{num}`. Calling this function changes the delimiter corresponding to the first keystroke to the *arbitrary* delimiter corresponding to the second keystroke (usage is `cs<key1><key2>`). |
+| `shortcuts#delete_delims` | The existing [vim-surround](https://github.com/tpope/vim-surround) API can only handle deleting certain types of delimiters, not custom delimiters set with `g:surround_{num}` or `b:surround_{num}`. Calling this function deletes the *arbitrary* delimiter corresponding to the next keystroke (usage is `ds<key>`). |
+| `shortcuts#change_delims` | The existing [vim-surround](https://github.com/tpope/vim-surround) API can only handle changing certain types of delimiters, not custom delimiters set with `g:surround_{num}` or `b:surround_{num}`. Calling this function changes the delimiter corresponding to the first keystroke to the *arbitrary* delimiter corresponding to the second keystroke (usage is `cs<key1><key2>`). |
 
 Customization
 -------------
 
 | Option | Description |
 | ---- | ---- |
-| `g:textools_surround_prefix` | Prefix for the insert and visual mode vim-surround mappings. The default is `<C-s>`, which is intuitive but requires adding `bind -r '"\C-s"'` to your `~/.bashrc` or `~/.bash_profile`. |
-| `g:textools_snippet_prefix` | Prefix for the citation label, figure filename, and snippet insert mappings. The default is `<C-d>`. |
-| `g:textools_prevdelim_map` | Insert mode mapping for jumping to the previous bracket. The default is `<C-h>`. |
-| `g:textools_nextdelim_map` | Insert mode mapping for jumping to the previous bracket. The default is `<C-l>`. |
-| `g:textools_templates_path` | Location where templates are stored. These are optionally loaded when creating new files. |
+| `g:shortcuts_surround_prefix` | Prefix for the insert and visual mode vim-surround mappings. Default is `<C-s>`, which is intuitive but requires adding `bind -r '"\C-s"'` to your `~/.bashrc` or `~/.bash_profile`. |
+| `g:shortcuts_snippet_prefix` | Prefix for the citation label, figure filename, and snippet insert mappings. Default is `<C-d>`. |
+| `g:shortcuts_prevdelim_map` | Insert mode mapping for jumping to the previous bracket. Default is `<C-h>`. |
+| `g:shortcuts_nextdelim_map` | Insert mode mapping for jumping to the previous bracket. Default is `<C-l>`. |
+| `g:shortcuts_templates_path` | Location where templates are stored. These are optionally loaded when creating new files. Default is `~/templates`. |
 
 Installation
 ============
@@ -98,17 +65,6 @@ Install with your favorite [plugin manager](https://vi.stackexchange.com/q/388/8
 I highly recommend the [vim-plug](https://github.com/junegunn/vim-plug) manager.
 To install with vim-plug, add
 ```
-Plug 'lukelbd/vim-textools'
+Plug 'lukelbd/vim-shortcuts'
 ```
 to your `~/.vimrc`.
-
-See also
-========
-
-If you find this plugin useful, I also highly recommend the following:
-
-* The [vim-scrollwrapped plugin](https://github.com/lukelbd/vim-scrollwrapped), which
-  toggles "wrapped" lines automatically for non-code documents and makes scrolling
-  through vim windows with heavily wrapped lines much easier.
-* The [idetools plugin](https://github.com/lukelbd/vim-idetools), which includes various
-  refactoring commands and tools for jumping around documents based on ctags locations.
