@@ -122,21 +122,20 @@ exe 'imap ' . g:shortcuts_nextdelim_map . ' <Plug>NextDelim'
 nnoremap <silent> ds :call shortcuts#delete_delims()<CR>
 nnoremap <silent> cs :call shortcuts#change_delims()<CR>
 
-" Define *global* surround mappings
-" Todo: Sync with
+" Define simple *global* surround mappings
 let s:global_surround = {
   \ "'": "'\r'",
   \ '"': "\"\r\"",
   \ 'q': "‘\r’",
   \ 'Q': "“\r”",
   \ 'b': "(\r)",
+  \ '(': "(\r)",
   \ 'c': "{\r}",
   \ 'B': "{\r}",
-  \ 'r': "[\r]",
-  \ 'a': "<\r>",
-  \ '(': "(\r)",
   \ '{': "{\r}",
+  \ 'r': "[\r]",
   \ '[': "[\r]",
+  \ 'a': "<\r>",
   \ '<': "<\r>",
   \ '\': "\\\"\r\\\"",
   \ 'p': "print(\r)",
@@ -149,7 +148,7 @@ for [s:binding, s:pair] in items(s:global_surround)
   let g:surround_{char2nr(s:binding)} = s:pair
 endfor
 
-" Define custom text objects
+" Define simple custom text objects
 " Todo: Auto-define ] and [ navigation of text objects and delimiters?
 if exists('*textobj#user#plugin')
   let s:universal_textobjs_map = {
