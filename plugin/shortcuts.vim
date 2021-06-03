@@ -93,8 +93,8 @@ endfunction
 " Note: Lowercase Isurround plug inserts delims without newlines. Instead of
 " using ISurround we define special begin end delims with newlines baked in.
 inoremap <Plug>ResetUndo <C-g>u
-inoremap <silent> <Plug>IsurroundShow <C-o>:echo shortcuts#print_bindings('surround')<CR>
-inoremap <silent> <Plug>IsnippetShow <C-o>:echo shortcuts#print_bindings('snippet')<CR>
+inoremap <silent> <Plug>IsurroundInsert <C-o>:call shortcuts#insert_surround()<CR>
+inoremap <silent> <Plug>IsnippetInsert <C-o>:call shortcuts#insert_snippet()<CR>
 inoremap <silent> <expr> <Plug>Isnippet shortcuts#insert_snippet()
 inoremap <silent> <expr> <Plug>PrevDelim <sid>popup_close() . <sid>prev_delim()
 inoremap <silent> <expr> <Plug>NextDelim <sid>popup_close() . <sid>next_delim()
@@ -106,8 +106,8 @@ inoremap <silent> <expr> <Plug>NextDelim <sid>popup_close() . <sid>next_delim()
 exe 'vmap ' . g:shortcuts_surround_prefix   . ' <Plug>VSurround'
 exe 'imap ' . g:shortcuts_surround_prefix   . ' <Plug>ResetUndo<Plug>Isurround'
 exe 'imap ' . g:shortcuts_snippet_prefix . ' <Plug>ResetUndo<Plug>Isnippet'
-exe 'imap ' . repeat(g:shortcuts_surround_prefix, 2) . ' <Plug>IsurroundShow'
-exe 'imap ' . repeat(g:shortcuts_snippet_prefix, 2) . ' <Plug>IsnippetShow'
+exe 'imap ' . repeat(g:shortcuts_surround_prefix, 2) . ' <Plug>IsurroundInsert'
+exe 'imap ' . repeat(g:shortcuts_snippet_prefix, 2) . ' <Plug>IsnippetInsert'
 exe 'imap ' . g:shortcuts_prevdelim_map . ' <Plug>PrevDelim'
 exe 'imap ' . g:shortcuts_nextdelim_map . ' <Plug>NextDelim'
 nnoremap <silent> ds :call shortcuts#delete_delims()<CR>
