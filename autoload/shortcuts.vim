@@ -82,15 +82,20 @@ endfunction
 "-----------------------------------------------------------------------------"
 " Simultaneously adding delimiters and text objects
 "-----------------------------------------------------------------------------"
-" Todo: Write these!
-function! shortcuts#define_objects() abort
+" Todo: Write these! Use process_delims to convert *inserted* surround.vim characters
+" to *searchable* regexes. This should be really really simple.
+function! shortcuts#add_delims() abort
 endfunction
 
 "-----------------------------------------------------------------------------"
 " Selecting snippets and delimiters with FZF
 "-----------------------------------------------------------------------------"
-" Todo: Write these!
-function! shortcuts#select_object() abort
+" Todo: Write this!
+function! shortcuts#pick_delim() abort
+endfunction
+
+" Todo: Write this!
+function! shortcuts#pick_snippet() abort
 endfunction
 
 "-----------------------------------------------------------------------------"
@@ -161,16 +166,77 @@ function! s:strip(text) abort
   return substitute(a:text, '^\_s*\(.\{-}\)\_s*$', '\1', '')
 endfunction
 
+" Get left and right 'surround' delimiter from input key
+function! s:get_delims(search) abort
+  " Handle repeated actions
+  if a:search
+    let cnum = exists('b:shortcuts_searchdelim') ? b:shortcuts_searchdelim : getchar()
+    let b:shortcuts_searchdelim = cnum
+  else
+    let cnum = exists('b:shortcuts_replacedelim') ? b:shortcuts_replacedelim : getchar()
+    let b:shortcuts_replacedelim = cnum
+  endif
+  " Get delimiters
+  if exists('b:surround_' . cnum)
+    let string = b:surround_{cnum}
+  elseif exists('g:surround_' . cnum)
+    let string = g:surround_{cnum}
+  else
+    let string = nr2char(cnum) . "\r" . nr2char(cnum)
+  endif
+  let delims = s:process_delims(string, a:search)
+  return map(split(delims, "\r"), 's:strip(v:val)')
+endfunction
+
+" Driver function that accepts left and right delims, and normal mode commands
+" run from the leftmost character of left and right delims. This function sets
+" the mark 'z to the end of each delim, so expression can be d`zx
+" Todo: Support vim#repeat behavior like all other maps
+" Note: Mark motion commands only work up until and excluding the mark, so
+" make sure your command accounts for that!
+function! s:pair_action(left, right, lexpr, rexpr, count) abort
+  " Get positions for *start* of matches
+  if !exists('*searchpairpos')  " older versions
+    return
+  endif
+  for _ in range(a:count)
+    " Find positions
+    let [l1, c11] = searchpairpos(a:left, '', a:right, 'bnW')  " set '' mark at current location
+    let [l2, c21] = searchpairpos(a:left, '', a:right, 'nW')
+    if l1 == 0 || l2 == 0
+      continue
+    endif
+    " Delete or change right delim. If this leaves an empty line, delete it.
+    " Note: Right must come first!
+    call cursor(l2, c21)
+    let [l2, c22] = searchpos(a:right, 'cen')
+    call setpos("'z", [0, l2, c22, 0])
+    set paste
+    exe 'normal! ' . a:rexpr
+    set nopaste
+    if len(s:strip(getline(l2))) == 0
+      exe l2 . 'd'
+    endif
+    " Delete or change left delim
+    call cursor(l1, c11)
+    let [l1, c12] = searchpos(a:left, 'cen')
+    call setpos("'z", [0, l1, c12, 0])
+    set paste
+    exe 'normal! ' . a:lexpr
+    set nopaste
+    if len(s:strip(getline(l1))) == 0
+      exe l1 . 'd'
+    endif
+  endfor
+endfunction
+
 " Copied from vim-surround source code, use this to obtain string delimiters from the
 " b:surround_{num} and g:surround_{num} variables even when they accept variable input.
 " If a:search is true return regex suitable for *searching* for delimiters with
 " searchpair(), else return delimiters themselves.
 function! s:process_delims(string, search) abort
   " Get delimiter string with filled replacement placeholders \1, \2, \3, ...
-  " Note: We permit overriding the dummy spot with a dummy search pattern. This
-  " is used when we want to use the delimiters returned by this function to
-  " *search* for matches rather than *insert* them... and if a delimiter accepts
-  " arbitrary input then we need to search for arbitrary text in that spot.
+  " Note: We override the user input spot with a dummy search pattern when *searching*
   let filled = '\%(\k\|\.\)'  " valid character for latex names, tag names, python methods and funcs
   for insert in range(7)
     let repl_{insert} = ''
@@ -189,12 +255,12 @@ function! s:process_delims(string, search) abort
   let string = ''
   while idx < strlen(a:string)
     let char = strpart(a:string, idx, 1)
-    if char2nr(char) >= 8
+    if char2nr(char) > 7
       " Add character, escaping magic characters
+      " Note: char2nr("\1") is 1, char2nr("\2") is 2, etc.
       let char = a:search && char ==# "\n" ? '' : a:search && char =~# '[][\.*]' ? '\' . char : char  " see :help \]
     else
       " Handle insertions between subsequent \1...\1, \2...\2, etc. occurrences
-      " Note: char2nr("\1") is 1, char2nr("\2") is 2, etc.
       let next = stridx(a:string, char, idx + 1)
       if next != -1  " found more than one \1 instance
         let char = repl_{char2nr(char)}
@@ -218,64 +284,6 @@ function! s:process_delims(string, search) abort
   return string
 endfunction
 
-" Driver function that accepts left and right delims, and normal mode commands
-" run from the leftmost character of left and right delims. This function sets
-" the mark 'z to the end of each delim, so expression can be d`zx
-" Todo: Support vim#repeat behavior like all other maps
-" Note: Mark motion commands only work up until and excluding the mark, so
-" make sure your command accounts for that!
-function! s:pair_action(left, right, lexpr, rexpr, count) abort
-  " Get positions for *start* of matches
-  if !exists('*searchpairpos') | return | endif  " older versions
-  for _ in range(a:count)
-    " Find positions
-    let [l1, c11] = searchpairpos(a:left, '', a:right, 'bnW')  " set '' mark at current location
-    let [l2, c21] = searchpairpos(a:left, '', a:right, 'nW')
-    if l1 == 0 || l2 == 0 | continue | endif
-    " Delete or change right delim. If this leaves an empty line, delete it.
-    " Note: Right must come first!
-    call cursor(l2, c21)
-    let [l2, c22] = searchpos(a:right, 'cen')
-    call setpos("'z", [0, l2, c22, 0])
-    set paste | exe 'normal! ' . a:rexpr | set nopaste
-    if len(s:strip(getline(l2))) == 0 | exe l2 . 'd' | endif
-    " Delete or change left delim
-    call cursor(l1, c11)
-    let [l1, c12] = searchpos(a:left, 'cen')
-    call setpos("'z", [0, l1, c12, 0])
-    set paste | exe 'normal! ' . a:lexpr | set nopaste
-    if len(s:strip(getline(l1))) == 0 | exe l1 . 'd' | endif
-  endfor
-endfunction
-
-" Get left and right 'surround' delimiter from input key
-function! s:get_delims(search) abort
-  " Handle repeated actions
-  if a:search
-    let cnum = exists('b:shortcuts_searchdelim') ? b:shortcuts_searchdelim : getchar()
-    let b:shortcuts_searchdelim = cnum
-  else
-    let cnum = exists('b:shortcuts_replacedelim') ? b:shortcuts_replacedelim : getchar()
-    let b:shortcuts_replacedelim = cnum
-  endif
-  " Get delimiters
-  if exists('b:surround_' . cnum)
-    let string = b:surround_{cnum}
-  elseif exists('g:surround_' . cnum)
-    let string = g:surround_{cnum}
-  else
-    let string = nr2char(cnum) . "\r" . nr2char(cnum)
-  endif
-  let delims = s:process_delims(string, a:search)
-  return map(split(delims, "\r"), 's:strip(v:val)')
-endfunction
-
-" Reset previous delimiter
-function! shortcuts#reset_delims() abort
-  silent! unlet b:shortcuts_searchdelim b:shortcuts_replacedelim
-  return ''
-endfunction
-
 " Delete delims function
 function! shortcuts#delete_delims() abort
   let [left, right] = s:get_delims(1)  " disallow user input
@@ -293,6 +301,12 @@ function! shortcuts#change_delims() abort
   if exists('*repeat#set')
     call repeat#set("\<Plug>ShortcutsChangeDelims")
   endif
+endfunction
+
+" Reset previous delimiter
+function! shortcuts#reset_delims() abort
+  silent! unlet b:shortcuts_searchdelim b:shortcuts_replacedelim
+  return ''
 endfunction
 
 "-----------------------------------------------------------------------------"
