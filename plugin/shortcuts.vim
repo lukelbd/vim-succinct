@@ -37,21 +37,31 @@ augroup END
 " Note: Lowercase Isurround plug inserts delims without newlines. Instead of
 " using ISurround we define special begin end delims with newlines baked in.
 inoremap <Plug>ResetUndo <C-g>u
-inoremap <silent> <Plug>IsurroundPick <C-o>:call shortcuts#utils#pick_surround()<CR>
-inoremap <silent> <Plug>IsnippetPick <C-o>:call shortcuts#utils#pick_snippet()<CR>
-inoremap <silent> <expr> <Plug>Isnippet shortcuts#utils#insert_snippet()
+inoremap <silent> <expr> <Plug>Isnippet shortcuts#insert_snippet()
 inoremap <silent> <expr> <Plug>PrevDelim shortcuts#utils#pum_close() . shortcuts#utils#prev_delim()
 inoremap <silent> <expr> <Plug>NextDelim shortcuts#utils#pum_close() . shortcuts#utils#next_delim()
+inoremap <silent> <Plug>IsnippetPick <C-o>:call fzf#run({
+  \ 'source': shortcuts#utils#pick_source('snippet'),
+  \ 'options': '--no-sort --prompt="Snippet> "',
+  \ 'down': '~30%',
+  \ 'sink': function('shortcuts#utils#pick_snippet_sink'),
+  \ })<CR>
+inoremap <silent> <Plug>IsurroundPick <C-o>:call fzf#run({
+  \ 'source': shortcuts#utils#pick_source('surround'),
+  \ 'options': '--no-sort --prompt="Surround> "',
+  \ 'down': '~30%',
+  \ 'sink': function('shortcuts#utils#pick_surround_sink'),
+  \ })<CR>
 
 " Apply custom prefixes
 " Warning: <C-u> required to remove range resulting from <count>: action
-exe 'vmap ' . g:shortcuts_surround_prefix   . ' <Plug>VSurround'
-exe 'imap ' . g:shortcuts_surround_prefix   . ' <Plug>ResetUndo<Plug>Isurround'
+exe 'vmap ' . g:shortcuts_surround_prefix . ' <Plug>VSurround'
+exe 'imap ' . g:shortcuts_surround_prefix . ' <Plug>ResetUndo<Plug>Isurround'
 exe 'imap ' . g:shortcuts_snippet_prefix . ' <Plug>ResetUndo<Plug>Isnippet'
-exe 'imap ' . repeat(g:shortcuts_surround_prefix, 2) . ' <Plug>IsurroundPick'
-exe 'imap ' . repeat(g:shortcuts_snippet_prefix, 2) . ' <Plug>IsnippetPick'
 exe 'imap ' . g:shortcuts_prevdelim_map . ' <Plug>PrevDelim'
 exe 'imap ' . g:shortcuts_nextdelim_map . ' <Plug>NextDelim'
+exe 'imap ' . repeat(g:shortcuts_surround_prefix, 2) . ' <Plug>IsurroundPick'
+exe 'imap ' . repeat(g:shortcuts_snippet_prefix, 2) . ' <Plug>IsnippetPick'
 nnoremap <silent> <Plug>ShortcutsDeleteDelims :<C-u>call shortcuts#utils#delete_delims()<CR>
 nnoremap <silent> <Plug>ShortcutsChangeDelims :<C-u>call shortcuts#utils#change_delims()<CR>
 nmap <expr> ds shortcuts#utils#reset_delims() . "\<Plug>ShortcutsDeleteDelims"

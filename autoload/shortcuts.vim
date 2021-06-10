@@ -84,7 +84,7 @@ function! shortcuts#process_delims(string, search) abort
 endfunction
 
 "-----------------------------------------------------------------------------"
-" Inserting complex snippets
+" Generating complex snippets
 "-----------------------------------------------------------------------------"
 " Get character (copied from surround.vim)
 function! s:get_char() abort
@@ -129,7 +129,7 @@ function! shortcuts#make_snippet(...)
 endfunction
 
 " Add user-defined snippet, either a fixed string or user input with prefix/suffix
-function! shortcuts#insert_snippet()
+function! shortcuts#insert_snippet() abort
   let pad = ''
   let char = s:get_char()
   if char =~# '\s'  " similar to surround, permit <C-d><Space><Key> to surround with space

@@ -22,6 +22,34 @@ function! shortcuts#utils#template_read(file)
 endfunction
 
 "-----------------------------------------------------------------------------"
+" Selecting snippets and delimiters with FZF
+"-----------------------------------------------------------------------------"
+" Pick from source delimiters or snippets
+function! shortcuts#utils#pick_source(string) abort
+  let map = {}
+  for prefix in ['g:', 'b:']
+    let vars = getcompletion(prefix . a:string . '_', 'var')
+    for name in vars
+      let key = nr2char(substitute(name, prefix . a:string . '_', '', ''))
+      let map[key] = eval(name)  " local vars will overwrite global vars
+    endfor
+  endfor
+  let opts = []
+  for [key, s:val] in items(map)  " could be funcrefs here
+    call add(opts, key . ': ' . string(s:val))
+  endfor
+  return opts
+endfunction
+
+" Apply delimiter or snippet
+function! shortcuts#utils#pick_snippet_sink(item)
+  call feedkeys("\<Plug>Isnippet" . split(a:item, ':')[0])
+endfunction
+function! shortcuts#utils#pick_surround_sink(item)
+  call feedkeys("\<Plug>Isurround" . split(a:item, ':')[0])
+endfunction
+
+"-----------------------------------------------------------------------------"
 " Delimiter navigation
 "-----------------------------------------------------------------------------"
 " Navigation without triggering InsertLeave
@@ -80,23 +108,11 @@ function! shortcuts#utils#pum_close() abort
 endfunction
 
 "-----------------------------------------------------------------------------"
-" Selecting snippets and delimiters with FZF
-"-----------------------------------------------------------------------------"
-" Todo: Write this!
-function! shortcuts#utils#pick_delim() abort
-endfunction
-
-" Todo: Write this!
-function! shortcuts#utils#pick_snippet() abort
-endfunction
-
-"-----------------------------------------------------------------------------"
 " Changing and deleting surrounding delim
 "-----------------------------------------------------------------------------"
 " Driver function that accepts left and right delims, and normal mode commands
 " run from the leftmost character of left and right delims. This function sets
 " the mark 'z to the end of each delim, so expression can be d`zx
-" Todo: Support vim#repeat behavior like all other maps
 " Note: Mark motion commands only work up until and excluding the mark, so
 " make sure your command accounts for that!
 function! s:pair_action(left, right, lexpr, rexpr, count) abort
