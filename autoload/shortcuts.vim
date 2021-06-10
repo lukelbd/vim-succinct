@@ -20,7 +20,6 @@ function! shortcuts#add_delims(map, ...) abort
   for [key, delim] in items(a:map)
     let pattern = split(shortcuts#process_delims(delim, 1), "\r")
     if pattern[0] ==# pattern[1]  " special handling if delims are identical, e.g. $$
-      echom 'Pattern!!! ' . pattern[0] . ',' . pattern[1]
       let dest['textobj_' . char2nr(key) . '_i'] = {
         \ 'pattern': pattern[0] . '\zs.\{-}\ze' . pattern[0],
         \ 'select': flag . 'i' . escape(key, '|'),
@@ -37,8 +36,9 @@ function! shortcuts#add_delims(map, ...) abort
         \ }
     endif
   endfor
-  if exists('*textobj#user#plugin')  " assign name, avoiding conflicts
-    call textobj#user#plugin((a:0 && a:1 ? &filetype : 'global') . 'shortcuts', dest)
+  if exists('*textobj#user#plugin')
+    let name = a:0 && a:1 ? &filetype : 'global'  " assign name, avoiding conflicts
+    call textobj#user#plugin(name . 'shortcuts', dest)
   endif
 endfunction
 

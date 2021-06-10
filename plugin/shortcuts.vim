@@ -93,7 +93,7 @@ call shortcuts#add_delims({
 " Todo: Auto-define ] and [ navigation of text objects and delimiters?
 if exists('*textobj#user#plugin')
   call textobj#user#plugin(
-    \ 'special', {
+    \ 'specialshortcuts', {
     \   'line': {
     \     'sfile': expand('<sfile>:p'),
     \     'select-a-function': 'shortcuts#utils#current_line_a',

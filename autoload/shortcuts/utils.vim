@@ -122,8 +122,13 @@ function! s:pair_action(left, right, lexpr, rexpr, count) abort
   endif
   for _ in range(a:count)
     " Find positions
-    let [l1, c11] = searchpairpos(a:left, '', a:right, 'bnW')  " set '' mark at current location
-    let [l2, c21] = searchpairpos(a:left, '', a:right, 'nW')
+    if a:left ==# a:right
+      let [l1, c11] = searchpos(a:left, 'bnW')
+      let [l2, c21] = searchpos(a:left, 'nW')
+    else
+      let [l1, c11] = searchpairpos(a:left, '', a:right, 'bnW')  " set '' mark at current location
+      let [l2, c21] = searchpairpos(a:left, '', a:right, 'nW')
+    endif
     if l1 == 0 || l2 == 0
       continue
     endif
