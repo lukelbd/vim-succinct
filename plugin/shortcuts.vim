@@ -18,11 +18,6 @@ if !exists('g:shortcuts_nextdelim_map')
   let g:shortcuts_nextdelim_map = '<C-l>'
 endif
 
-" Function used with input() to prevent tab expansion and literal tab insertion
-function! NullList(...) abort
-  return []
-endfunction
-
 "-----------------------------------------------------------------------------"
 " Default commands, mappings, delims, and text objects
 "-----------------------------------------------------------------------------"
@@ -31,10 +26,10 @@ endfunction
 augroup shortcuts
   au!
   au BufNewFile * if exists('*fzf#run') | call fzf#run({
-    \ 'source': shortcuts#template_source(expand('<afile>:e')),
+    \ 'source': shortcuts#utils#template_source(expand('<afile>:e')),
     \ 'options': '--no-sort --prompt="Template> "',
     \ 'down': '~30%',
-    \ 'sink': function('shortcuts#template_read'),
+    \ 'sink': function('shortcuts#utils#template_read'),
     \ }) | endif
 augroup END
 
@@ -42,11 +37,11 @@ augroup END
 " Note: Lowercase Isurround plug inserts delims without newlines. Instead of
 " using ISurround we define special begin end delims with newlines baked in.
 inoremap <Plug>ResetUndo <C-g>u
-inoremap <silent> <Plug>IsurroundPick <C-o>:call shortcuts#pick_surround()<CR>
-inoremap <silent> <Plug>IsnippetPick <C-o>:call shortcuts#pick_snippet()<CR>
-inoremap <silent> <expr> <Plug>Isnippet shortcuts#insert_snippet()
-inoremap <silent> <expr> <Plug>PrevDelim shortcuts#pum_close() . shortcuts#prev_delim()
-inoremap <silent> <expr> <Plug>NextDelim shortcuts#pum_close() . shortcuts#next_delim()
+inoremap <silent> <Plug>IsurroundPick <C-o>:call shortcuts#utils#pick_surround()<CR>
+inoremap <silent> <Plug>IsnippetPick <C-o>:call shortcuts#utils#pick_snippet()<CR>
+inoremap <silent> <expr> <Plug>Isnippet shortcuts#utils#insert_snippet()
+inoremap <silent> <expr> <Plug>PrevDelim shortcuts#utils#pum_close() . shortcuts#utils#prev_delim()
+inoremap <silent> <expr> <Plug>NextDelim shortcuts#utils#pum_close() . shortcuts#utils#next_delim()
 
 " Apply custom prefixes
 " Warning: <C-u> required to remove range resulting from <count>: action
@@ -57,13 +52,14 @@ exe 'imap ' . repeat(g:shortcuts_surround_prefix, 2) . ' <Plug>IsurroundPick'
 exe 'imap ' . repeat(g:shortcuts_snippet_prefix, 2) . ' <Plug>IsnippetPick'
 exe 'imap ' . g:shortcuts_prevdelim_map . ' <Plug>PrevDelim'
 exe 'imap ' . g:shortcuts_nextdelim_map . ' <Plug>NextDelim'
-nnoremap <silent> <Plug>ShortcutsDeleteDelims :<C-u>call shortcuts#delete_delims()<CR>
-nnoremap <silent> <Plug>ShortcutsChangeDelims :<C-u>call shortcuts#change_delims()<CR>
-nmap <expr> ds shortcuts#reset_delims() . "\<Plug>ShortcutsDeleteDelims"
-nmap <expr> cs shortcuts#reset_delims() . "\<Plug>ShortcutsChangeDelims"
+nnoremap <silent> <Plug>ShortcutsDeleteDelims :<C-u>call shortcuts#utils#delete_delims()<CR>
+nnoremap <silent> <Plug>ShortcutsChangeDelims :<C-u>call shortcuts#utils#change_delims()<CR>
+nmap <expr> ds shortcuts#utils#reset_delims() . "\<Plug>ShortcutsDeleteDelims"
+nmap <expr> cs shortcuts#utils#reset_delims() . "\<Plug>ShortcutsChangeDelims"
 
 " Define simple *global* surround mappings
-let s:global_surround = {
+" Note: For surrounding with spaces just hit space twice
+call shortcuts#add_delims({
   \ "'": "'\r'",
   \ '"': "\"\r\"",
   \ 'q': "‘\r’",
@@ -78,73 +74,42 @@ let s:global_surround = {
   \ 'a': "<\r>",
   \ '<': "<\r>",
   \ '\': "\\\"\r\\\"",
-  \ 'p': "print(\r)",
   \ 'f': "\1function: \1(\r)",
   \ 'A': "\1array: \1[\r]",
-  \ "\t": " \r ",
-  \ '': "\n\r\n",
-\ }
-for [s:binding, s:pair] in items(s:global_surround)
-  let g:surround_{char2nr(s:binding)} = s:pair
-endfor
+  \ })
 
-" Define simple custom text objects
+" Define special text objects
 " Todo: Auto-define ] and [ navigation of text objects and delimiters?
 if exists('*textobj#user#plugin')
-  let s:universal_textobjs_map = {
+  call textobj#user#plugin(
+    \ 'special', {
     \   'line': {
     \     'sfile': expand('<sfile>:p'),
-    \     'select-a-function': 'shortcuts#current_line_a',
+    \     'select-a-function': 'shortcuts#utils#current_line_a',
+    \     'select-i-function': 'shortcuts#utils#current_line_i',
     \     'select-a': 'al',
-    \     'select-i-function': 'shortcuts#current_line_i',
     \     'select-i': 'il',
     \   },
     \   'blanklines': {
     \     'sfile': expand('<sfile>:p'),
-    \     'select-a-function': 'shortcuts#blank_lines',
+    \     'select-a-function': 'shortcuts#utils#blank_lines',
+    \     'select-i-function': 'shortcuts#utils#blank_lines',
     \     'select-a': 'a<Space>',
-    \     'select-i-function': 'shortcuts#blank_lines',
     \     'select-i': 'i<Space>',
     \   },
     \   'nonblanklines': {
     \     'sfile': expand('<sfile>:p'),
-    \     'select-a-function': 'shortcuts#nonblank_lines',
+    \     'select-a-function': 'shortcuts#utils#nonblank_lines',
+    \     'select-i-function': 'shortcuts#utils#nonblank_lines',
     \     'select-a': 'aP',
-    \     'select-i-function': 'shortcuts#nonblank_lines',
     \     'select-i': 'iP',
     \   },
     \   'uncommented': {
     \     'sfile': expand('<sfile>:p'),
-    \     'select-a-function': 'shortcuts#uncommented_lines',
-    \     'select-i-function': 'shortcuts#uncommented_lines',
+    \     'select-a-function': 'shortcuts#utils#uncommented_lines',
+    \     'select-i-function': 'shortcuts#utils#uncommented_lines',
     \     'select-a': 'aC',
     \     'select-i': 'iC',
     \   },
-    \   'function': {
-    \     'pattern': ['\<\K\k*(', ')'],
-    \     'select-a': 'af',
-    \     'select-i': 'if',
-    \   },
-    \   'method': {
-    \     'pattern': ['\_[^A-Za-z_.]\zs\h[0-9A-Za-z_.]*(', ')'],
-    \     'select-a': 'am',
-    \     'select-i': 'im',
-    \   },
-    \   'array': {
-    \     'pattern': ['\<\K\k*\[', '\]'],
-    \     'select-a': 'aA',
-    \     'select-i': 'iA',
-    \   },
-    \  'curly': {
-    \     'pattern': ['‘', '’'],
-    \     'select-a': 'aq',
-    \     'select-i': 'iq',
-    \   },
-    \  'curly-double': {
-    \     'pattern': ['“', '”'],
-    \     'select-a': 'aQ',
-    \     'select-i': 'iQ',
-    \   },
-    \ }
-  call textobj#user#plugin('universal', s:universal_textobjs_map)
+    \ })
 endif

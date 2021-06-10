@@ -4,7 +4,7 @@ Vim shortcuts
 A set of utilities for efficiently working with delimiters, text objects, text snippets,
 and file templates. Includes the following features:
 
-* Adding custom delimiter keys with `shortcuts#add_delims`. This
+* Adding custom delimiter keys with `AddDelims()`. This
   simultaneously defines [vim-surround](https://github.com/tpope/vim-surround)
   delimiters for operations like `yss-` and `<C-s>-`, and [vim-textobj](https://github.com/kana/vim-textobj-user)
   text objects for operations like `ca-`, `ci-`, `da-`, `di-`.
@@ -13,7 +13,7 @@ and file templates. Includes the following features:
   delimiters with operations like `cs-` and `ds-`. Natively, vim-surround does
   not support this -- it only supports *inserting* custom delimiters with
   operations like `yss-` and `ysS-`.
-* Adding custom snippets with `shortcuts#add_snippets`. Implementation is similar
+* Adding custom snippets with `AddSnippets()`. Implementation is similar
   to the internal [vim-surround](https://github.com/tpope/vim-surround) implementation;
   `<C-d>-` is used to insert snippets, similar to `<C-s>-` for surround-delimiters.
   Snippets can be function handles that prompt for user input and return strings.

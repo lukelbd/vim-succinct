@@ -1,101 +1,86 @@
 "-----------------------------------------------------------------------------"
-" File template handling
+" Adding snippets and delimiters
 "-----------------------------------------------------------------------------"
-" Return list of templates
-function! shortcuts#template_source(ext) abort
-  let paths = []
-  if exists('g:shortcuts_templates_path')
-    let paths = split(globpath(g:shortcuts_templates_path, '*.' . a:ext), "\n")
-    let paths = map(paths, 'fnamemodify(v:val, ":t")')
-  endif
-  if !empty(paths)
-    let paths = [''] + paths  " add stand-in for 'load nothing'
-  endif
-  return paths
+" Adding snippet variables
+function! shortcuts#add_snippets(map, ...) abort
+  let src = a:0 && a:1 ? b: : g:
+  for [key, s:val] in items(a:map)
+    let src['snippet_' . char2nr(key)] = s:val  " must be s: scope in case it is a function!
+  endfor
 endfunction
 
-" Load template contents
-function! shortcuts#template_read(file)
-  if exists('g:shortcuts_templates_path') && !empty(a:file)
-    execute '0r ' . g:shortcuts_templates_path . '/' . a:file
-  endif
-endfunction
-
-"-----------------------------------------------------------------------------"
-" Delimiter navigation
-"-----------------------------------------------------------------------------"
-" Special popup menu behavior just for me and my .vimrc!
-" No one has to know ;)
-function! shortcuts#pum_close() abort
-  if !pumvisible() || !exists('b:pum_pos')
-    return ''
-  elseif b:pum_pos
-    let b:pum_pos = 0
-    return "\<C-y>\<C-]>"
-  else
-    return "\<C-e>"
-  endif
-endfunction
-
-" Delimiter regular expression using delimitMate and matchpairs
-" Shortcuts delimiter jumping is improved
-function! shortcuts#delim_regex() abort
-  let delims = exists('b:delimitMate_matchpairs') ? b:delimitMate_matchpairs
-    \ : exists('g:delimitMate_matchpairs') ? g:delimitMate_matchpairs : &matchpairs
-  let delims = substitute(delims, '[:,]', '', 'g')
-  let quotes = exists('b:delimitMate_quotes') ? b:delimitMate_quotes
-    \ : exists('g:delimitMate_quotes') ? g:delimitMate_quotes : "\" ' `"
-  let quotes = substitute(quotes, '\s\+', '', 'g')
-  return '[' . escape(delims . quotes, ']^-\') . ']'
-endfunction
-
-" Navigation without triggering InsertLeave
-" Consider using this in many other situations
-function! shortcuts#move_cursor(lnum, cnum, lorig, corig) abort
-  if a:lnum == a:lorig
-    let cdiff = a:cnum - a:corig
-    return repeat(cdiff > 0 ? "\<Right>" : "\<Left>", abs(cdiff))
-  else
-    let ldiff = a:lnum - a:lorig
-    return "\<Home>" . repeat(ldiff > 0 ? "\<Down>" : "\<Up>", abs(ldiff)) . repeat("\<Right>", a:cnum - 1)
-  endif
-endfunction
-
-" Move to right of previous delim  ( [ [ ( "  "  asd) sdf    ]  sdd   ]  as) h adfas)
-" Warning: Calls to e.g. cursor() fail to move cursor in insert mode, even though
-" 'current position' (i.e. getpos('.') after e.g. cursor()) changes inside function
-function! shortcuts#prev_delim() abort
-  let [_, lorig, corig, _] = getpos('.')
-  call search(shortcuts#delim_regex(), 'ebW')
-  if col('.') > corig - 2 | call search(shortcuts#delim_regex(), 'ebW') | endif
-  return shortcuts#move_cursor(line('.'), col('.') + 1, lorig, corig)
-endfunction
-
-" Move to right of next delim. Why starting from current position? Even if cursor is on
-" delimiter, want to find it and move to the right of it
-function! shortcuts#next_delim() abort
-  let [_, lorig, corig, _] = getpos('.')
-  call search(shortcuts#delim_regex(), 'eW')
-  return shortcuts#move_cursor(line('.'), col('.') + 1, lorig, corig)
-endfunction
-
-"-----------------------------------------------------------------------------"
 " Simultaneously adding delimiters and text objects
-"-----------------------------------------------------------------------------"
-" Todo: Write these! Use process_delims to convert *inserted* surround.vim characters
-" to *searchable* regexes. This should be really really simple.
-function! shortcuts#add_delims() abort
+function! shortcuts#add_delims(map, ...) abort
+  let src = a:0 && a:1 ? b: : g:
+  for [key, s:val] in items(a:map)
+    let src['surround_' . char2nr(key)] = s:val
+  endfor
+  let dest = {}
+  let flag = a:0 && a:1 ? '<buffer> ' : ''
+  for [key, delim] in items(a:map)
+    let dest['textobj_' . char2nr(key)] = {
+      \ 'pattern': split(shortcuts#process_delims(delim, 1), "\r"),
+      \ 'select-a': flag . 'a' . escape(key, '|'),
+      \ 'select-i': flag . 'i' . escape(key, '|'),
+      \ }
+  endfor
+  if exists('*textobj#user#plugin')
+    call textobj#user#plugin(a:0 && a:1 ? &filetype : 'global', dest)
+  endif
 endfunction
 
-"-----------------------------------------------------------------------------"
-" Selecting snippets and delimiters with FZF
-"-----------------------------------------------------------------------------"
-" Todo: Write this!
-function! shortcuts#pick_delim() abort
-endfunction
-
-" Todo: Write this!
-function! shortcuts#pick_snippet() abort
+" Obtain and process delimiters. If a:search is true return regex suitable for
+" *searching* for delimiters with searchpair(), else return delimiters themselves.
+" Note: Adapted from vim-surround source code
+function! shortcuts#process_delims(string, search) abort
+  " Get delimiter string with filled replacement placeholders \1, \2, \3, ...
+  " Note: We override the user input spot with a dummy search pattern when *searching*
+  let filled = '\%(\k\|\.\)'  " valid character for latex names, tag names, python methods and funcs
+  for insert in range(7)
+    let repl_{insert} = ''
+    if a:search
+      let repl_{insert} = filled . '\+'
+    else
+      let m = matchstr(a:string, nr2char(insert) . '.\{-\}\ze' . nr2char(insert))
+      if m !=# ''  " get user input if pair was found
+        let m = substitute(strpart(m, 1), '\r.*', '', '')
+        let repl_{insert} = input(match(m, '\w\+$') >= 0 ? m . ': ' : m)
+      endif
+    endif
+  endfor
+  " Build up string
+  let idx = 0
+  let string = ''
+  while idx < strlen(a:string)
+    let char = strpart(a:string, idx, 1)
+    if char2nr(char) > 7
+      " Add character, escaping magic characters
+      " Note: char2nr("\1") is 1, char2nr("\2") is 2, etc.
+      let char = a:search && char ==# "\n" ? '' : a:search && char =~# '[][\.*]' ? '\' . char : char  " see :help \]
+    else
+      " Handle insertions between subsequent \1...\1, \2...\2, etc. occurrences
+      " Optionally insert user input
+      let next = stridx(a:string, char, idx + 1)
+      if next != -1  " found more than one \1 instance
+        let char = repl_{char2nr(char)}
+        let substring = strpart(a:string, idx + 1, next - idx - 1)
+        let substring = matchstr(substring, '\r.*')
+        while substring =~# '^\r.*\r'
+          let matchstring = matchstr(substring, "^\r\\zs[^\r]*\r[^\r]*")
+          let substring = strpart(substring, strlen(matchstring) + 1)
+          let r = stridx(matchstring, "\r")
+          let char = substitute(char, strpart(matchstring, 0, r), strpart(matchstring, r + 1), '')
+        endwhile
+        if a:search && idx == 0  " add start-of-word marker
+          let char = filled . '\@<!' . char
+        endif
+        let idx = next
+      endif
+    endif
+    let string .= char
+    let idx += 1
+  endwhile
+  return string
 endfunction
 
 "-----------------------------------------------------------------------------"
@@ -116,10 +101,13 @@ endfunction
 
 " General user input request with no-op tab expansion
 function! shortcuts#user_input_driver(prompt) abort
-  return input(a:prompt . ': ', '', 'customlist,NullList')
+  return input(a:prompt . ': ', '', 'customlist,shortcuts#null_list')
 endfunction
 function! shortcuts#user_input(...)
   return function('shortcuts#user_input_driver', a:000)
+endfunction
+function! shortcuts#null_list(...) abort
+  return []
 endfunction
 
 " Return the string or evaluate a funcref, then optionally add a prefix and suffix
@@ -156,223 +144,4 @@ function! shortcuts#insert_snippet()
     endif
   endfor
   return pad . snippet . pad
-endfunction
-
-"-----------------------------------------------------------------------------"
-" Changing and deleting surrounding delim
-"-----------------------------------------------------------------------------"
-" Strip leading and trailing spaces
-function! s:strip(text) abort
-  return substitute(a:text, '^\_s*\(.\{-}\)\_s*$', '\1', '')
-endfunction
-
-" Get left and right 'surround' delimiter from input key
-function! s:get_delims(search) abort
-  " Handle repeated actions
-  if a:search
-    let cnum = exists('b:shortcuts_searchdelim') ? b:shortcuts_searchdelim : getchar()
-    let b:shortcuts_searchdelim = cnum
-  else
-    let cnum = exists('b:shortcuts_replacedelim') ? b:shortcuts_replacedelim : getchar()
-    let b:shortcuts_replacedelim = cnum
-  endif
-  " Get delimiters
-  if exists('b:surround_' . cnum)
-    let string = b:surround_{cnum}
-  elseif exists('g:surround_' . cnum)
-    let string = g:surround_{cnum}
-  else
-    let string = nr2char(cnum) . "\r" . nr2char(cnum)
-  endif
-  let delims = s:process_delims(string, a:search)
-  return map(split(delims, "\r"), 's:strip(v:val)')
-endfunction
-
-" Driver function that accepts left and right delims, and normal mode commands
-" run from the leftmost character of left and right delims. This function sets
-" the mark 'z to the end of each delim, so expression can be d`zx
-" Todo: Support vim#repeat behavior like all other maps
-" Note: Mark motion commands only work up until and excluding the mark, so
-" make sure your command accounts for that!
-function! s:pair_action(left, right, lexpr, rexpr, count) abort
-  " Get positions for *start* of matches
-  if !exists('*searchpairpos')  " older versions
-    return
-  endif
-  for _ in range(a:count)
-    " Find positions
-    let [l1, c11] = searchpairpos(a:left, '', a:right, 'bnW')  " set '' mark at current location
-    let [l2, c21] = searchpairpos(a:left, '', a:right, 'nW')
-    if l1 == 0 || l2 == 0
-      continue
-    endif
-    " Delete or change right delim. If this leaves an empty line, delete it.
-    " Note: Right must come first!
-    call cursor(l2, c21)
-    let [l2, c22] = searchpos(a:right, 'cen')
-    call setpos("'z", [0, l2, c22, 0])
-    set paste
-    exe 'normal! ' . a:rexpr
-    set nopaste
-    if len(s:strip(getline(l2))) == 0
-      exe l2 . 'd'
-    endif
-    " Delete or change left delim
-    call cursor(l1, c11)
-    let [l1, c12] = searchpos(a:left, 'cen')
-    call setpos("'z", [0, l1, c12, 0])
-    set paste
-    exe 'normal! ' . a:lexpr
-    set nopaste
-    if len(s:strip(getline(l1))) == 0
-      exe l1 . 'd'
-    endif
-  endfor
-endfunction
-
-" Copied from vim-surround source code, use this to obtain string delimiters from the
-" b:surround_{num} and g:surround_{num} variables even when they accept variable input.
-" If a:search is true return regex suitable for *searching* for delimiters with
-" searchpair(), else return delimiters themselves.
-function! s:process_delims(string, search) abort
-  " Get delimiter string with filled replacement placeholders \1, \2, \3, ...
-  " Note: We override the user input spot with a dummy search pattern when *searching*
-  let filled = '\%(\k\|\.\)'  " valid character for latex names, tag names, python methods and funcs
-  for insert in range(7)
-    let repl_{insert} = ''
-    if a:search
-      let repl_{insert} = filled . '\+'
-    else
-      let m = matchstr(a:string, nr2char(insert) . '.\{-\}\ze' . nr2char(insert))
-      if m !=# ''  " get user input if pair was found
-        let m = substitute(strpart(m, 1), '\r.*', '', '')
-        let repl_{insert} = input(match(m, '\w\+$') >= 0 ? m . ': ' : m)
-      endif
-    endif
-  endfor
-  " Build up string
-  let idx = 0
-  let string = ''
-  while idx < strlen(a:string)
-    let char = strpart(a:string, idx, 1)
-    if char2nr(char) > 7
-      " Add character, escaping magic characters
-      " Note: char2nr("\1") is 1, char2nr("\2") is 2, etc.
-      let char = a:search && char ==# "\n" ? '' : a:search && char =~# '[][\.*]' ? '\' . char : char  " see :help \]
-    else
-      " Handle insertions between subsequent \1...\1, \2...\2, etc. occurrences
-      let next = stridx(a:string, char, idx + 1)
-      if next != -1  " found more than one \1 instance
-        let char = repl_{char2nr(char)}
-        let substring = strpart(a:string, idx + 1, next - idx - 1)
-        let substring = matchstr(substring, '\r.*')
-        while substring =~# '^\r.*\r'
-          let matchstring = matchstr(substring, "^\r\\zs[^\r]*\r[^\r]*")
-          let substring = strpart(substring, strlen(matchstring) + 1)
-          let r = stridx(matchstring, "\r")
-          let char = substitute(char, strpart(matchstring, 0, r), strpart(matchstring, r + 1), '')
-        endwhile
-        if a:search && idx == 0  " add start-of-word marker
-          let char = filled . '\@<!' . char
-        endif
-        let idx = next
-      endif
-    endif
-    let string .= char
-    let idx += 1
-  endwhile
-  return string
-endfunction
-
-" Delete delims function
-function! shortcuts#delete_delims() abort
-  let [left, right] = s:get_delims(1)  " disallow user input
-  call s:pair_action(left, right, '"_d`z"_x', '"_d`z"_x', v:count1)
-  if exists('*repeat#set')
-    call repeat#set("\<Plug>ShortcutsDeleteDelims")
-  endif
-endfunction
-
-" Change delims function, use input replacement text or existing mapped surround char
-function! shortcuts#change_delims() abort
-  let [lold, rold] = s:get_delims(1)  " disallow user input
-  let [lnew, rnew] = s:get_delims(0)  " replacement delims possibly with user input
-  call s:pair_action(lold, rold, '"_c`z' . lnew . "\<Delete>", '"_c`z' . rnew . "\<Delete>", v:count1)
-  if exists('*repeat#set')
-    call repeat#set("\<Plug>ShortcutsChangeDelims")
-  endif
-endfunction
-
-" Reset previous delimiter
-function! shortcuts#reset_delims() abort
-  silent! unlet b:shortcuts_searchdelim b:shortcuts_replacedelim
-  return ''
-endfunction
-
-"-----------------------------------------------------------------------------"
-" Complex text objects
-"-----------------------------------------------------------------------------"
-" The leading comment character (with stripped whitespace)
-function! s:comment_char()
-  let string = substitute(&commentstring, '%s.*', '', '')
-  return substitute(string, '\s\+', '', 'g')
-endfunction
-
-" Helper function returning lines
-function! s:lines_helper(pnb, nnb) abort
-  let start_line = a:pnb == 0 ? 1         : a:pnb + 1
-  let end_line   = a:nnb == 0 ? line('$') : a:nnb - 1
-  let start_pos = getpos('.') | let start_pos[1] = start_line
-  let end_pos   = getpos('.') | let end_pos[1]   = end_line
-  return ['V', start_pos, end_pos]
-endfunction
-
-" Blank line objects
-function! shortcuts#blank_lines() abort
-  normal! 0
-  let pnb = prevnonblank(line('.'))
-  let nnb = nextnonblank(line('.'))
-  if pnb == line('.') " also will be true for nextnonblank, if on nonblank
-    return 0
-  endif
-  return s:lines_helper(pnb, nnb)
-endfunction
-
-" New and improved paragraphs
-function! shortcuts#nonblank_lines() abort
-  normal! 0l
-  let nnb = search('^\s*\zs$', 'Wnc') " the c means accept current position
-  let pnb = search('^\ze\s*$', 'Wnbc') " won't work for backwards search unless to right of first column
-  if pnb == line('.')
-    return 0
-  endif
-  return s:lines_helper(pnb, nnb)
-endfunction
-
-" Uncommented lines objects
-function! shortcuts#uncommented_lines() abort
-  normal! 0l
-  let nnb = search('^\s*' . s:comment_char() . '.*\zs$', 'Wnc')
-  let pnb = search('^\ze\s*' . s:comment_char() . '.*$', 'Wncb')
-  if pnb == line('.')
-    return 0
-  endif
-  return s:lines_helper(pnb, nnb)
-endfunction
-
-" Functions for current line
-function! shortcuts#current_line_a() abort
-  normal! 0
-  let head_pos = getpos('.')
-  normal! $
-  let tail_pos = getpos('.')
-  return ['v', head_pos, tail_pos]
-endfunction
-function! shortcuts#current_line_i() abort
-  normal! ^
-  let head_pos = getpos('.')
-  normal! g_
-  let tail_pos = getpos('.')
-  let non_blank_char_exists_p = (getline('.')[head_pos[2] - 1] !~# '\s')
-  return non_blank_char_exists_p ? ['v', head_pos, tail_pos] : 0
 endfunction
