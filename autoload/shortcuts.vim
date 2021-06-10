@@ -18,14 +18,27 @@ function! shortcuts#add_delims(map, ...) abort
   let dest = {}
   let flag = a:0 && a:1 ? '<buffer> ' : ''
   for [key, delim] in items(a:map)
-    let dest['textobj_' . char2nr(key)] = {
-      \ 'pattern': split(shortcuts#process_delims(delim, 1), "\r"),
-      \ 'select-a': flag . 'a' . escape(key, '|'),
-      \ 'select-i': flag . 'i' . escape(key, '|'),
-      \ }
+    let pattern = split(shortcuts#process_delims(delim, 1), "\r")
+    if pattern[0] ==# pattern[1]  " special handling if delims are identical, e.g. $$
+      echom 'Pattern!!! ' . pattern[0] . ',' . pattern[1]
+      let dest['textobj_' . char2nr(key) . '_i'] = {
+        \ 'pattern': pattern[0] . '\zs.\{-}\ze' . pattern[0],
+        \ 'select': flag . 'i' . escape(key, '|'),
+        \ }
+      let dest['textobj_' . char2nr(key) . '_a'] = {
+        \ 'pattern': pattern[0] . '.\{-}' . pattern[0],
+        \ 'select': flag . 'a' . escape(key, '|'),
+        \ }
+    else
+      let dest['textobj_' . char2nr(key)] = {
+        \ 'pattern': pattern,
+        \ 'select-a': flag . 'a' . escape(key, '|'),
+        \ 'select-i': flag . 'i' . escape(key, '|'),
+        \ }
+    endif
   endfor
-  if exists('*textobj#user#plugin')
-    call textobj#user#plugin(a:0 && a:1 ? &filetype : 'global', dest)
+  if exists('*textobj#user#plugin')  " assign name, avoiding conflicts
+    call textobj#user#plugin((a:0 && a:1 ? &filetype : 'global') . 'shortcuts', dest)
   endif
 endfunction
 
@@ -53,31 +66,36 @@ function! shortcuts#process_delims(string, search) abort
   let string = ''
   while idx < strlen(a:string)
     let char = strpart(a:string, idx, 1)
+    let part = char
     if char2nr(char) > 7
       " Add character, escaping magic characters
       " Note: char2nr("\1") is 1, char2nr("\2") is 2, etc.
-      let char = a:search && char ==# "\n" ? '' : a:search && char =~# '[][\.*]' ? '\' . char : char  " see :help \]
+      if a:search && char ==# "\n"
+        let part = '\_s*'
+      elseif a:search && char =~# '[][\.*$]'
+        let part = '\' . char
+      endif
     else
       " Handle insertions between subsequent \1...\1, \2...\2, etc. occurrences
       " Optionally insert user input
       let next = stridx(a:string, char, idx + 1)
       if next != -1  " found more than one \1 instance
-        let char = repl_{char2nr(char)}
+        let part = repl_{char2nr(char)}
         let substring = strpart(a:string, idx + 1, next - idx - 1)
         let substring = matchstr(substring, '\r.*')
         while substring =~# '^\r.*\r'
           let matchstring = matchstr(substring, "^\r\\zs[^\r]*\r[^\r]*")
           let substring = strpart(substring, strlen(matchstring) + 1)
           let r = stridx(matchstring, "\r")
-          let char = substitute(char, strpart(matchstring, 0, r), strpart(matchstring, r + 1), '')
+          let part = substitute(part, strpart(matchstring, 0, r), strpart(matchstring, r + 1), '')
         endwhile
         if a:search && idx == 0  " add start-of-word marker
-          let char = filled . '\@<!' . char
+          let part = filled . '\@<!' . part
         endif
         let idx = next
       endif
     endif
-    let string .= char
+    let string .= part
     let idx += 1
   endwhile
   return string

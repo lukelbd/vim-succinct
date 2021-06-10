@@ -67,7 +67,7 @@ nnoremap <silent> <Plug>ShortcutsChangeDelims :<C-u>call shortcuts#utils#change_
 nmap <expr> ds shortcuts#utils#reset_delims() . "\<Plug>ShortcutsDeleteDelims"
 nmap <expr> cs shortcuts#utils#reset_delims() . "\<Plug>ShortcutsChangeDelims"
 
-" Define simple *global* surround mappings
+" Define $global$ *delimiters* and text objects
 " Note: For surrounding with spaces just hit space twice
 call shortcuts#add_delims({
   \ "'": "'\r'",
@@ -79,6 +79,7 @@ call shortcuts#add_delims({
   \ 'c': "{\r}",
   \ 'B': "{\r}",
   \ '{': "{\r}",
+  \ '*': "*\r*",
   \ 'r': "[\r]",
   \ '[': "[\r]",
   \ 'a': "<\r>",
@@ -88,7 +89,7 @@ call shortcuts#add_delims({
   \ 'A': "\1array: \1[\r]",
   \ })
 
-" Define special text objects
+" Define global text objects with no associated delimiter (analogous to 'w', 'p', etc.)
 " Todo: Auto-define ] and [ navigation of text objects and delimiters?
 if exists('*textobj#user#plugin')
   call textobj#user#plugin(

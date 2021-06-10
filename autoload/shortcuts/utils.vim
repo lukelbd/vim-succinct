@@ -174,6 +174,7 @@ function! s:get_delims(search) abort
 endfunction
 
 " Delete delims function
+" Todo: Fix this for identical left/right delimiters!!!
 function! shortcuts#utils#delete_delims() abort
   let [left, right] = s:get_delims(1)  " disallow user input
   call s:pair_action(left, right, '"_d`z"_x', '"_d`z"_x', v:count1)
@@ -183,6 +184,7 @@ function! shortcuts#utils#delete_delims() abort
 endfunction
 
 " Change delims function, use input replacement text or existing mapped surround char
+" Todo: Fix this for identical left/right delimiters!!!
 function! shortcuts#utils#change_delims() abort
   let [lold, rold] = s:get_delims(1)  " disallow user input
   let [lnew, rnew] = s:get_delims(0)  " replacement delims possibly with user input
