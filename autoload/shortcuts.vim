@@ -76,18 +76,18 @@ function! shortcuts#process_delims(string, search) abort
         let part = '\' . char
       endif
     else
-      " Handle insertions between subsequent \1...\1, \2...\2, etc. occurrences
-      " Optionally insert user input
+      " Handle insertions between subsequent \1...\1, \2...\2, etc. occurrences and
+      " any \r<match>\r<replace> groups within the insertions
       let next = stridx(a:string, char, idx + 1)
-      if next != -1  " found more than one \1 instance
+      if next != -1  " have more than one \1, otherwise use the literal \1
         let part = repl_{char2nr(char)}
-        let substring = strpart(a:string, idx + 1, next - idx - 1)
-        let substring = matchstr(substring, '\r.*')
+        let substring = strpart(a:string, idx + 1, next - idx - 1)  " the query between \1...\1
+        let substring = matchstr(substring, '\r.*')  " a substitute initiation indication
         while substring =~# '^\r.*\r'
-          let matchstring = matchstr(substring, "^\r\\zs[^\r]*\r[^\r]*")
-          let substring = strpart(substring, strlen(matchstring) + 1)
-          let r = stridx(matchstring, "\r")
-          let part = substitute(part, strpart(matchstring, 0, r), strpart(matchstring, r + 1), '')
+          let matchstring = matchstr(substring, "^\r\\zs[^\r]*\r[^\r]*")  " a match and replace group
+          let substring = strpart(substring, strlen(matchstring) + 1)  " skip over the group
+          let r = stridx(matchstring, "\r")  " the delimiter between match and replace
+          let part = substitute(part, strpart(matchstring, 0, r), strpart(matchstring, r + 1), '')  " apply substitution as requested
         endwhile
         if a:search && idx == 0  " add start-of-word marker
           let part = filled . '\@<!' . part
