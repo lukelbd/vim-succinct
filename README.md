@@ -4,22 +4,24 @@ Vim shortcuts
 A set of utilities for efficiently working with delimiters, text objects, text snippets,
 and file templates. Includes the following features:
 
-* Adding custom delimiter keys with `AddDelims()`. This
+* Adding custom snippets with `shortcuts#add_snippets()`. Implementation is similar
+  to the internal [vim-surround](https://github.com/tpope/vim-surround) implementation;
+  `<C-d>-` is used to insert snippets, similar to `<C-s>-` for surround-delimiters.
+  Delimiters can be function handles that prompt for user input and return strings or
+  include `\1...\1` indicators (see `:help surround-customizing`).
+* Adding custom delimiter keys with `shortcuts#add_delims()`. This
   simultaneously defines [vim-surround](https://github.com/tpope/vim-surround)
   delimiters for operations like `yss-` and `<C-s>-`, and [vim-textobj](https://github.com/kana/vim-textobj-user)
   text objects for operations like `ca-`, `ci-`, `da-`, `di-`.
-  Delimiters can include prompts requiring user input.
+  Delimiters can be function handles that prompt for user input and
+  return strings or include `\1...\1` indicators (see `:help surround-customizing`).
 * Changing and deleting custom [vim-surround](https://github.com/tpope/vim-surround)
   delimiters with operations like `cs-` and `ds-`. Natively, vim-surround does
   not support this -- it only supports *inserting* custom delimiters with
   operations like `yss-` and `ysS-`.
-* Adding custom snippets with `AddSnippets()`. Implementation is similar
-  to the internal [vim-surround](https://github.com/tpope/vim-surround) implementation;
-  `<C-d>-` is used to insert snippets, similar to `<C-s>-` for surround-delimiters.
-  Snippets can be function handles that prompt for user input and return strings.
-* Displaying the custom snippets and surround-delimiters or fuzzy-search selecting
-  them using [fzf](https://github.com/junegunn/fzf). The fuzzy search
-  is invoked using `<C-d><C-d>` or `<C-s><C-s>`.
+* Displaying and selecting the available snippets and delimiters using
+  [fzf](https://github.com/junegunn/fzf) fuzzy-search selection. The fuzzy search
+  is invoked using `<C-d><C-d>` or `<C-s><C-s>` in insert mode.
 * Loading arbitrary file templates stored in `g:shortcuts_templates_path`
   using [fzf](https://github.com/junegunn/fzf) fuzzy-search selection. The fuzzy
   search is invoked when creating a new file and there are files in the templates

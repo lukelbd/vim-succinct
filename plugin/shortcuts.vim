@@ -37,7 +37,7 @@ augroup END
 " Note: Lowercase Isurround plug inserts delims without newlines. Instead of
 " using ISurround we define special begin end delims with newlines baked in.
 inoremap <Plug>ResetUndo <C-g>u
-inoremap <silent> <expr> <Plug>Isnippet shortcuts#insert_snippet()
+inoremap <silent> <expr> <Plug>Isnippet shortcuts#utils#insert_snippet()
 inoremap <silent> <expr> <Plug>PrevDelim shortcuts#utils#pum_close() . shortcuts#utils#prev_delim()
 inoremap <silent> <expr> <Plug>NextDelim shortcuts#utils#pum_close() . shortcuts#utils#next_delim()
 inoremap <silent> <Plug>IsnippetPick <C-o>:call fzf#run({

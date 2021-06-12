@@ -22,6 +22,46 @@ function! shortcuts#utils#template_read(file)
 endfunction
 
 "-----------------------------------------------------------------------------"
+" Snippet handling
+"-----------------------------------------------------------------------------"
+" Process snippet value
+function! s:process_snippet(input) abort
+  let output = type(a:input) == 2 ? a:input() : a:input  " run funcref function
+  return shortcuts#utils#user_input(output)  " handle \1...\1, \2...\2 pairs
+endfunction
+
+" Get character (copied from surround.vim)
+function! s:get_char() abort
+  let char = getchar()
+  if char =~# '^\d\+$'
+    let char = nr2char(char)
+  endif
+  if char =~# "\<Esc>" || char =~# "\<C-C>"
+    return ''
+  else
+    return char
+  endif
+endfunction
+
+" Add user-defined snippet, either a fixed string or user input with prefix/suffix
+function! shortcuts#utils#insert_snippet() abort
+  let pad = ''
+  let char = s:get_char()
+  if char =~# '\s'  " similar to surround, permit <C-d><Space><Key> to surround with space
+    let pad = char
+    let char = s:get_char()
+  endif
+  let snippet = ''
+  for scope in [g:, b:]
+    if !empty(char) && empty(snippet)  " skip if user cancelled (i.e. empty char)
+      let varname = 'snippet_' . char2nr(char)
+      let snippet = shortcuts#process_value(get(scope, varname, ''))
+    endif
+  endfor
+  return pad . snippet . pad
+endfunction
+
+"-----------------------------------------------------------------------------"
 " Selecting snippets and delimiters with FZF
 "-----------------------------------------------------------------------------"
 " Pick from source delimiters or snippets
@@ -174,7 +214,7 @@ function! s:get_delims(search) abort
   else
     let string = nr2char(cnum) . "\r" . nr2char(cnum)
   endif
-  let delims = shortcuts#process_delims(string, a:search)
+  let delims = shortcuts#process_value(string, a:search)
   return split(delims, "\r")
 endfunction
 
@@ -206,7 +246,7 @@ function! shortcuts#utils#reset_delims() abort
 endfunction
 
 "-----------------------------------------------------------------------------"
-" Complex text objects
+" Creating complex text objects
 "-----------------------------------------------------------------------------"
 " The leading comment character (with stripped whitespace)
 function! s:comment_char()
