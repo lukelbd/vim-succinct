@@ -45,6 +45,12 @@ endfunction
 "-----------------------------------------------------------------------------"
 " Snippet and delimiter processing
 "-----------------------------------------------------------------------------"
+" Escape special regex characters and replace newline with arbitrary spaces
+" to account for automatic indentation
+function! s:regex_escape(string) abort
+  return substitute(escape(a:string, '[]\.*$~'), "\n", '\\_s*', 'g')
+endfunction
+
 " Obtain and process delimiters. If a:search is true return regex suitable for
 " *searching* for delimiters with searchpair(), else return delimiters themselves.
 " Note: Adapted from vim-surround source code
@@ -52,13 +58,12 @@ function! shortcuts#process_value(value, ...) abort
   " Get delimiter string with filled replacement placeholders \1, \2, \3, ...
   " Note: We override the user input spot with a dummy search pattern when *searching*
   let search = a:0 && a:1 ? 1 : 0  " whether we are finding this delimiter or inserting it
-  let filled = '\%(\k\|\.\)'  " valid character for latex names, tag names, python methods and funcs
   let input = type(a:value) == 2 ? a:value() : a:value  " permit funcref input
   for insert in range(7)
-    let repl_{insert} = ''
-    if search
-      let repl_{insert} = filled . '\+'
-    else
+    " Search chars for latex names, tag names, python methods and funcs
+    " Note: First part required or searchpairpos() selects shortest match (e.g. only part of function call)
+    let repl_{insert} = '\%(\k\|\.\)\@<!\%(\k\|\.\)\+'
+    if !search
       let m = matchstr(input, nr2char(insert) . '.\{-\}\ze' . nr2char(insert))
       if m !=# ''  " get user input if pair was found
         let m = substitute(strpart(m, 1), '\r.*', '', '')
@@ -71,32 +76,28 @@ function! shortcuts#process_value(value, ...) abort
   let output = ''
   while idx < strlen(input)
     let char = strpart(input, idx, 1)
-    let part = char
     if char2nr(char) > 7
       " Add character, escaping magic characters
       " Note: char2nr("\1") is 1, char2nr("\2") is 2, etc.
-      if search && char ==# "\n"  " account for indentation for delimiters with built-in newlines
-        let part = '\_s*'
-      elseif search && char =~# '[][\.*$]'  " escape regex patterns
-        let part = '\' . char
-      endif
+      let part = search ? s:regex_escape(char) : char
     else
       " Handle insertions between subsequent \1...\1, \2...\2, etc. occurrences and any
       " <prompt>\r<match>\r<replace>\r<match>\r<replace>... groups within insertions
       let next = stridx(input, char, idx + 1)
-      if next != -1  " have more than one \1, otherwise use the literal \1
+      if next == -1
+        let part = char  " use the literal \1, \2, etc.
+      else
         let part = repl_{char2nr(char)}
         let query = strpart(input, idx + 1, next - idx - 1)  " the query between \1...\1
         let query = matchstr(query, '\r.*')  " a substitute initiation indication
         while query =~# '^\r.*\r'
-          let replace = matchstr(query, "^\r\\zs[^\r]*\r[^\r]*")  " a match and replace group
-          let r = stridx(replace, "\r")  " the delimiter between match and replace
-          let part = substitute(part, strpart(replace, 0, r), strpart(replace, r + 1), '')  " apply substitution as requested
-          let query = strpart(query, strlen(replace) + 1)  " skip over the group
+          let group = matchstr(query, "^\r\\zs[^\r]*\r[^\r]*")  " a match and replace group
+          let sub = strpart(group, 0, stridx(group, "\r"))  " the substitute
+          let repl = strpart(group, stridx(group, "\r") + 1)  " the replacement
+          let repl = search ? s:regex_escape(repl) : repl
+          let part = substitute(part, sub, repl, '')  " apply substitution as requested
+          let query = strpart(query, strlen(group) + 1)  " skip over the group
         endwhile
-        if search && idx == 0  " add start-of-word marker
-          let part = filled . '\@<!' . part
-        endif
         let idx = next
       endif
     endif
