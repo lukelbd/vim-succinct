@@ -88,39 +88,3 @@ call shortcuts#add_delims({
   \ 'f': "\1function: \1(\r)",
   \ 'A': "\1array: \1[\r]",
   \ })
-
-" Define global text objects with no associated delimiter (analogous to 'w', 'p', etc.)
-" Todo: Auto-define ] and [ navigation of text objects and delimiters?
-if exists('*textobj#user#plugin')
-  call textobj#user#plugin(
-    \ 'specialshortcuts', {
-    \   'line': {
-    \     'sfile': expand('<sfile>:p'),
-    \     'select-a-function': 'shortcuts#utils#current_line_a',
-    \     'select-i-function': 'shortcuts#utils#current_line_i',
-    \     'select-a': 'al',
-    \     'select-i': 'il',
-    \   },
-    \   'blanklines': {
-    \     'sfile': expand('<sfile>:p'),
-    \     'select-a-function': 'shortcuts#utils#blank_lines',
-    \     'select-i-function': 'shortcuts#utils#blank_lines',
-    \     'select-a': 'a<Space>',
-    \     'select-i': 'i<Space>',
-    \   },
-    \   'nonblanklines': {
-    \     'sfile': expand('<sfile>:p'),
-    \     'select-a-function': 'shortcuts#utils#nonblank_lines',
-    \     'select-i-function': 'shortcuts#utils#nonblank_lines',
-    \     'select-a': 'aP',
-    \     'select-i': 'iP',
-    \   },
-    \   'uncommented': {
-    \     'sfile': expand('<sfile>:p'),
-    \     'select-a-function': 'shortcuts#utils#uncommented_lines',
-    \     'select-i-function': 'shortcuts#utils#uncommented_lines',
-    \     'select-a': 'aC',
-    \     'select-i': 'iC',
-    \   },
-    \ })
-endif
