@@ -60,12 +60,14 @@ function! shortcuts#process_value(value, ...) abort
   let search = a:0 && a:1 ? 1 : 0  " whether we are finding this delimiter or inserting it
   let input = type(a:value) == 2 ? a:value() : a:value  " permit funcref input
   for insert in range(7)
-    " Search chars for latex names, tag names, python methods and funcs
-    " Note: First part required or searchpairpos() selects shortest match (e.g. only part of function call)
-    let repl_{insert} = '\%(\k\|\.\)\@<!\%(\k\|\.\)\+'
-    if !search
-      let m = matchstr(input, nr2char(insert) . '.\{-\}\ze' . nr2char(insert))
-      if m !=# ''  " get user input if pair was found
+    let m = matchstr(input, nr2char(insert) . '.\{-\}\ze' . nr2char(insert))
+    if !empty(m)  " get user input if pair was found
+      if search
+        " Search chars for latex names, tag names, python methods and funcs
+        " Note: First part required or searchpairpos() selects shortest match (e.g. only part of function call)
+        let repl_{insert} = '\%(\k\|\.\)\@<!\%(\k\|\.\)\+'
+      else
+        " Insert user-input chars
         let m = substitute(strpart(m, 1), '\r.*', '', '')
         let repl_{insert} = input(match(m, '\w\+$') >= 0 ? m . ': ' : m)
       endif
