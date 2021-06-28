@@ -36,18 +36,12 @@ Mappings
 
 | Mapping | Description |
 | ---- | ---- |
-| `<C-d><key>` | These are maps for inserting citation labels (`<C-d>;`), figure filenames (`<C-d>:`), and text snippets (`<C-d><KEY>`) in insert mode (see [surround.vim](after/plugin/surround.vim) for details).  Example usage includes typing `<C-d>a` in insert mode to insert the TeX alpha character `\alpha`. |
-| `<C-s><key>`, `ys<obj><key>`, ... | New `surround.vim` delimiter mappings. These are custom delimiters integrated with the `surround.vim` plugin, introducing a series of insert, visual, and normal mode maps (see [surround.vim](after/plugin/surround.vim) for details). Example usage includes making a visual selection and pressing `<C-s>*` to surround the selection with a `\begin{itemize}` `\end{itemize}` environment, or running `yswb` in normal mode to surround the word under the cursor with `\textbf{}`.
-| `va<key>`, `vi<key>`, ... | New text object mappings. These are custom delimiters integrated with the `vim-textobj-user` plugin for selecting, yanking, changing, and deleting blocks of text with `va<key>`, `ya<key>`, etc (see [textobjs.vim](after/plugin/textobjs.vim) for details). Example usage includes selecting a LaTeX `\begin{}` `\end{}` environment with `vaT`, or changing text inside a LaTeX command with `cit`. |
-| `<C-h>`, `<C-l>` | Jumps to the left, right of the previous, next bracket in insert mode (i.e. any of the characters `[]<>(){}`). This is handy when the cursor is inside a complex next of varying types of delimiters, a common difficulty when writing LaTeX equations. It stands in contrast to delimitMate's `<Plug>delimitMateJumpMany` map, which jumps to the far outside of nested delimiters. |
-
-Functions
----------
-
-| Function | Description |
-| ---- | ---- |
-| `shortcuts#delete_delims` | The existing [vim-surround](https://github.com/tpope/vim-surround) API can only handle deleting certain types of delimiters, not custom delimiters set with `g:surround_{num}` or `b:surround_{num}`. Calling this function deletes the *arbitrary* delimiter corresponding to the next keystroke (usage is `ds<key>`). |
-| `shortcuts#change_delims` | The existing [vim-surround](https://github.com/tpope/vim-surround) API can only handle changing certain types of delimiters, not custom delimiters set with `g:surround_{num}` or `b:surround_{num}`. Calling this function changes the delimiter corresponding to the first keystroke to the *arbitrary* delimiter corresponding to the second keystroke (usage is `cs<key1><key2>`). |
+| `<C-d><key>` | Add user-defined snippets in insert mode defined with `shortcuts#add_snippets()`. |
+| `<C-s><key>`, `ysiw<key>`, ... | Add default and user-defined delimiters in insert, visual, or normal mode defined with `shortcuts#add_delims`. |
+| `va<key>`, `ci<key>`, ... | Yank, change, delete, or select inside or around default and user-defined text objects. Note `shortcuts#add_delims` also adds delimiters as text objects with the same key. |
+| `<C-h>`, `<C-l>` | Jump to the left, right of the previous, next quote or delimiter in insert mode. Note delimitMate's `<Plug>delimitMateJumpMany` jumps to the far outside of nested delimiters. |
+| `cs<key><key>` | Change default or user-defined delimiter from the given key to the next key. |
+| `ds<key>` | Delete default or user-defined delimiter corresponding to the given key. |
 
 Customization
 -------------
