@@ -1,6 +1,11 @@
 "-----------------------------------------------------------------------------"
 " Snippet and delimiter registering
 "-----------------------------------------------------------------------------"
+" Escape command separator character for strings interpreted as mapping declarations
+function! s:map_escape(string) abort
+  return escape(a:string, '|')
+endfunction
+
 " Adding snippet variables
 function! shortcuts#add_snippets(map, ...) abort
   let src = a:0 && a:1 ? b: : g:
@@ -22,17 +27,17 @@ function! shortcuts#add_delims(map, ...) abort
     if pattern[0] ==# pattern[1]  " special handling if delims are identical, e.g. $$
       let dest['textobj_' . char2nr(key) . '_i'] = {
         \ 'pattern': pattern[0] . '\zs.\{-}\ze' . pattern[0],
-        \ 'select': flag . 'i' . escape(key, '|'),
+        \ 'select': flag . 'i' . s:map_escape(key),
         \ }
       let dest['textobj_' . char2nr(key) . '_a'] = {
         \ 'pattern': pattern[0] . '.\{-}' . pattern[0],
-        \ 'select': flag . 'a' . escape(key, '|'),
+        \ 'select': flag . 'a' . s:map_escape(key),
         \ }
     else
       let dest['textobj_' . char2nr(key)] = {
         \ 'pattern': pattern,
-        \ 'select-a': flag . 'a' . escape(key, '|'),
-        \ 'select-i': flag . 'i' . escape(key, '|'),
+        \ 'select-a': flag . 'a' . s:map_escape(key),
+        \ 'select-i': flag . 'i' . s:map_escape(key),
         \ }
     endif
   endfor
