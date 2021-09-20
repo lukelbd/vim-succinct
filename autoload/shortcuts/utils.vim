@@ -121,16 +121,25 @@ endfunction
 " 'current position' (i.e. getpos('.') after e.g. cursor()) changes inside function
 function! shortcuts#utils#prev_delim() abort
   let [_, lorig, corig, _] = getpos('.')
-  call search(s:delim_regex(), 'ebW')
-  if col('.') > corig - 2 | call search(s:delim_regex(), 'ebW') | endif
+  call search(s:delim_regex(), 'eb')
+  if col('.') > corig - 2 | call search(s:delim_regex(), 'eb') | endif
   return s:move_cursor(line('.'), col('.') + 1, lorig, corig)
 endfunction
 
 " Move to right of next delim. Why starting from current position? Even if cursor is on
 " delimiter, want to find it and move to the right of it
+" Warning: Cannot use search() because it fails to detect current column. Could
+" use setpos() but then if fail to find delim that moves cursor which is weird.
 function! shortcuts#utils#next_delim() abort
   let [_, lorig, corig, _] = getpos('.')
-  call search(s:delim_regex(), 'eW')
+  let [lsearch, csearch] = [lorig, corig]
+  if csearch == 1
+    let lsearch = max([1, lsearch - 1])
+    exe lsearch
+    let csearch = col('$')
+  endif
+  call cursor(lsearch, csearch - 1)
+  call search(s:delim_regex(), 'e')
   return s:move_cursor(line('.'), col('.') + 1, lorig, corig)
 endfunction
 

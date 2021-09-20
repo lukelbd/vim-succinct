@@ -70,7 +70,8 @@ function! shortcuts#process_value(value, ...) abort
       if search
         " Search chars for latex names, tag names, python methods and funcs
         " Note: First part required or searchpairpos() selects shortest match (e.g. only part of function call)
-        let repl_{insert} = '\%(\k\|\.\)\@<!\%(\k\|\.\)\+'
+        let s = '\%(\k\|\.\|\*\)'  " e.g. foo.bar() or \section*{}
+        let repl_{insert} = s . '\@<!' . s . '\+'
       else
         " Insert user-input chars
         let m = substitute(strpart(m, 1), '\r.*', '', '')
