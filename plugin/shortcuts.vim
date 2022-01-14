@@ -70,6 +70,7 @@ nmap <expr> cs shortcuts#utils#reset_delims() . "\<Plug>ShortcutsChangeDelims"
 " Define $global$ *delimiters* and text objects
 " Note: For surrounding with spaces just hit space twice
 call shortcuts#add_delims({
+  \ '': "\n\r\n",
   \ "'": "'\r'",
   \ '"': "\"\r\"",
   \ 'q': "‘\r’",
