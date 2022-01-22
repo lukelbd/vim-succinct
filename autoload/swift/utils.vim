@@ -2,10 +2,10 @@
 " File template handling
 "-----------------------------------------------------------------------------"
 " Return list of templates
-function! shortcuts#utils#template_source(ext) abort
+function! swift#utils#template_source(ext) abort
   let paths = []
-  if exists('g:shortcuts_templates_path')
-    let paths = split(globpath(g:shortcuts_templates_path, '*.' . a:ext), "\n")
+  if exists('g:swift_templates_path')
+    let paths = split(globpath(g:swift_templates_path, '*.' . a:ext), "\n")
     let paths = map(paths, 'fnamemodify(v:val, ":t")')
   endif
   if !empty(paths)
@@ -15,9 +15,9 @@ function! shortcuts#utils#template_source(ext) abort
 endfunction
 
 " Load template contents
-function! shortcuts#utils#template_read(file)
-  if exists('g:shortcuts_templates_path') && !empty(a:file)
-    execute '0r ' . g:shortcuts_templates_path . '/' . a:file
+function! swift#utils#template_read(file)
+  if exists('g:swift_templates_path') && !empty(a:file)
+    execute '0r ' . g:swift_templates_path . '/' . a:file
   endif
 endfunction
 
@@ -27,7 +27,7 @@ endfunction
 " Process snippet value
 function! s:process_snippet(input) abort
   let output = type(a:input) == 2 ? a:input() : a:input  " run funcref function
-  return shortcuts#utils#user_input(output)  " handle \1...\1, \2...\2 pairs
+  return swift#utils#user_input(output)  " handle \1...\1, \2...\2 pairs
 endfunction
 
 " Get character (copied from surround.vim)
@@ -44,7 +44,7 @@ function! s:get_char() abort
 endfunction
 
 " Add user-defined snippet, either a fixed string or user input with prefix/suffix
-function! shortcuts#utils#insert_snippet() abort
+function! swift#utils#insert_snippet() abort
   let pad = ''
   let char = s:get_char()
   if char =~# '\s'  " similar to surround, permit <C-d><Space><Key> to surround with space
@@ -55,7 +55,7 @@ function! shortcuts#utils#insert_snippet() abort
   for scope in [g:, b:]
     if !empty(char) && empty(snippet)  " skip if user cancelled (i.e. empty char)
       let varname = 'snippet_' . char2nr(char)
-      let snippet = shortcuts#process_value(get(scope, varname, ''))
+      let snippet = swift#process_value(get(scope, varname, ''))
     endif
   endfor
   return pad . snippet . pad
@@ -65,7 +65,7 @@ endfunction
 " Selecting snippets and delimiters with FZF
 "-----------------------------------------------------------------------------"
 " Pick from source delimiters or snippets
-function! shortcuts#utils#pick_source(string) abort
+function! swift#utils#pick_source(string) abort
   let map = {}
   for prefix in ['g:', 'b:']
     let vars = getcompletion(prefix . a:string . '_', 'var')
@@ -82,10 +82,10 @@ function! shortcuts#utils#pick_source(string) abort
 endfunction
 
 " Apply delimiter or snippet
-function! shortcuts#utils#pick_snippet_sink(item)
+function! swift#utils#pick_snippet_sink(item)
   call feedkeys("\<Plug>Isnippet" . split(a:item, ':')[0])
 endfunction
-function! shortcuts#utils#pick_surround_sink(item)
+function! swift#utils#pick_surround_sink(item)
   call feedkeys("\<Plug>Isurround" . split(a:item, ':')[0])
 endfunction
 
@@ -105,7 +105,7 @@ function! s:move_cursor(lnum, cnum, lorig, corig) abort
 endfunction
 
 " Delimiter regular expression using delimitMate and matchpairs
-" Shortcuts delimiter jumping is improved
+" swift delimiter jumping is improved
 function! s:delim_regex() abort
   let delims = exists('b:delimitMate_matchpairs') ? b:delimitMate_matchpairs
     \ : exists('g:delimitMate_matchpairs') ? g:delimitMate_matchpairs : &matchpairs
@@ -119,7 +119,7 @@ endfunction
 " Move to right of previous delim  ( [ [ ( "  "  asd) sdf    ]  sdd   ]  as) h adfas)
 " Warning: Calls to e.g. cursor() fail to move cursor in insert mode, even though
 " 'current position' (i.e. getpos('.') after e.g. cursor()) changes inside function
-function! shortcuts#utils#prev_delim() abort
+function! swift#utils#prev_delim() abort
   let [_, lorig, corig, _] = getpos('.')
   call search(s:delim_regex(), 'eb')
   if col('.') > corig - 2 | call search(s:delim_regex(), 'eb') | endif
@@ -130,7 +130,7 @@ endfunction
 " delimiter, want to find it and move to the right of it
 " Warning: Cannot use search() because it fails to detect current column. Could
 " use setpos() but then if fail to find delim that moves cursor which is weird.
-function! shortcuts#utils#next_delim() abort
+function! swift#utils#next_delim() abort
   let [_, lorig, corig, _] = getpos('.')
   let [lsearch, csearch] = [lorig, corig]
   if csearch == 1
@@ -145,7 +145,7 @@ endfunction
 
 " Special popup menu behavior just for me and my .vimrc!
 " No one has to know ;)
-function! shortcuts#utils#pum_close() abort
+function! swift#utils#pum_close() abort
   if !pumvisible() || !exists('b:pum_pos')
     return ''
   elseif b:pum_pos
@@ -209,11 +209,11 @@ endfunction
 function! s:get_delims(search) abort
   " Handle repeated actions
   if a:search
-    let cnum = exists('b:shortcuts_searchdelim') ? b:shortcuts_searchdelim : getchar()
-    let b:shortcuts_searchdelim = cnum
+    let cnum = exists('b:swift_searchdelim') ? b:swift_searchdelim : getchar()
+    let b:swift_searchdelim = cnum
   else
-    let cnum = exists('b:shortcuts_replacedelim') ? b:shortcuts_replacedelim : getchar()
-    let b:shortcuts_replacedelim = cnum
+    let cnum = exists('b:swift_replacedelim') ? b:swift_replacedelim : getchar()
+    let b:swift_replacedelim = cnum
   endif
   " Get delimiters
   if exists('b:surround_' . cnum)
@@ -223,33 +223,33 @@ function! s:get_delims(search) abort
   else
     let string = nr2char(cnum) . "\r" . nr2char(cnum)
   endif
-  let delims = shortcuts#process_value(string, a:search)
+  let delims = swift#process_value(string, a:search)
   return split(delims, "\r")
 endfunction
 
 " Delete delims function
 " Todo: Fix this for identical left/right delimiters!!!
-function! shortcuts#utils#delete_delims() abort
+function! swift#utils#delete_delims() abort
   let [left, right] = s:get_delims(1)  " disallow user input
   call s:pair_action(left, right, '"_d`z"_x', '"_d`z"_x', v:count1)
   if exists('*repeat#set')
-    call repeat#set("\<Plug>ShortcutsDeleteDelims")
+    call repeat#set("\<Plug>SwiftDeleteDelims")
   endif
 endfunction
 
 " Change delims function, use input replacement text or existing mapped surround char
 " Todo: Fix this for identical left/right delimiters!!!
-function! shortcuts#utils#change_delims() abort
+function! swift#utils#change_delims() abort
   let [lold, rold] = s:get_delims(1)  " disallow user input
   let [lnew, rnew] = s:get_delims(0)  " replacement delims possibly with user input
   call s:pair_action(lold, rold, '"_c`z' . lnew . "\<Delete>", '"_c`z' . rnew . "\<Delete>", v:count1)
   if exists('*repeat#set')
-    call repeat#set("\<Plug>ShortcutsChangeDelims")
+    call repeat#set("\<Plug>SwiftChangeDelims")
   endif
 endfunction
 
 " Reset previous delimiter
-function! shortcuts#utils#reset_delims() abort
-  silent! unlet b:shortcuts_searchdelim b:shortcuts_replacedelim
+function! swift#utils#reset_delims() abort
+  silent! unlet b:swift_searchdelim b:swift_replacedelim
   return ''
 endfunction
