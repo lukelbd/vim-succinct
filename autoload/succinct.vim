@@ -7,7 +7,7 @@ function! s:map_escape(string) abort
 endfunction
 
 " Adding snippet variables
-function! swift#add_snippets(map, ...) abort
+function! succinct#add_snippets(map, ...) abort
   let src = a:0 && a:1 ? b: : g:
   for [key, s:val] in items(a:map)
     let src['snippet_' . char2nr(key)] = s:val  " must be s: scope in case it is a function!
@@ -15,7 +15,7 @@ function! swift#add_snippets(map, ...) abort
 endfunction
 
 " Simultaneously adding delimiters and text objects
-function! swift#add_delims(map, ...) abort
+function! succinct#add_delims(map, ...) abort
   let src = a:0 && a:1 ? b: : g:
   for [key, s:val] in items(a:map)
     let src['surround_' . char2nr(key)] = s:val
@@ -23,7 +23,7 @@ function! swift#add_delims(map, ...) abort
   let dest = {}
   let flag = a:0 && a:1 ? '<buffer> ' : ''
   for [key, delim] in items(a:map)
-    let pattern = split(swift#process_value(delim, 1), "\r")
+    let pattern = split(succinct#process_value(delim, 1), "\r")
     if pattern[0] ==# pattern[1]  " special handling if delims are identical, e.g. $$
       let dest['textobj_' . char2nr(key) . '_i'] = {
         \ 'pattern': pattern[0] . '\zs.\{-}\ze' . pattern[0],
@@ -43,7 +43,7 @@ function! swift#add_delims(map, ...) abort
   endfor
   if exists('*textobj#user#plugin')
     let name = a:0 && a:1 ? &filetype : 'global'  " assign name, avoiding conflicts
-    call textobj#user#plugin(name . 'swift', dest)
+    call textobj#user#plugin(name . 'succinct', dest)
   endif
 endfunction
 
@@ -59,7 +59,7 @@ endfunction
 " Obtain and process delimiters. If a:search is true return regex suitable for
 " *searching* for delimiters with searchpair(), else return delimiters themselves.
 " Note: Adapted from vim-surround source code
-function! swift#process_value(value, ...) abort
+function! succinct#process_value(value, ...) abort
   " Get delimiter string with filled replacement placeholders \1, \2, \3, ...
   " Note: We override the user input spot with a dummy search pattern when *searching*
   let search = a:0 && a:1 ? 1 : 0  " whether we are finding this delimiter or inserting it
