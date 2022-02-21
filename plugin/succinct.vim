@@ -21,8 +21,9 @@ endif
 "-----------------------------------------------------------------------------"
 " Default commands, mappings, delims, and text objects
 "-----------------------------------------------------------------------------"
-" Template selection
+" Apply fzf utilities for template, delimiter, and snippet selection
 " Note: Arguments passed to function() partial are passed to underlying func first.
+" Note: Cannot test exists('*fzf#run') or else depends on plug load order.
 augroup succinct
   au!
   au BufNewFile * if exists('*fzf#run') | call fzf#run({
@@ -32,14 +33,6 @@ augroup succinct
     \ 'sink': function('succinct#utils#template_read'),
     \ }) | endif
 augroup END
-
-" Apply plugin mappings
-" Note: Lowercase Isurround plug inserts delims without newlines. Instead of
-" using ISurround we define special begin end delims with newlines baked in.
-inoremap <Plug>ResetUndo <C-g>u
-inoremap <silent> <expr> <Plug>Isnippet succinct#utils#insert_snippet()
-inoremap <silent> <expr> <Plug>PrevDelim succinct#utils#pum_close() . succinct#utils#prev_delim()
-inoremap <silent> <expr> <Plug>NextDelim succinct#utils#pum_close() . succinct#utils#next_delim()
 inoremap <silent> <Plug>IsnippetPick <C-o>:call fzf#run({
   \ 'source': succinct#utils#pick_source('snippet'),
   \ 'options': '--no-sort --prompt="Snippet> "',
@@ -52,20 +45,26 @@ inoremap <silent> <Plug>IsurroundPick <C-o>:call fzf#run({
   \ 'down': '~30%',
   \ 'sink': function('succinct#utils#pick_surround_sink'),
   \ })<CR>
+exe 'imap ' . repeat(g:succinct_surround_prefix, 2) . ' <Plug>IsurroundPick'
+exe 'imap ' . repeat(g:succinct_snippet_prefix, 2) . ' <Plug>IsnippetPick'
 
-" Apply custom prefixes
-" Warning: <C-u> required to remove range resulting from <count>: action
+" Apply delimiter navigation and modification mappings
+" Note: <C-u> is required to remove range resulting from <count>: action
+" Note: Lowercase Isurround plug inserts delims without newlines. Instead
+" they can be added by pressing <CR> before the delim name (similar to space).
+inoremap <Plug>ResetUndo <C-g>u
+inoremap <silent> <expr> <Plug>Isnippet succinct#utils#insert_snippet()
+inoremap <silent> <expr> <Plug>PrevDelim succinct#utils#pum_close() . succinct#utils#prev_delim()
+inoremap <silent> <expr> <Plug>NextDelim succinct#utils#pum_close() . succinct#utils#next_delim()
+nnoremap <silent> <Plug>DeleteDelim :<C-u>call succinct#utils#delete_delims()<CR>
+nnoremap <silent> <Plug>ChangeDelim :<C-u>call succinct#utils#change_delims()<CR>
 exe 'vmap ' . g:succinct_surround_prefix . ' <Plug>VSurround'
 exe 'imap ' . g:succinct_surround_prefix . ' <Plug>ResetUndo<Plug>Isurround'
 exe 'imap ' . g:succinct_snippet_prefix . ' <Plug>ResetUndo<Plug>Isnippet'
 exe 'imap ' . g:succinct_prevdelim_map . ' <Plug>PrevDelim'
 exe 'imap ' . g:succinct_nextdelim_map . ' <Plug>NextDelim'
-exe 'imap ' . repeat(g:succinct_surround_prefix, 2) . ' <Plug>IsurroundPick'
-exe 'imap ' . repeat(g:succinct_snippet_prefix, 2) . ' <Plug>IsnippetPick'
-nnoremap <silent> <Plug>SuccinctDeleteDelims :<C-u>call succinct#utils#delete_delims()<CR>
-nnoremap <silent> <Plug>SuccinctChangeDelims :<C-u>call succinct#utils#change_delims()<CR>
-nmap <expr> ds succinct#utils#reset_delims() . "\<Plug>SuccinctDeleteDelims"
-nmap <expr> cs succinct#utils#reset_delims() . "\<Plug>SuccinctChangeDelims"
+nmap <expr> ds succinct#utils#reset_delims() . "\<Plug>DeleteDelim"
+nmap <expr> cs succinct#utils#reset_delims() . "\<Plug>ChangeDelim"
 
 " Define $global$ *delimiters* and text objects
 " Note: For surrounding with spaces just hit space twice
