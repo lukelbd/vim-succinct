@@ -6,6 +6,7 @@ function! succinct#utils#template_source(ext) abort
   let paths = []
   if exists('g:succinct_templates_path')
     let paths = split(globpath(g:succinct_templates_path, '*.' . a:ext), "\n")
+    let paths = filter(paths, '!isdirectory(v:val)')
     let paths = map(paths, 'fnamemodify(v:val, ":t")')
   endif
   if !empty(paths)
