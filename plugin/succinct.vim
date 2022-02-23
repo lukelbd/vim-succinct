@@ -22,17 +22,15 @@ endif
 " Default commands, mappings, delims, and text objects
 "-----------------------------------------------------------------------------"
 " Template selection with safety measures
-" Note: Cannot test exists('*fzf#run') or else depends on plug load order.
+" Note: If statement must be embedded in function to avoid race condition issues
 function! s:select_template() abort
-  if !exists('*fzf#run') | return | endif
   let templates = succinct#utils#template_source(expand('%:e'))
-  if empty(templates) | return | endif
-  call fzf#run({
+  if empty(templates) || !exists('*fzf#run') | return | endif
+  call fzf#run(fzf#wrap({
     \ 'source': templates,
     \ 'options': '--no-sort --prompt="Template> "',
-    \ 'down': '~30%',
     \ 'sink': function('succinct#utils#template_read'),
-    \ })
+    \ }))
 endfunction
 augroup succinct
   au!
@@ -41,18 +39,20 @@ augroup END
 
 " Fuzzy delimiter and snippet selection
 " Note: Arguments passed to function() partial are passed to underlying func first.
-inoremap <silent> <Plug>IsnippetPick <C-o>:call fzf#run({
+inoremap <silent> <Plug>IsnippetPick
+  \ <C-o>:if exists('*fzf#run') \| call fzf#run(fzf#wrap({
   \ 'source': succinct#utils#pick_source('snippet'),
   \ 'options': '--no-sort --prompt="Snippet> "',
   \ 'down': '~30%',
   \ 'sink': function('succinct#utils#pick_snippet_sink'),
-  \ })<CR>
-inoremap <silent> <Plug>IsurroundPick <C-o>:call fzf#run({
+  \ })) \| endif<CR>
+inoremap <silent> <Plug>IsurroundPick
+  \ <C-o>:if exists('*fzf#run') \| call fzf#run(fzf#wrap({
   \ 'source': succinct#utils#pick_source('surround'),
   \ 'options': '--no-sort --prompt="Surround> "',
   \ 'down': '~30%',
   \ 'sink': function('succinct#utils#pick_surround_sink'),
-  \ })<CR>
+  \ })) \| endif<CR>
 exe 'imap ' . repeat(g:succinct_surround_prefix, 2) . ' <Plug>IsurroundPick'
 exe 'imap ' . repeat(g:succinct_snippet_prefix, 2) . ' <Plug>IsnippetPick'
 
