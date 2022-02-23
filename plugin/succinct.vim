@@ -21,18 +21,26 @@ endif
 "-----------------------------------------------------------------------------"
 " Default commands, mappings, delims, and text objects
 "-----------------------------------------------------------------------------"
-" Apply fzf utilities for template, delimiter, and snippet selection
-" Note: Arguments passed to function() partial are passed to underlying func first.
+" Template selection with safety measures
 " Note: Cannot test exists('*fzf#run') or else depends on plug load order.
-augroup succinct
-  au!
-  au BufNewFile * if exists('*fzf#run') | call fzf#run({
-    \ 'source': succinct#utils#template_source(expand('<afile>:e')),
+function! s:select_template() abort
+  if !exists('*fzf#run') | return | endif
+  let templates = succinct#utils#template_source(expand('%:e'))
+  if empty(templates) | return | endif
+  call fzf#run({
+    \ 'source': templates,
     \ 'options': '--no-sort --prompt="Template> "',
     \ 'down': '~30%',
     \ 'sink': function('succinct#utils#template_read'),
-    \ }) | endif
+    \ })
+endfunction
+augroup succinct
+  au!
+  au BufNewFile * call s:select_template()
 augroup END
+
+" Fuzzy delimiter and snippet selection
+" Note: Arguments passed to function() partial are passed to underlying func first.
 inoremap <silent> <Plug>IsnippetPick <C-o>:call fzf#run({
   \ 'source': succinct#utils#pick_source('snippet'),
   \ 'options': '--no-sort --prompt="Snippet> "',
@@ -48,7 +56,7 @@ inoremap <silent> <Plug>IsurroundPick <C-o>:call fzf#run({
 exe 'imap ' . repeat(g:succinct_surround_prefix, 2) . ' <Plug>IsurroundPick'
 exe 'imap ' . repeat(g:succinct_snippet_prefix, 2) . ' <Plug>IsnippetPick'
 
-" Apply delimiter navigation and modification mappings
+" Delimiter navigation and modification mappings
 " Note: <C-u> is required to remove range resulting from <count>: action
 " Note: Lowercase Isurround plug inserts delims without newlines. Instead
 " they can be added by pressing <CR> before the delim name (similar to space).
