@@ -74,6 +74,7 @@ exe 'imap ' . g:succinct_nextdelim_map . ' <Plug>NextDelim'
 nmap <expr> ds succinct#utils#reset_delims() . "\<Plug>DeleteDelim"
 nmap <expr> cs succinct#utils#reset_delims() . "\<Plug>ChangeDelim"
 
+
 " Define $global$ *delimiters* and text objects
 " Note: For surrounding with spaces just hit space twice
 call succinct#add_delims({

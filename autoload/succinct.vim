@@ -6,7 +6,7 @@ function! s:map_escape(string) abort
   return escape(a:string, '|')
 endfunction
 
-" Adding snippet variables
+" Add snippet variables
 function! succinct#add_snippets(map, ...) abort
   let src = a:0 && a:1 ? b: : g:
   for [key, s:val] in items(a:map)
@@ -14,7 +14,7 @@ function! succinct#add_snippets(map, ...) abort
   endfor
 endfunction
 
-" Simultaneously adding delimiters and text objects
+" Add delimiters and text objects simultaneously
 function! succinct#add_delims(map, ...) abort
   let src = a:0 && a:1 ? b: : g:
   for [key, s:val] in items(a:map)
