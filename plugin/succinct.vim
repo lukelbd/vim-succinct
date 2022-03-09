@@ -40,14 +40,14 @@ augroup END
 " Fuzzy delimiter and snippet selection
 " Note: Arguments passed to function() partial are passed to underlying func first.
 inoremap <silent> <Plug>IsnippetPick
-  \ <C-o>:if exists('*fzf#run') \| call fzf#run(fzf#wrap({
+  \ <Cmd>if exists('*fzf#run') \| call fzf#run(fzf#wrap({
   \ 'source': succinct#utils#pick_source('snippet'),
   \ 'options': '--no-sort --prompt="Snippet> "',
   \ 'down': '~30%',
   \ 'sink': function('succinct#utils#pick_snippet_sink'),
   \ })) \| endif<CR>
-inoremap <silent> <Plug>IsurroundPick
-  \ <C-o>:if exists('*fzf#run') \| call fzf#run(fzf#wrap({
+inoremap <Plug>IsurroundPick
+  \ <Cmd>if exists('*fzf#run') \| call fzf#run(fzf#wrap({
   \ 'source': succinct#utils#pick_source('surround'),
   \ 'options': '--no-sort --prompt="Surround> "',
   \ 'down': '~30%',
@@ -61,11 +61,11 @@ exe 'imap ' . repeat(g:succinct_snippet_prefix, 2) . ' <Plug>IsnippetPick'
 " Note: Lowercase Isurround plug inserts delims without newlines. Instead
 " they can be added by pressing <CR> before the delim name (similar to space).
 inoremap <Plug>ResetUndo <C-g>u
-inoremap <silent> <expr> <Plug>Isnippet succinct#utils#insert_snippet()
-inoremap <silent> <expr> <Plug>PrevDelim succinct#utils#pum_close() . succinct#utils#prev_delim()
-inoremap <silent> <expr> <Plug>NextDelim succinct#utils#pum_close() . succinct#utils#next_delim()
-nnoremap <silent> <Plug>DeleteDelim :<C-u>call succinct#utils#delete_delims()<CR>
-nnoremap <silent> <Plug>ChangeDelim :<C-u>call succinct#utils#change_delims()<CR>
+inoremap <expr> <Plug>Isnippet succinct#utils#insert_snippet()
+inoremap <expr> <Plug>PrevDelim succinct#utils#pum_close() . succinct#utils#prev_delim()
+inoremap <expr> <Plug>NextDelim succinct#utils#pum_close() . succinct#utils#next_delim()
+nnoremap <Plug>DeleteDelim <Cmd>call succinct#utils#delete_delims()<CR>
+nnoremap <Plug>ChangeDelim <Cmd>call succinct#utils#change_delims()<CR>
 exe 'vmap ' . g:succinct_surround_prefix . ' <Plug>VSurround'
 exe 'imap ' . g:succinct_surround_prefix . ' <Plug>ResetUndo<Plug>Isurround'
 exe 'imap ' . g:succinct_snippet_prefix . ' <Plug>ResetUndo<Plug>Isnippet'
