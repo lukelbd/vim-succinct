@@ -48,7 +48,7 @@ endfunction
 function! succinct#utils#insert_snippet() abort
   let pad = ''
   let char = s:get_char()
-  if char =~# '\s'  " similar to surround, permit <C-d><Space><Key> to surround with space
+  if char =~# '\s'  " similar to surround, permit <C-a><Space><Key> to surround with space
     let pad = char
     let char = s:get_char()
   endif

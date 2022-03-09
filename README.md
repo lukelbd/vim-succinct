@@ -5,14 +5,17 @@ A suite of utilities for succincty editing documents using delimiters, text obje
 text snippets, and file templates. Includes the following features:
 
 * Adding custom delimiter keys with `succinct#add_delims()`. This simultaneously defines
-  [vim-surround](https://github.com/tpope/vim-surround) delimiters for operations like
-  `yss-` and `<C-s>-`, and [vim-textobj](https://github.com/kana/vim-textobj-user) text
-  objects for operations like `ca-`, `ci-`, `da-`, `di-`. The delimiters can be function
-  handles that prompt for user input and return strings or include `\1...\1` indicators
-  (see `:help surround-customizing`).
+  [vim-surround](https://github.com/tpope/vim-surround) delimiters for normal mode
+  operations like `yss-` and visual and insert mode operations like `<C-s>-`, as well as
+  [vim-textobj](https://github.com/kana/vim-textobj-user) text objects for normal mode
+  operations like `ca-`, `ci-`, `da-`, `di-`. The delimiters can include `\1...\1`
+  indicators (see
+  `:help surround-customizing`).
+  be function handles
+  that prompt for user input and return strings or
 * Adding custom snippet keys with `succinct#add_snippets()`. Implementation is similar to
   the internal [vim-surround](https://github.com/tpope/vim-surround) implementation;
-  `<C-d>-` is used to insert snippets, similar to `<C-s>-` for surround-delimiters.
+  `<C-a>-` is used to insert snippets, similar to `<C-s>-` for surround-delimiters.
   Delimiters can be function handles that prompt for user input and return strings or
   include `\1...\1` indicators (see `:help surround-customizing`).
 * Changing and deleting custom [vim-surround](https://github.com/tpope/vim-surround)
@@ -24,7 +27,7 @@ text snippets, and file templates. Includes the following features:
   `<C-h>` and `<C-l>`, and displaying and selecting from available
   [vim-surround](https://github.com/tpope/vim-surround) snippets and delimiters using
   [fzf](https://github.com/junegunn/fzf) fuzzy-search selection with the insert mode
-  mappings `<C-d><C-d>` and `<C-s><C-s>`.
+  mappings `<C-a><C-a>` and `<C-s><C-s>`.
 * Loading arbitrary file templates stored in `g:succinct_templates_path` using
   [fzf](https://github.com/junegunn/fzf) fuzzy-search selection. The fuzzy search is
   invoked when creating a new file and when there are files in the templates folder with
@@ -39,22 +42,22 @@ Mappings
 
 | Mapping | Description |
 | ---- | ---- |
-| `<C-d><key>` | Add user-defined snippets in insert mode defined with `succinct#add_snippets()`. |
-| `<C-s><key>`, `ysiw<key>`, ... | Add default and user-defined delimiters in insert, visual, or normal mode defined with `succinct#add_delims`. |
-| `va<key>`, `ci<key>`, ... | Yank, change, delete, or select inside or around default and user-defined text objects. Note `succinct#add_delims` also adds delimiters as text objects with the same key. |
-| `<C-h>`, `<C-l>` | Jump to the left, right of the previous, next quote or delimiter in insert mode. Note delimitMate's `<Plug>delimitMateJumpMany` jumps to the far outside of nested delimiters. |
-| `cs<key><key>` | Change default or user-defined delimiter from the given key to the next key. |
-| `ds<key>` | Delete default or user-defined delimiter corresponding to the given key. |
+| `<C-a><key>` | Add a user-defined `succinct#add_snippets()` snippet during insert mode. |
+| `<C-s><key>`, `ysiw<key>`, ... | Add a default or user-defined `succinct#add_delims()` delimiter during insert, visual, or normal mode. |
+| `ya<key>`, `ci<key>`, ... | Yank, change, delete, or select inside or around a default or user-defined delimiter during normal mode. |
+| `<C-h>`, `<C-l>` | Jump to the left (right) of the previous (next) quote or delimiter in insert mode. |
+| `cs<key><key>` | Change the default or user-defined delimiter from the given key to the next key. |
+| `ds<key>` | Delete the default or user-defined delimiter corresponding to the given key. |
 
 Customization
 -------------
 
 | Option | Description |
 | ---- | ---- |
-| `g:succinct_surround_prefix` | Prefix for the insert and visual mode vim-surround mappings. Default is `<C-s>`, which is intuitive but requires adding `bind -r '"\C-s"'` to your `~/.bashrc` or `~/.bash_profile`. |
-| `g:succinct_snippet_prefix` | Prefix for the citation label, figure filename, and snippet insert mappings. Default is `<C-d>`. |
-| `g:succinct_prevdelim_map` | Insert mode mapping for jumping to the previous bracket. Default is `<C-h>`. |
-| `g:succinct_nextdelim_map` | Insert mode mapping for jumping to the previous bracket. Default is `<C-l>`. |
+| `g:succinct_surround_prefix` | Prefix for the insert and visual mode surround mappings. Default is `<C-s>`. Note this requires adding `bind -r '"\C-s"'` to `~/.bashrc` or `~/.bash_profile`. |
+| `g:succinct_snippet_prefix` | Prefix for the insert mode snippet mappings. Default is `<C-a>`. |
+| `g:succinct_prevdelim_map` | Insert mode mapping for jumping to the previous quote or delimiter. Default is `<C-h>`. |
+| `g:succinct_nextdelim_map` | Insert mode mapping for jumping to the next quote or delimiter. Default is `<C-l>`. |
 | `g:succinct_templates_path` | Location where templates are stored. These are optionally loaded when creating new files. Default is `~/templates`. |
 
 Installation

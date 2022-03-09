@@ -9,7 +9,7 @@ if !exists('g:succinct_surround_prefix')
   let g:succinct_surround_prefix = '<C-s>'
 endif
 if !exists('g:succinct_snippet_prefix')
-  let g:succinct_snippet_prefix = '<C-d>'
+  let g:succinct_snippet_prefix = '<C-a>'
 endif
 if !exists('g:succinct_prevdelim_map')
   let g:succinct_prevdelim_map = '<C-h>'
