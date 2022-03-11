@@ -39,22 +39,22 @@ augroup END
 
 " Fuzzy delimiter and snippet selection
 " Note: Arguments passed to function() partial are passed to underlying func first.
-inoremap <silent> <Plug>IsnippetPick
-  \ <Cmd>if exists('*fzf#run') \| call fzf#run(fzf#wrap({
-  \ 'source': succinct#utils#pick_source('snippet'),
-  \ 'options': '--no-sort --prompt="Snippet> "',
-  \ 'down': '~30%',
-  \ 'sink': function('succinct#utils#pick_snippet_sink'),
-  \ })) \| endif<CR>
-inoremap <Plug>IsurroundPick
-  \ <Cmd>if exists('*fzf#run') \| call fzf#run(fzf#wrap({
+" Warning: Again the <Plug> name cannot start with <Plug>Isnippet or <Plug>Isurround
+" or else vim will wait until another keystroke to figure out which <Plug> is meant.
+inoremap <Plug>Fsurround
+  \ <Cmd>call fzf#run(fzf#wrap({
   \ 'source': succinct#utils#pick_source('surround'),
   \ 'options': '--no-sort --prompt="Surround> "',
-  \ 'down': '~30%',
   \ 'sink': function('succinct#utils#pick_surround_sink'),
-  \ })) \| endif<CR>
-exe 'imap ' . repeat(g:succinct_surround_prefix, 2) . ' <Plug>IsurroundPick'
-exe 'imap ' . repeat(g:succinct_snippet_prefix, 2) . ' <Plug>IsnippetPick'
+  \ }))<CR>
+inoremap <Plug>Fsnippet
+  \ <Cmd>call fzf#run(fzf#wrap({
+  \ 'source': succinct#utils#pick_source('snippet'),
+  \ 'options': '--no-sort --prompt="Snippet> "',
+  \ 'sink': function('succinct#utils#pick_snippet_sink'),
+  \ }))<CR>
+exe 'imap ' . repeat(g:succinct_surround_prefix, 2) . ' <Plug>Fsurround'
+exe 'imap ' . repeat(g:succinct_snippet_prefix, 2) . ' <Plug>Fsnippet'
 
 " Delimiter navigation and modification mappings
 " Note: <C-u> is required to remove range resulting from <count>: action

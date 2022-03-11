@@ -45,6 +45,7 @@ function! s:get_char() abort
 endfunction
 
 " Add user-defined snippet, either a fixed string or user input with prefix/suffix
+" Warning: Some dict entries may be funcrefs and cannot assign as local variable
 function! succinct#utils#insert_snippet(...) abort
   let pad = ''
   let char = a:0 ? a:1 : s:get_char()
@@ -57,10 +58,10 @@ function! succinct#utils#insert_snippet(...) abort
     let snippet = ''
   else
     let key = 'snippet_' . char2nr(char)
-    for scope in [g:, b:]
-      let value = get(scope, key, '')
-      if !empty(value)  " note buffer maps will overwrite this
-        let snippet = succinct#process_value(value)
+    let snippet = ''
+    for scope in ['g:', 'b:']  " note buffer maps have priority
+      if exists(scope . key) && !empty(eval(scope . key))
+        let snippet = succinct#process_value(eval(scope . key))
       endif
     endfor
   endif
@@ -72,27 +73,23 @@ endfunction
 "-----------------------------------------------------------------------------"
 " Pick from source delimiters or snippets
 function! succinct#utils#pick_source(string) abort
-  let map = {}
-  for prefix in ['g:', 'b:']
-    let vars = getcompletion(prefix . a:string . '_', 'var')
+  let opts = {}
+  for scope in ['g:', 'b:']
+    let vars = getcompletion(scope . a:string . '_', 'var')
     for name in vars
-      let key = nr2char(substitute(name, prefix . a:string . '_', '', ''))
-      let map[key] = eval(name)  " local vars will overwrite global vars
+      let key = nr2char(substitute(name, scope . a:string . '_', '', ''))
+      let opts[key] = eval(name)  " local vars will overwrite global vars
     endfor
   endfor
-  let opts = []
-  for [key, s:val] in items(map)  " could be funcrefs here
-    call add(opts, key . ': ' . string(s:val))
-  endfor
-  return opts
+  return map(items(opts), "v:val[0] . ': ' . string(v:val[1])")
 endfunction
 
 " Apply delimiter or snippet
 function! succinct#utils#pick_snippet_sink(item)
-  call feedkeys("\<Plug>Isnippet" . split(a:item, ':')[0])
+  call feedkeys("a\<Plug>Isnippet" . split(a:item, ':')[0], 't')
 endfunction
 function! succinct#utils#pick_surround_sink(item)
-  call feedkeys("\<Plug>Isurround" . split(a:item, ':')[0])
+  call feedkeys("a\<Plug>Isurround" . split(a:item, ':')[0], 't')
 endfunction
 
 "-----------------------------------------------------------------------------"
@@ -256,6 +253,7 @@ endfunction
 
 " Reset previous delimiter
 function! succinct#utils#reset_delims() abort
-  silent! unlet b:succinct_searchdelim b:succinct_replacedelim
+  silent! unlet b:succinct_searchdelim
+  silent! unlet b:succinct_replacedelim
   return ''
 endfunction

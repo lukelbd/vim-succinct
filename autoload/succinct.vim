@@ -64,18 +64,19 @@ function! succinct#process_value(value, ...) abort
   " Note: We override the user input spot with a dummy search pattern when *searching*
   let search = a:0 && a:1 ? 1 : 0  " whether we are finding this delimiter or inserting it
   let input = type(a:value) == 2 ? a:value() : a:value  " permit funcref input
-  for insert in range(7)
-    let m = matchstr(input, nr2char(insert) . '.\{-\}\ze' . nr2char(insert))
+  for num in range(7)
+    let m = matchstr(input, nr2char(num) . '.\{-\}\ze' . nr2char(num))
     if !empty(m)  " get user input if pair was found
       if search
         " Search chars for latex names, tag names, python methods and funcs
-        " Note: First part required or searchpairpos() selects shortest match (e.g. only part of function call)
+        " Note: First part required or searchpairpos() selects shortest
+        " match (e.g. only part of function call).
         let s = '\%(\k\|\.\|\*\)'  " e.g. foo.bar() or \section*{}
-        let repl_{insert} = s . '\@<!' . s . '\+'
+        let repl_{num} = s . '\@<!' . s . '\+'
       else
         " Insert user-input chars
         let m = substitute(strpart(m, 1), '\r.*', '', '')
-        let repl_{insert} = input(match(m, '\w\+$') >= 0 ? m . ': ' : m)
+        let repl_{num} = input(match(m, '\w\+$') >= 0 ? m . ': ' : m)
       endif
     endif
   endfor
