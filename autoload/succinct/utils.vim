@@ -45,20 +45,25 @@ function! s:get_char() abort
 endfunction
 
 " Add user-defined snippet, either a fixed string or user input with prefix/suffix
-function! succinct#utils#insert_snippet() abort
+function! succinct#utils#insert_snippet(...) abort
   let pad = ''
-  let char = s:get_char()
+  let char = a:0 ? a:1 : s:get_char()
   if char =~# '\s'  " similar to surround, permit <C-a><Space><Key> to surround with space
     let pad = char
     let char = s:get_char()
   endif
-  let snippet = ''
-  for scope in [g:, b:]
-    if !empty(char) && empty(snippet)  " skip if user cancelled (i.e. empty char)
-      let varname = 'snippet_' . char2nr(char)
-      let snippet = succinct#process_value(get(scope, varname, ''))
-    endif
-  endfor
+  if empty(char)
+    let pad = ''
+    let snippet = ''
+  else
+    let key = 'snippet_' . char2nr(char)
+    for scope in [g:, b:]
+      let value = get(scope, key, '')
+      if !empty(value)  " note buffer maps will overwrite this
+        let snippet = succinct#process_value(value)
+      endif
+    endfor
+  endif
   return pad . snippet . pad
 endfunction
 
