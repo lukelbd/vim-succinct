@@ -7,23 +7,32 @@ function! s:map_escape(string) abort
 endfunction
 
 " Add snippet variables
+" Note: Funcref cannot be assigned as local variable so do not iterate over items()
 function! succinct#add_snippets(map, ...) abort
-  let src = a:0 && a:1 ? b: : g:
-  for [key, s:val] in items(a:map)
-    let src['snippet_' . char2nr(key)] = s:val  " must be s: scope in case it is a function!
+  let scope = a:0 && a:1 ? b: : g:
+  for key in keys(a:map)
+    let scope['snippet_' . char2nr(key)] = a:map[key]
   endfor
 endfunction
 
 " Add delimiters and text objects simultaneously
+" Note: Funcref delimiters cannot be automatically translated to text objects
 function! succinct#add_delims(map, ...) abort
-  let src = a:0 && a:1 ? b: : g:
-  for [key, s:val] in items(a:map)
-    let src['surround_' . char2nr(key)] = s:val
+  let scope = a:0 && a:1 ? b: : g:
+  for key in keys(a:map)
+    let scope['surround_' . char2nr(key)] = a:map[key]
   endfor
   let dest = {}
   let flag = a:0 && a:1 ? '<buffer> ' : ''
-  for [key, delim] in items(a:map)
-    let pattern = split(succinct#process_value(delim, 1), "\r")
+  for key in keys(a:map)
+    if type(a:map[key]) != 1
+      echohl WarningMsg
+      echom "Warning: Ignoring key '" . key . "' (non-string type)."
+      echohl None
+      continue
+    endif
+    let pattern = succinct#process_value(a:map[key], 1)
+    let pattern = split(pattern, "\r")
     if pattern[0] ==# pattern[1]  " special handling if delims are identical, e.g. $$
       let dest['textobj_' . char2nr(key) . '_i'] = {
         \ 'pattern': pattern[0] . '\zs.\{-}\ze' . pattern[0],

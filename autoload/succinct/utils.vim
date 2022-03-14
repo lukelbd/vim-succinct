@@ -212,19 +212,19 @@ endfunction
 function! s:get_delims(search) abort
   " Handle repeated actions
   if a:search
-    let cnum = exists('b:succinct_searchdelim') ? b:succinct_searchdelim : getchar()
-    let b:succinct_searchdelim = cnum
+    let nr = exists('b:succinct_searchdelim') ? b:succinct_searchdelim : getchar()
+    let b:succinct_searchdelim = nr
   else
-    let cnum = exists('b:succinct_replacedelim') ? b:succinct_replacedelim : getchar()
-    let b:succinct_replacedelim = cnum
+    let nr = exists('b:succinct_replacedelim') ? b:succinct_replacedelim : getchar()
+    let b:succinct_replacedelim = nr
   endif
   " Get delimiters
-  if exists('b:surround_' . cnum)
-    let string = b:surround_{cnum}
-  elseif exists('g:surround_' . cnum)
-    let string = g:surround_{cnum}
+  if exists('b:surround_' . nr)
+    let string = b:surround_{nr}
+  elseif exists('g:surround_' . nr)
+    let string = g:surround_{nr}
   else
-    let string = nr2char(cnum) . "\r" . nr2char(cnum)
+    let string = nr2char(nr) . "\r" . nr2char(nr)
   endif
   let delims = succinct#process_value(string, a:search)
   return split(delims, "\r")
