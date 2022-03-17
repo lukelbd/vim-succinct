@@ -27,7 +27,7 @@ function! succinct#add_delims(map, ...) abort
   for key in keys(a:map)
     if type(a:map[key]) != 1
       echohl WarningMsg
-      echom "Warning: Ignoring key '" . key . "' (non-string type)."
+      echom "Warning: Cannot add key '" . key . "' as text object (non-string type)."
       echohl None
       continue
     endif
@@ -67,45 +67,37 @@ endfunction
 
 " Obtain and process delimiters. If a:search is true return regex suitable for
 " *searching* for delimiters with searchpair(), else return delimiters themselves.
-" Note: Adapted from vim-surround source code
+" Note: this was adapted from vim-surround source code
 function! succinct#process_value(value, ...) abort
-  " Get delimiter string with filled replacement placeholders \1, \2, \3, ...
-  " Note: We override the user input spot with a dummy search pattern when *searching*
-  let search = a:0 && a:1 ? 1 : 0  " whether we are finding this delimiter or inserting it
-  let input = type(a:value) == 2 ? a:value() : a:value  " permit funcref input
-  for num in range(7)
-    let m = matchstr(input, nr2char(num) . '.\{-\}\ze' . nr2char(num))
-    if !empty(m)  " get user input if pair was found
-      if search
-        " Search chars for latex names, tag names, python methods and funcs
-        " Note: First part required or searchpairpos() selects shortest
-        " match (e.g. only part of function call).
-        let s = '\%(\k\|\.\|\*\)'  " e.g. foo.bar() or \section*{}
-        let repl_{num} = s . '\@<!' . s . '\+'
-      else
-        " Insert user-input chars
+  " Acquire user-input for placeholders \1, \2, \3, ...
+  let search = a:0 && a:1 ? 1 : 0  " whether to insert or search the result
+  let input = type(a:value) == 2 ? a:value() : a:value  " the string or funcref
+  if empty(input) | return '' | endif  " e.g. funcs that start asynchronous fzf commands
+  for nr in range(7)
+    let m = matchstr(input, nr2char(nr) . '.\{-\}\ze' . nr2char(nr))
+    if !empty(m)  " \1, \2, \3, ... found inside string
+      if search  " search possible user-input values
+        let s = '\%(\k\|\.\|\*\)'  " match e.g. foo.bar() or \section*{}
+        let repl_{nr} = s . '\@<!' . s . '\+'  " pick longest coherent match
+      else  " acquire user-input values
         let m = substitute(strpart(m, 1), '\r.*', '', '')
-        let repl_{num} = input(match(m, '\w\+$') >= 0 ? m . ': ' : m)
+        let repl_{nr} = input(match(m, '\w\+$') >= 0 ? m . ': ' : m)
       endif
     endif
   endfor
-  " Build up string
+  " Generate the snippet or delimiter string
   let idx = 0
   let output = ''
   while idx < strlen(input)
     let char = strpart(input, idx, 1)
-    if char2nr(char) > 7
-      " Add character, escaping magic characters
-      " Note: char2nr("\1") is 1, char2nr("\2") is 2, etc.
+    if char2nr(char) > 7  " simply insert the character, escaping magic charaters
       let part = search ? s:regex_escape(char) : char
-    else
-      " Handle insertions between subsequent \1...\1, \2...\2, etc. occurrences and any
-      " <prompt>\r<match>\r<replace>\r<match>\r<replace>... groups within insertions
+    else  " replace \1, \2, \3, ... with user-input values
       let next = stridx(input, char, idx + 1)
       if next == -1
         let part = char  " use the literal \1, \2, etc.
       else
-        let part = repl_{char2nr(char)}
+        let part = repl_{char2nr(char)}  " filled in above
         let query = strpart(input, idx + 1, next - idx - 1)  " the query between \1...\1
         let query = matchstr(query, '\r.*')  " a substitute initiation indication
         while query =~# '^\r.*\r'

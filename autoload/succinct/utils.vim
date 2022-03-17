@@ -48,24 +48,22 @@ endfunction
 " Warning: Some dict entries may be funcrefs and cannot assign as local variable
 function! succinct#utils#insert_snippet(...) abort
   let pad = ''
+  let snippet = ''
   let char = a:0 ? a:1 : s:get_char()
   if char =~# '\s'  " similar to surround, permit <C-a><Space><Key> to surround with space
     let pad = char
     let char = s:get_char()
   endif
-  if empty(char)
-    let pad = ''
-    let snippet = ''
-  else
+  if !empty(char)
     let key = 'snippet_' . char2nr(char)
-    let snippet = ''
-    for scope in ['g:', 'b:']  " note buffer maps have priority
+    for scope in ['b:', 'g:']  " note buffer maps have priority
       if exists(scope . key) && !empty(eval(scope . key))
         let snippet = succinct#process_value(eval(scope . key))
+        break
       endif
     endfor
   endif
-  return pad . snippet . pad
+  return empty(snippet) ? '' : pad . snippet . pad
 endfunction
 
 "-----------------------------------------------------------------------------"
