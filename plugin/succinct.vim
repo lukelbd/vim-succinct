@@ -23,59 +23,39 @@ endif
 "-----------------------------------------------------------------------------"
 " Template selection with safety measures
 " Note: If statement must be embedded in function to avoid race condition issues
-function! s:select_template() abort
-  let templates = succinct#utils#template_source(expand('%:e'))
-  if empty(templates) || !exists('*fzf#run') | return | endif
-  call fzf#run(fzf#wrap({
-    \ 'source': templates,
-    \ 'options': '--no-sort --prompt="Template> "',
-    \ 'sink': function('succinct#utils#template_read'),
-    \ }))
-endfunction
 augroup succinct
   au!
-  au BufNewFile * call s:select_template()
+  au BufNewFile * call succinct#internal#template_select()
 augroup END
 
 " Fuzzy delimiter and snippet selection
 " Note: Arguments passed to function() partial are passed to underlying func first.
 " Warning: Again the <Plug> name cannot start with <Plug>Isnippet or <Plug>Isurround
 " or else vim will wait until another keystroke to figure out which <Plug> is meant.
-inoremap <Plug>Fsurround
-  \ <Cmd>call fzf#run(fzf#wrap({
-  \ 'source': succinct#utils#pick_source('surround'),
-  \ 'options': '--no-sort --prompt="Surround> "',
-  \ 'sink': function('succinct#utils#pick_surround_sink'),
-  \ }))<CR>
-inoremap <Plug>Fsnippet
-  \ <Cmd>call fzf#run(fzf#wrap({
-  \ 'source': succinct#utils#pick_source('snippet'),
-  \ 'options': '--no-sort --prompt="Snippet> "',
-  \ 'sink': function('succinct#utils#pick_snippet_sink'),
-  \ }))<CR>
-exe 'imap ' . repeat(g:succinct_surround_prefix, 2) . ' <Plug>Fsurround'
+inoremap <Plug>Fsnippet <Cmd>call succinct#internal#snippet_select()<CR>
+inoremap <Plug>Fsurround <Cmd>call succinct#internal#surround_select()<CR>
 exe 'imap ' . repeat(g:succinct_snippet_prefix, 2) . ' <Plug>Fsnippet'
+exe 'imap ' . repeat(g:succinct_surround_prefix, 2) . ' <Plug>Fsurround'
 
 " Delimiter navigation and modification mappings
-" Note: <C-u> is required to remove range resulting from <count>: action
-" Note: Lowercase Isurround plug inserts delims without newlines. Instead
-" they can be added by pressing <CR> before the delim name (similar to space).
+" Note: <C-r>= notation to insert snippets is consistent with <Plug>Isurround.
+" Note: Lowercase Isurround plug inserts delims without newlines. Instead they
+" can be added by pressing <CR> before the delim name (similar to space).
+inoremap <expr> <Plug>PrevDelim succinct#internal#pum_close() . succinct#internal#prev_delim()
+inoremap <expr> <Plug>NextDelim succinct#internal#pum_close() . succinct#internal#next_delim()
 inoremap <Plug>ResetUndo <C-g>u
-inoremap <expr> <Plug>Isnippet succinct#utils#insert_snippet()
-inoremap <expr> <Plug>PrevDelim succinct#utils#pum_close() . succinct#utils#prev_delim()
-inoremap <expr> <Plug>NextDelim succinct#utils#pum_close() . succinct#utils#next_delim()
-nnoremap <Plug>DeleteDelim <Cmd>call succinct#utils#delete_delims()<CR>
-nnoremap <Plug>ChangeDelim <Cmd>call succinct#utils#change_delims()<CR>
-exe 'vmap ' . g:succinct_surround_prefix . ' <Plug>VSurround'
-exe 'imap ' . g:succinct_surround_prefix . ' <Plug>ResetUndo<Plug>Isurround'
-exe 'imap ' . g:succinct_snippet_prefix . ' <Plug>ResetUndo<Plug>Isnippet'
+inoremap <Plug>Isnippet <C-r>=succinct#internal#insert_snippet()<CR>
+nnoremap <Plug>DeleteDelim <Cmd>call succinct#internal#delete_delims()<CR>
+nnoremap <Plug>ChangeDelim <Cmd>call succinct#internal#change_delims()<CR>
 exe 'imap ' . g:succinct_prevdelim_map . ' <Plug>PrevDelim'
 exe 'imap ' . g:succinct_nextdelim_map . ' <Plug>NextDelim'
-nmap <expr> ds succinct#utils#reset_delims() . "\<Plug>DeleteDelim"
-nmap <expr> cs succinct#utils#reset_delims() . "\<Plug>ChangeDelim"
+exe 'imap ' . g:succinct_snippet_prefix . ' <Plug>ResetUndo<Plug>Isnippet'
+exe 'imap ' . g:succinct_surround_prefix . ' <Plug>ResetUndo<Plug>Isurround'
+exe 'vmap ' . g:succinct_surround_prefix . ' <Plug>VSurround'
+nmap <expr> ds succinct#internal#reset_delims() . "\<Plug>DeleteDelim"
+nmap <expr> cs succinct#internal#reset_delims() . "\<Plug>ChangeDelim"
 
-
-" Define $global$ *delimiters* and text objects
+" Add $global$ *delimiters* and text objects
 " Note: For surrounding with spaces just hit space twice
 call succinct#add_delims({
   \ '': "\n\r\n",

@@ -1,8 +1,13 @@
 "-----------------------------------------------------------------------------"
-" File template handling
+" Fuzzy complete templates, snippets, and delimiters
 "-----------------------------------------------------------------------------"
-" Return list of templates
-function! succinct#utils#template_source(ext) abort
+" Template source and sink
+function! s:template_sink(file) abort
+  if exists('g:succinct_templates_path') && !empty(a:file)
+    execute '0r ' . g:succinct_templates_path . '/' . a:file
+  endif
+endfunction
+function! s:template_source(ext) abort
   let paths = []
   if exists('g:succinct_templates_path')
     let paths = split(globpath(g:succinct_templates_path, '*.' . a:ext), "\n")
@@ -15,11 +20,60 @@ function! succinct#utils#template_source(ext) abort
   return paths
 endfunction
 
-" Load template contents
-function! succinct#utils#template_read(file)
-  if exists('g:succinct_templates_path') && !empty(a:file)
-    execute '0r ' . g:succinct_templates_path . '/' . a:file
-  endif
+" Delimiter and snippet sources and sinks
+" Note: See below for more on fzf limitations.
+function! s:snippet_surround_source(string) abort
+  let opts = {}
+  for scope in ['g:', 'b:']
+    let vars = getcompletion(scope . a:string . '_', 'var')
+    for name in vars
+      let key = nr2char(substitute(name, scope . a:string . '_', '', ''))
+      let opts[key] = eval(name)  " local vars will overwrite global vars
+    endfor
+  endfor
+  return map(items(opts), "v:val[0] . ': ' . string(v:val[1])")
+endfunction
+function! s:snippet_sink(item) abort
+  let key = split(a:item, ':')[0]
+  call feedkeys("\<Plug>Isnippet" . key, 'ti')
+endfunction
+function! s:surround_sink(item) abort
+  let key = split(a:item, ':')[0]
+  call feedkeys("\<Plug>Isurround" . key, 'ti')
+endfunction
+
+" Fuzzy select functions
+" Warning: Currently calling default fzf#run with any window options (e.g. after using
+" fzf#wrap) causes vim to exit insert mode (seems to be related to triggering use_term=1
+" inside fzf#run), requiring us to recover cursor position and sometimes triggering
+" obscure E565 error that effectly disables insert mode until session is restarted
+" (seems to be related to feedkeys('a...' invocation)). Workaround is to call fzf#run()
+" with no window options and letting it fill the screen (use --height=100% to ensure
+" all entries shown). In future may have to make this work but for now this is fine.
+function! succinct#internal#template_select() abort
+  let templates = s:template_source(expand('%:e'))
+  if empty(templates) || !exists('*fzf#run') | return | endif
+  call fzf#run(fzf#wrap({
+    \ 'sink': function('s:template_sink'),
+    \ 'source': templates,
+    \ 'options': '--no-sort --prompt="Template> "',
+    \ }))
+endfunction
+function! succinct#internal#snippet_select() abort
+  if !exists('*fzf#run') | return | endif
+  call fzf#run({
+    \ 'sink': function('s:snippet_sink'),
+    \ 'source': s:snippet_surround_source('snippet'),
+    \ 'options': '--no-sort --height=100% --prompt="Snippet> "',
+    \ })
+endfunction
+function! succinct#internal#surround_select() abort
+  if !exists('*fzf#run') | return | endif
+  call fzf#run({
+    \ 'sink': function('s:surround_sink'),
+    \ 'source': s:snippet_surround_source('surround'),
+    \ 'options': '--no-sort --height=100% --prompt="Surround> "',
+    \ })
 endfunction
 
 "-----------------------------------------------------------------------------"
@@ -28,7 +82,7 @@ endfunction
 " Process snippet value
 function! s:process_snippet(input) abort
   let output = type(a:input) == 2 ? a:input() : a:input  " run funcref function
-  return succinct#utils#user_input(output)  " handle \1...\1, \2...\2 pairs
+  return succinct#internal#user_input(output)  " handle \1...\1, \2...\2 pairs
 endfunction
 
 " Get character (copied from surround.vim)
@@ -46,7 +100,7 @@ endfunction
 
 " Add user-defined snippet, either a fixed string or user input with prefix/suffix
 " Warning: Some dict entries may be funcrefs and cannot assign as local variable
-function! succinct#utils#insert_snippet(...) abort
+function! succinct#internal#insert_snippet(...) abort
   let pad = ''
   let snippet = ''
   let char = a:0 ? a:1 : s:get_char()
@@ -67,31 +121,7 @@ function! succinct#utils#insert_snippet(...) abort
 endfunction
 
 "-----------------------------------------------------------------------------"
-" Selecting snippets and delimiters with FZF
-"-----------------------------------------------------------------------------"
-" Pick from source delimiters or snippets
-function! succinct#utils#pick_source(string) abort
-  let opts = {}
-  for scope in ['g:', 'b:']
-    let vars = getcompletion(scope . a:string . '_', 'var')
-    for name in vars
-      let key = nr2char(substitute(name, scope . a:string . '_', '', ''))
-      let opts[key] = eval(name)  " local vars will overwrite global vars
-    endfor
-  endfor
-  return map(items(opts), "v:val[0] . ': ' . string(v:val[1])")
-endfunction
-
-" Apply delimiter or snippet
-function! succinct#utils#pick_snippet_sink(item)
-  call feedkeys("a\<Plug>Isnippet" . split(a:item, ':')[0], 't')
-endfunction
-function! succinct#utils#pick_surround_sink(item)
-  call feedkeys("a\<Plug>Isurround" . split(a:item, ':')[0], 't')
-endfunction
-
-"-----------------------------------------------------------------------------"
-" Delimiter navigation
+" Delimiter handling
 "-----------------------------------------------------------------------------"
 " Navigation without triggering InsertLeave
 " Consider using this in many other situations
@@ -120,7 +150,7 @@ endfunction
 " Move to right of previous delim  ( [ [ ( "  "  asd) sdf    ]  sdd   ]  as) h adfas)
 " Warning: Calls to e.g. cursor() fail to move cursor in insert mode, even though
 " 'current position' (i.e. getpos('.') after e.g. cursor()) changes inside function
-function! succinct#utils#prev_delim() abort
+function! succinct#internal#prev_delim() abort
   let [_, lorig, corig, _] = getpos('.')
   call search(s:delim_regex(), 'eb')
   if col('.') > corig - 2 | call search(s:delim_regex(), 'eb') | endif
@@ -131,7 +161,7 @@ endfunction
 " delimiter, want to find it and move to the right of it
 " Warning: Cannot use search() because it fails to detect current column. Could
 " use setpos() but then if fail to find delim that moves cursor which is weird.
-function! succinct#utils#next_delim() abort
+function! succinct#internal#next_delim() abort
   let [_, lorig, corig, _] = getpos('.')
   let [lsearch, csearch] = [lorig, corig]
   if csearch == 1
@@ -146,7 +176,7 @@ endfunction
 
 " Special popup menu behavior just for me and my .vimrc!
 " No one has to know ;)
-function! succinct#utils#pum_close() abort
+function! succinct#internal#pum_close() abort
   if !pumvisible() || !exists('b:pum_pos')
     return ''
   elseif b:pum_pos
@@ -160,9 +190,31 @@ endfunction
 "-----------------------------------------------------------------------------"
 " Changing and deleting surrounding delim
 "-----------------------------------------------------------------------------"
-" Driver function that accepts left and right delims, and normal mode commands
-" run from the leftmost character of left and right delims. This function sets
-" the mark 'z to the end of each delim, so expression can be d`zx
+" Get left and right 'surround' delimiter from input key
+function! s:get_delims(search) abort
+  " Handle repeated actions
+  if a:search
+    let nr = exists('b:succinct_searchdelim') ? b:succinct_searchdelim : getchar()
+    let b:succinct_searchdelim = nr
+  else
+    let nr = exists('b:succinct_replacedelim') ? b:succinct_replacedelim : getchar()
+    let b:succinct_replacedelim = nr
+  endif
+  " Get delimiters
+  if exists('b:surround_' . nr)
+    let string = b:surround_{nr}
+  elseif exists('g:surround_' . nr)
+    let string = g:surround_{nr}
+  else
+    let string = nr2char(nr) . "\r" . nr2char(nr)
+  endif
+  let delims = succinct#process_value(string, a:search)
+  return split(delims, "\r")
+endfunction
+
+" Driver function that accepts left and right delims, and runs normal mode commands
+" from the leftmost character of left and right delims. This function sets the mark
+" 'z to the end of each delim, so expression can be d`zx
 " Note: Mark motion commands only work up until and excluding the mark, so
 " make sure your command accounts for that!
 function! s:pair_action(left, right, lexpr, rexpr, count) abort
@@ -206,41 +258,9 @@ function! s:pair_action(left, right, lexpr, rexpr, count) abort
   endfor
 endfunction
 
-" Get left and right 'surround' delimiter from input key
-function! s:get_delims(search) abort
-  " Handle repeated actions
-  if a:search
-    let nr = exists('b:succinct_searchdelim') ? b:succinct_searchdelim : getchar()
-    let b:succinct_searchdelim = nr
-  else
-    let nr = exists('b:succinct_replacedelim') ? b:succinct_replacedelim : getchar()
-    let b:succinct_replacedelim = nr
-  endif
-  " Get delimiters
-  if exists('b:surround_' . nr)
-    let string = b:surround_{nr}
-  elseif exists('g:surround_' . nr)
-    let string = g:surround_{nr}
-  else
-    let string = nr2char(nr) . "\r" . nr2char(nr)
-  endif
-  let delims = succinct#process_value(string, a:search)
-  return split(delims, "\r")
-endfunction
-
-" Delete delims function
-" Todo: Fix this for identical left/right delimiters!!!
-function! succinct#utils#delete_delims() abort
-  let [left, right] = s:get_delims(1)  " disallow user input
-  call s:pair_action(left, right, '"_d`z"_x', '"_d`z"_x', v:count1)
-  if exists('*repeat#set')
-    call repeat#set("\<Plug>succinctDeleteDelims")
-  endif
-endfunction
-
 " Change delims function, use input replacement text or existing mapped surround char
 " Todo: Fix this for identical left/right delimiters!!!
-function! succinct#utils#change_delims() abort
+function! succinct#internal#change_delims() abort
   let [lold, rold] = s:get_delims(1)  " disallow user input
   let [lnew, rnew] = s:get_delims(0)  " replacement delims possibly with user input
   call s:pair_action(lold, rold, '"_c`z' . lnew . "\<Delete>", '"_c`z' . rnew . "\<Delete>", v:count1)
@@ -249,8 +269,18 @@ function! succinct#utils#change_delims() abort
   endif
 endfunction
 
+" Delete delims function
+" Todo: Fix this for identical left/right delimiters!!!
+function! succinct#internal#delete_delims() abort
+  let [left, right] = s:get_delims(1)  " disallow user input
+  call s:pair_action(left, right, '"_d`z"_x', '"_d`z"_x', v:count1)
+  if exists('*repeat#set')
+    call repeat#set("\<Plug>succinctDeleteDelims")
+  endif
+endfunction
+
 " Reset previous delimiter
-function! succinct#utils#reset_delims() abort
+function! succinct#internal#reset_delims() abort
   silent! unlet b:succinct_searchdelim
   silent! unlet b:succinct_replacedelim
   return ''
