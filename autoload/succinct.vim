@@ -52,7 +52,7 @@ function! succinct#add_delims(map, ...) abort
   endfor
   if exists('*textobj#user#plugin')
     let name = a:0 && a:1 ? &filetype : 'global'  " assign name, avoiding conflicts
-    call textobj#user#plugin(name . 'succinct', dest)
+    call textobj#user#plugin(name . '_succinct', dest)
   endif
 endfunction
 
