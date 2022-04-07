@@ -46,7 +46,7 @@ endfunction
 " Warning: Currently calling default fzf#run with any window options (e.g. after using
 " fzf#wrap) causes vim to exit insert mode (seems to be related to triggering use_term=1
 " inside fzf#run), requiring us to recover cursor position and sometimes triggering
-" obscure E565 error that effectly disables insert mode until session is restarted
+" obscure E565 error that effectly disables insert mode until vim session is restarted
 " (seems to be related to feedkeys('a...' invocation)). Workaround is to call fzf#run()
 " with no window options and letting it fill the screen (use --height=100% to ensure
 " all entries shown). In future may have to make this work but for now this is fine.
@@ -56,7 +56,7 @@ function! succinct#internal#template_select() abort
   call fzf#run(fzf#wrap({
     \ 'sink': function('s:template_sink'),
     \ 'source': templates,
-    \ 'options': '--no-sort --prompt="Template> "',
+    \ 'options': '--no-sort --height=100% --prompt="Template> "',
     \ }))
 endfunction
 function! succinct#internal#snippet_select() abort
