@@ -50,9 +50,15 @@ endfunction
 " (seems to be related to feedkeys('a...' invocation)). Workaround is to call fzf#run()
 " with no window options and letting it fill the screen (use --height=100% to ensure
 " all entries shown). In future may have to make this work but for now this is fine.
+function! s:fzf_check() abort
+  let flag = exists('*fzf#run')
+  if !flag | echohl WarningMsg | echom 'Warning: FZF plugin not found.' | echohl None | endif
+  return flag
+endfunction
 function! succinct#internal#template_select() abort
   let templates = s:template_source(expand('%:e'))
-  if empty(templates) || !exists('*fzf#run') | return | endif
+  if empty(templates) | return | endif
+  if !s:fzf_check() | return | endif
   call fzf#run(fzf#wrap({
     \ 'sink': function('s:template_sink'),
     \ 'source': templates,
@@ -60,7 +66,7 @@ function! succinct#internal#template_select() abort
     \ }))
 endfunction
 function! succinct#internal#snippet_select() abort
-  if !exists('*fzf#run') | return | endif
+  if !s:fzf_check() | return | endif
   call fzf#run({
     \ 'sink': function('s:snippet_sink'),
     \ 'source': s:snippet_surround_source('snippet'),
@@ -68,7 +74,7 @@ function! succinct#internal#snippet_select() abort
     \ })
 endfunction
 function! succinct#internal#surround_select() abort
-  if !exists('*fzf#run') | return | endif
+  if !s:fzf_check() | return | endif
   call fzf#run({
     \ 'sink': function('s:surround_sink'),
     \ 'source': s:snippet_surround_source('surround'),
