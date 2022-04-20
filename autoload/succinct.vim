@@ -50,9 +50,10 @@ function! succinct#add_delims(map, ...) abort
         \ }
     endif
   endfor
+  let name = a:0 && a:1 ? &filetype : 'global'
+  let name = substitute(name, '[.-_]', '', 'g')  " compound filetypes and others
   if exists('*textobj#user#plugin')
-    let name = a:0 && a:1 ? &filetype : 'global'  " assign name avoiding conflicts
-    call textobj#user#plugin(name . 'succinct', dest)  " note cannot contain underscore
+    call textobj#user#plugin(name . 'succinct', dest)  " append to avoid conflicts
   endif
 endfunction
 
