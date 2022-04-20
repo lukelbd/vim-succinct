@@ -51,9 +51,10 @@ function! succinct#add_delims(map, ...) abort
     endif
   endfor
   let name = a:0 && a:1 ? &filetype : 'global'
-  let name = substitute(name, '[.-_]', '', 'g')  " compound filetypes and others
+  let name = substitute(name, '[._-]', '', 'g')  " compound filetypes and others
+  let name = 'succinct' . name  " prepend to avoid conflicts with native plugins
   if exists('*textobj#user#plugin')
-    call textobj#user#plugin(name . 'succinct', dest)  " append to avoid conflicts
+    call textobj#user#plugin(name, dest)
   endif
 endfunction
 
