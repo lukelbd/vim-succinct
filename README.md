@@ -8,16 +8,13 @@ text snippets, and file templates. Includes the following features:
   [vim-surround](https://github.com/tpope/vim-surround) delimiters for normal mode
   operations like `yss-` and visual and insert mode operations like `<C-s>-`, as well as
   [vim-textobj](https://github.com/kana/vim-textobj-user) text objects for normal mode
-  operations like `ca-`, `ci-`, `da-`, `di-`. The delimiters can include `\1...\1`
-  indicators (see
-  `:help surround-customizing`).
-  be function handles
-  that prompt for user input and return strings or
-* Adding custom snippet keys with `succinct#add_snippets()`. Implementation is similar to
-  the internal [vim-surround](https://github.com/tpope/vim-surround) implementation;
+  operations like `ca-`, `ci-`, `da-`, `di-`. Delimiters can include `\1...\1` prompt
+  indicators (see `:help surround-customizing`).
+* Adding custom snippet keys with `succinct#add_snippets()`. Implementation is similar
+  to the internal [vim-surround](https://github.com/tpope/vim-surround) implementation;
   `<C-a>-` is used to insert snippets, similar to `<C-s>-` for surround-delimiters.
-  Delimiters can be function handles that prompt for user input and return strings or
-  include `\1...\1` indicators (see `:help surround-customizing`).
+  Delimiters can be function handles that prompt for user input or include `\1...\1`
+  prompt indicators (see `:help surround-customizing`).
 * Changing and deleting custom [vim-surround](https://github.com/tpope/vim-surround)
   delimiters with operations like `cs-` and `ds-`. Natively, vim-surround does not
   support this -- it only supports *inserting* custom delimiters with operations like
