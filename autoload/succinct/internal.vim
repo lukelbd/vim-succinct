@@ -37,9 +37,9 @@ function! s:snippet_sink(item) abort
   let key = split(a:item, ':')[0]
   call feedkeys("\<Plug>Isnippet" . key, 'ti')
 endfunction
-function! s:surround_sink(item) abort
+function! s:surround_sink(mode, item) abort
   let key = split(a:item, ':')[0]
-  call feedkeys("\<Plug>Isurround" . key, 'ti')
+  call feedkeys("\<Plug>" . a:mode . 'surround' . key, 'ti')
 endfunction
 
 " Fuzzy select functions
@@ -73,10 +73,10 @@ function! succinct#internal#snippet_select() abort
     \ 'options': '--no-sort --height=100% --prompt="Snippet> "',
     \ })
 endfunction
-function! succinct#internal#surround_select() abort
+function! succinct#internal#surround_select(mode) abort
   if !s:fzf_check() | return | endif
   call fzf#run({
-    \ 'sink': function('s:surround_sink'),
+    \ 'sink': function('s:surround_sink', [a:mode]),
     \ 'source': s:snippet_surround_source('surround'),
     \ 'options': '--no-sort --height=100% --prompt="Surround> "',
     \ })
