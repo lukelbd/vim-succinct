@@ -6,10 +6,10 @@ if !exists('g:succinct_templates_path')
   let g:succinct_templates_path = '~/templates'
 endif
 if !exists('g:succinct_surround_prefix')
-  let g:succinct_surround_prefix = '<C-a>'
+  let g:succinct_surround_prefix = '<C-s>'
 endif
 if !exists('g:succinct_snippet_prefix')
-  let g:succinct_snippet_prefix = '<C-s>'
+  let g:succinct_snippet_prefix = '<C-e>'
 endif
 if !exists('g:succinct_prevdelim_map')
   let g:succinct_prevdelim_map = '<C-h>'
