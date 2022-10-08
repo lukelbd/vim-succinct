@@ -43,7 +43,7 @@ function! s:surround_sink(mode, item) abort
 endfunction
 
 " Fuzzy select functions
-" Warning: Currently calling default fzf#run with any window options (e.g. after using
+" Warning: Currently calling default fzf#run with any window options (e.g. by calling
 " fzf#wrap) causes vim to exit insert mode (seems to be related to triggering use_term=1
 " inside fzf#run), requiring us to recover cursor position and sometimes triggering
 " obscure E565 error that effectly disables insert mode until vim session is restarted

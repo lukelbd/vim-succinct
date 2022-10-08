@@ -29,26 +29,27 @@ augroup succinct
 augroup END
 
 " Fuzzy delimiter and snippet selection
-" Note: Arguments passed to function() partial are passed to underlying func first.
 " Warning: Again the <Plug> name cannot start with <Plug>Isnippet or <Plug>Isurround
 " or else vim will wait until another keystroke to figure out which <Plug> is meant.
 inoremap <Plug>SelectIsnippet <Cmd>call succinct#internal#snippet_select()<CR>
 inoremap <Plug>SelectIsurround <Cmd>call succinct#internal#surround_select('I')<CR>
-inoremap <Plug>SelectVsurround <Cmd>call succinct#internal#surround_select('V')<CR>
+vnoremap <Plug>SelectVsurround <Cmd>call succinct#internal#surround_select('V')<CR>
 exe 'imap ' . repeat(g:succinct_snippet_prefix, 2) . ' <Plug>SelectIsnippet'
 exe 'imap ' . repeat(g:succinct_surround_prefix, 2) . ' <Plug>SelectIsurround'
 exe 'vmap ' . repeat(g:succinct_surround_prefix, 2) . ' <Plug>SelectVsurround'
 
 " Delimiter navigation and modification mappings
-" Note: <C-r>= notation to insert snippets is consistent with <Plug>SelectIsurround.
-" Note: Lowercase SelectIsurround plug inserts delims without newlines. Instead they
-" can be added by pressing <CR> before the delim name (similar to space).
-inoremap <expr> <Plug>PrevDelim succinct#internal#pum_close() . succinct#internal#prev_delim()
-inoremap <expr> <Plug>NextDelim succinct#internal#pum_close() . succinct#internal#next_delim()
+" Note: Redirect nonexistent <Plug>Vsurround to defined <Plug>VSurround for
+" consistency with <Plug>Isurround and s:surround_sink() in internal.vim.
+" Note: Lowercase Isurround plug inserts delims without newlines. Can be added using
+" either ISurround (note uppercase) or just pressing <CR> before delim character.
+vmap <Plug>Vsurround <Plug>VSurround
 inoremap <Plug>ResetUndo <C-g>u
 inoremap <Plug>Isnippet <C-r>=succinct#internal#insert_snippet()<CR>
 nnoremap <Plug>DeleteDelim <Cmd>call succinct#internal#delete_delims()<CR>
 nnoremap <Plug>ChangeDelim <Cmd>call succinct#internal#change_delims()<CR>
+inoremap <expr> <Plug>PrevDelim succinct#internal#pum_close() . succinct#internal#prev_delim()
+inoremap <expr> <Plug>NextDelim succinct#internal#pum_close() . succinct#internal#next_delim()
 exe 'imap ' . g:succinct_prevdelim_map . ' <Plug>PrevDelim'
 exe 'imap ' . g:succinct_nextdelim_map . ' <Plug>NextDelim'
 exe 'imap ' . g:succinct_snippet_prefix . ' <Plug>ResetUndo<Plug>Isnippet'
@@ -58,7 +59,8 @@ nmap <expr> ds succinct#internal#reset_delims() . "\<Plug>DeleteDelim"
 nmap <expr> cs succinct#internal#reset_delims() . "\<Plug>ChangeDelim"
 
 " Add $global$ *delimiters* and text objects
-" Note: For surrounding with spaces just hit space twice
+" Note: For surrounding with spaces can hit space twice, and for surrounding
+" with enter can hit enter twice. Very simple.
 call succinct#add_delims({
   \ '': "\n\r\n",
   \ "'": "'\r'",
