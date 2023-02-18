@@ -1,7 +1,8 @@
-"-----------------------------------------------------------------------------"
+"-----------------------------------------------------------------------------
 " Global plugin settings
-"-----------------------------------------------------------------------------"
+"-----------------------------------------------------------------------------
 " Define mappings and delimiters
+scriptencoding utf-8
 if !exists('g:succinct_templates_path')
   let g:succinct_templates_path = '~/templates'
 endif
@@ -18,9 +19,9 @@ if !exists('g:succinct_nextdelim_map')
   let g:succinct_nextdelim_map = '<C-l>'
 endif
 
-"-----------------------------------------------------------------------------"
+"-----------------------------------------------------------------------------
 " Default commands, mappings, delims, and text objects
-"-----------------------------------------------------------------------------"
+"-----------------------------------------------------------------------------
 " Template selection with safety measures
 " Note: If statement must be embedded in function to avoid race condition issues
 augroup succinct

@@ -1,6 +1,6 @@
-"-----------------------------------------------------------------------------"
+"-----------------------------------------------------------------------------
 " Snippet and delimiter registering
-"-----------------------------------------------------------------------------"
+"-----------------------------------------------------------------------------
 " Escape command separator character for strings interpreted as mapping declarations
 function! s:map_escape(string) abort
   return escape(a:string, '|')
