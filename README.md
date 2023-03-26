@@ -52,8 +52,7 @@ Customization
 
 | Option | Description |
 | ---- | ---- |
-| `g:succinct_snippet_prefix` | Prefix for the insert mode snippet mappings.
-Default is `<C-e>` (mnemonic is the "e" in snippets). |
+| `g:succinct_snippet_prefix` | Prefix for the insert mode snippet mappings. Default is `<C-e>` (mnemonic is the "e" in snippets). |
 | `g:succinct_surround_prefix` | Prefix for the insert and visual mode surround mappings. Default is `<C-s>` (requires adding `bind -r '"\C-s"'` to `~/.bashrc` or `~/.bash_profile`). |
 | `g:succinct_prevdelim_map` | Insert mode mapping for jumping to the previous quote or delimiter. Default is `<C-h>`. |
 | `g:succinct_nextdelim_map` | Insert mode mapping for jumping to the next quote or delimiter. Default is `<C-l>`. |
