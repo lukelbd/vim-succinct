@@ -6,11 +6,17 @@ scriptencoding utf-8
 if !exists('g:succinct_templates_path')
   let g:succinct_templates_path = '~/templates'
 endif
-if !exists('g:succinct_surround_prefix')
-  let g:succinct_surround_prefix = '<C-s>'
+if exists('g:succinct_snippet_prefix')  " backwards compatibility
+  let g:succinct_snippet_map = g:succinct_snippet_prefix
 endif
-if !exists('g:succinct_snippet_prefix')
-  let g:succinct_snippet_prefix = '<C-e>'
+if !exists('g:succinct_snippet_map')  " backwards compatibility
+  let g:succinct_snippet_map = '<C-e>'
+endif
+if exists('g:succinct_surround_prefix')
+  let g:succinct_surround_map = g:succinct_surround_prefix
+endif
+if !exists('g:succinct_surround_map')
+  let g:succinct_surround_map = '<C-s>'
 endif
 if !exists('g:succinct_prevdelim_map')
   let g:succinct_prevdelim_map = '<C-h>'
@@ -35,9 +41,9 @@ augroup END
 inoremap <Plug>SelectIsnippet <Cmd>call succinct#internal#snippet_select()<CR>
 inoremap <Plug>SelectIsurround <Cmd>call succinct#internal#surround_select('I')<CR>
 vnoremap <Plug>SelectVsurround <Cmd>call succinct#internal#surround_select('V')<CR>
-exe 'imap ' . repeat(g:succinct_snippet_prefix, 2) . ' <Plug>SelectIsnippet'
-exe 'imap ' . repeat(g:succinct_surround_prefix, 2) . ' <Plug>SelectIsurround'
-exe 'vmap ' . repeat(g:succinct_surround_prefix, 2) . ' <Plug>SelectVsurround'
+exe 'imap ' . repeat(g:succinct_snippet_map, 2) . ' <Plug>SelectIsnippet'
+exe 'imap ' . repeat(g:succinct_surround_map, 2) . ' <Plug>SelectIsurround'
+exe 'vmap ' . repeat(g:succinct_surround_map, 2) . ' <Plug>SelectVsurround'
 
 " Delimiter navigation and modification mappings
 " Note: Redirect nonexistent <Plug>Vsurround to defined <Plug>VSurround for
@@ -53,9 +59,9 @@ inoremap <expr> <Plug>PrevDelim succinct#internal#pum_close() . succinct#interna
 inoremap <expr> <Plug>NextDelim succinct#internal#pum_close() . succinct#internal#next_delim()
 exe 'imap ' . g:succinct_prevdelim_map . ' <Plug>PrevDelim'
 exe 'imap ' . g:succinct_nextdelim_map . ' <Plug>NextDelim'
-exe 'imap ' . g:succinct_snippet_prefix . ' <Plug>ResetUndo<Plug>Isnippet'
-exe 'imap ' . g:succinct_surround_prefix . ' <Plug>ResetUndo<Plug>Isurround'
-exe 'vmap ' . g:succinct_surround_prefix . ' <Plug>VSurround'
+exe 'imap ' . g:succinct_snippet_map . ' <Plug>ResetUndo<Plug>Isnippet'
+exe 'imap ' . g:succinct_surround_map . ' <Plug>ResetUndo<Plug>Isurround'
+exe 'vmap ' . g:succinct_surround_map . ' <Plug>VSurround'
 nmap <expr> ds succinct#internal#reset_delims() . "\<Plug>DeleteDelim"
 nmap <expr> cs succinct#internal#reset_delims() . "\<Plug>ChangeDelim"
 

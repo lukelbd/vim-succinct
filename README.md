@@ -5,7 +5,7 @@ A suite of utilities for succinctly editing documents using delimiters, text obj
 text snippets, and file templates. Includes the following features:
 
 * Adding custom snippet keys with `succinct#add_snippets()`. Implementation is similar
-  to the [vim-surround](https://github.com/tpope/vim-surround) internals;
+  to the [vim-surround](https://github.com/tpope/vim-surround) internals.
   `<C-e>-` is used to insert snippets, selected because the `e` key is relatively
   close to the `s` used for delimiters, but not so close that it can be easily
   confused with `<C-s>-`. Snippets can be function handles that prompt for user
@@ -52,8 +52,10 @@ Customization
 
 | Option | Description |
 | ---- | ---- |
-| `g:succinct_snippet_prefix` | Prefix for the insert mode snippet mappings. Default is `<C-e>` (mnemonic is the "e" in snippets). |
-| `g:succinct_surround_prefix` | Prefix for the insert and visual mode surround mappings. Default is `<C-s>` (requires adding `bind -r '"\C-s"'` to `~/.bashrc` or `~/.bash_profile`). |
+| `g:succinct_snippet_defs`, `b:succinct_snippet_defs`  | Global or buffer-local snippet definitions. Keys are the bindings (pressed after `<C-e>`), values are the inserted snippets. |
+| `g:succinct_surround_defs`, `b:succinct_surround_defs`  | Global or buffer-local surround definitions. Keys are the bindings (pressed after `<C-s>`), values are delimiters (separated by `"\r"` -- see `surround.vim` docs). |
+| `g:succinct_snippet_map` | Prefix for the insert mode snippet mappings. Default is `<C-e>` (mnemonic is the "e" in snippets). |
+| `g:succinct_surround_map` | Prefix for the insert and visual mode surround mappings. Default is `<C-s>` (requires adding `bind -r '"\C-s"'` to `~/.bashrc` or `~/.bash_profile`). |
 | `g:succinct_prevdelim_map` | Insert mode mapping for jumping to the previous quote or delimiter. Default is `<C-h>`. |
 | `g:succinct_nextdelim_map` | Insert mode mapping for jumping to the next quote or delimiter. Default is `<C-l>`. |
 | `g:succinct_templates_path` | Location where templates are stored. These are optionally loaded when creating new files. Default is `~/templates`. |
