@@ -52,10 +52,8 @@ Customization
 
 | Option | Description |
 | ---- | ---- |
-| `g:succinct_snippet_defs`, `b:succinct_snippet_defs`  | Global or buffer-local snippet definitions. Keys are the bindings (pressed after `<C-e>`), values are the inserted snippets. |
-| `g:succinct_surround_defs`, `b:succinct_surround_defs`  | Global or buffer-local surround definitions. Keys are the bindings (pressed after `<C-s>`), values are delimiters (separated by `"\r"` -- see `surround.vim` docs). |
-| `g:succinct_snippet_map` | Prefix for the insert mode snippet mappings. Default is `<C-e>` (mnemonic is the "e" in snippets). |
-| `g:succinct_surround_map` | Prefix for the insert and visual mode surround mappings. Default is `<C-s>` (requires adding `bind -r '"\C-s"'` to `~/.bashrc` or `~/.bash_profile`). |
+| `g:succinct_snippet_map` | Insert mode snippet mapping prefix. Default is `<C-e>` (mnemonic is the "e" in snippets). |
+| `g:succinct_surround_map` | Insert and visual mode surround mapping prefix. Default is `<C-s>` (requires adding `bind -r '"\C-s"'` to `~/.bashrc` or `~/.bash_profile`). |
 | `g:succinct_prevdelim_map` | Insert mode mapping for jumping to the previous quote or delimiter. Default is `<C-h>`. |
 | `g:succinct_nextdelim_map` | Insert mode mapping for jumping to the next quote or delimiter. Default is `<C-l>`. |
 | `g:succinct_templates_path` | Location where templates are stored. These are optionally loaded when creating new files. Default is `~/templates`. |
