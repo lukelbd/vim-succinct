@@ -1,5 +1,9 @@
 "-----------------------------------------------------------------------------
-" Global plugin settings
+" Author: Luke Davis (lukelbd@gmail.com)
+" Date:   2018-09-09
+" Tools for working with snippets, delimiters, and text objects in vim. Includes
+" utilities for defining text objects and vim-surround delimiters in one go and
+" defining snippet and delimiter mappings under a standardized prefix.
 "-----------------------------------------------------------------------------
 " Define mappings and delimiters
 scriptencoding utf-8
