@@ -125,13 +125,16 @@ endfunction
 " Template source and sink
 function! s:template_sink(file) abort
   if exists('g:succinct_templates_path') && !empty(a:file)
-    execute '0r ' . g:succinct_templates_path . '/' . a:file
+    let templates = expand(g:succinct_templates_path)
+    execute '0r ' . templates . '/' . a:file
+    filetype detect
   endif
 endfunction
 function! s:template_source(ext) abort
   let paths = []
   if exists('g:succinct_templates_path')
-    let paths = split(globpath(g:succinct_templates_path, '*.' . a:ext), "\n")
+    let templates = expand(g:succinct_templates_path)
+    let paths = globpath(templates, '*.' . a:ext, 0, 1)
     let paths = filter(paths, '!isdirectory(v:val)')
     let paths = map(paths, 'fnamemodify(v:val, ":t")')
   endif
