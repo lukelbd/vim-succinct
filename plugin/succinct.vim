@@ -63,7 +63,7 @@ nnoremap <Plug>ChangeDelims <Cmd>call succinct#change_delims()<CR>
 inoremap <Plug>Isnippet <C-r>=succinct#insert_snippet()<CR>
 inoremap <expr> <Plug>PrevDelim succinct#pum_close() . succinct#prev_delim()
 inoremap <expr> <Plug>NextDelim succinct#pum_close() . succinct#next_delim()
-exe 'imap ' . g:succinct_prevdelim_map . ' <Plug><Plug>PrevDelim'
+exe 'imap ' . g:succinct_prevdelim_map . ' <Plug>PrevDelim'
 exe 'imap ' . g:succinct_nextdelim_map . ' <Plug>NextDelim'
 exe 'imap ' . g:succinct_snippet_map . ' <Plug>ResetUndo<Plug>Isnippet'
 exe 'imap ' . g:succinct_surround_map . ' <Plug>ResetUndo<Plug>Isurround'
