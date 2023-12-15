@@ -222,13 +222,8 @@ endfunction
 "-----------------------------------------------------------------------------"
 " Snippet handling
 "-----------------------------------------------------------------------------"
-" Process snippet value
-function! s:process_snippet(input) abort
-  let output = type(a:input) == 2 ? a:input() : a:input  " run funcref function
-  return succinct#user_input(output)  " handle \1...\1, \2...\2 pairs
-endfunction
-
-" Get character (copied from surround.vim)
+" Helper function
+" Note: Copied from surround.vim
 function! s:get_char() abort
   let char = getchar()
   if char =~# '^\d\+$'
@@ -241,7 +236,7 @@ function! s:get_char() abort
   endif
 endfunction
 
-" Add user-defined snippet, either a fixed string or user input with prefix/suffix
+" Add user-defined snippet (either fixed string or input with prefix/suffix)
 " Warning: Some dict entries may be funcrefs and cannot assign as local variable
 function! succinct#insert_snippet(...) abort
   let pad = ''
@@ -255,8 +250,7 @@ function! succinct#insert_snippet(...) abort
     let name = 'snippet_' . char2nr(char)
     for scope in [b:, g:]  " note buffer maps have priority
       if !empty(get(scope, name, ''))
-        let text = succinct#process_value(scope[name], 0)
-        break
+        let text = succinct#process_value(scope[name], 0) | break
       endif
     endfor
   endif
@@ -266,28 +260,36 @@ endfunction
 "-----------------------------------------------------------------------------"
 " Delimiter handling
 "-----------------------------------------------------------------------------"
-" Navigation without triggering InsertLeave
-" Consider using this in many other situations
-function! s:move_cursor(lnum, cnum, lorig, corig) abort
-  if a:lnum == a:lorig
-    let cdiff = a:cnum - a:corig
-    return repeat(cdiff > 0 ? "\<Right>" : "\<Left>", abs(cdiff))
-  else
-    let ldiff = a:lnum - a:lorig
-    return "\<Home>" . repeat(ldiff > 0 ? "\<Down>" : "\<Up>", abs(ldiff)) . repeat("\<Right>", a:cnum - 1)
-  endif
-endfunction
-
 " Delimiter regular expression using delimitMate and matchpairs
 " This is used for delimiter jumping
-function! s:delim_regex() abort
-  let delims = exists('b:delimitMate_matchpairs') ? b:delimitMate_matchpairs
-    \ : exists('g:delimitMate_matchpairs') ? g:delimitMate_matchpairs : &matchpairs
+function! s:find_delim(...) abort
+  let delims = &matchpairs  " default
+  let delims = get(g:, 'delimitMate_matchpairs', delims)  " global setting
+  let delims = get(b:, 'delimitMate_matchpairs', delims)  " buffer setting
   let delims = substitute(delims, '[:,]', '', 'g')
-  let quotes = exists('b:delimitMate_quotes') ? b:delimitMate_quotes
-    \ : exists('g:delimitMate_quotes') ? g:delimitMate_quotes : "\" ' `"
+  let quotes = "\" ' `"
+  let quotes = get(g:, 'delimitMate_quotes', quotes)  " global setting
+  let quotes = get(b:, 'delimitMate_quotes', quotes)  " buffer setting
   let quotes = substitute(quotes, '\s\+', '', 'g')
-  return '[' . escape(delims . quotes, ']^-\') . ']'
+  let regex = '[' . escape(delims . quotes, ']^-\') . ']'
+  call search(regex, a:0 ? a:1 : 'e')
+endfunction
+
+" Navigation without triggering InsertLeave
+" Consider using this in many other situations
+function! s:move_delim(lnum, cnum, lorig, corig) abort
+  let scroll = get(b:, 'scroll_state', 0)  " internal .vimrc setting
+  let action = !pumvisible() ? '' : scroll ? "\<C-y>\<C-]>" : "\<C-e>"
+  if a:lnum == a:lorig
+    let cnr = a:cnum - a:corig
+    let key = cnr > 0 ? "\<Right>" : "\<Left>"
+    let motion = repeat(key, abs(cnr))
+  else
+    let cnr = a:lnum - a:lorig
+    let key = cnr > 0 ? "\<Down>" : "\<Up>"
+    let motion = "\<Home>" . repeat(key, abs(cnr)) . repeat("\<Right>", a:cnum - 1)
+  endif
+  return action . motion
 endfunction
 
 " Move to right of previous delim  ( [ [ ( "  "  asd) sdf    ]  sdd   ]  as) h adfas)
@@ -295,9 +297,12 @@ endfunction
 " 'current position' (i.e. getpos('.') after e.g. cursor()) changes inside function
 function! succinct#prev_delim() abort
   let [_, lorig, corig, _] = getpos('.')
-  call search(s:delim_regex(), 'eb')
-  if col('.') > corig - 2 | call search(s:delim_regex(), 'eb') | endif
-  return s:move_cursor(line('.'), col('.') + 1, lorig, corig)
+  call s:find_delim('eb')
+  if col('.') > corig - 2
+    call s:find_delim('eb')
+  endif
+  let keys = s:move_delim(line('.'), col('.') + 1, lorig, corig)
+  return keys
 endfunction
 
 " Move to right of next delim. Why starting from current position? Even if cursor is on
@@ -306,28 +311,15 @@ endfunction
 " use setpos() but then if fail to find delim that moves cursor which is weird.
 function! succinct#next_delim() abort
   let [_, lorig, corig, _] = getpos('.')
-  let [lsearch, csearch] = [lorig, corig]
-  if csearch == 1
-    let lsearch = max([1, lsearch - 1])
-    exe lsearch
-    let csearch = col('$')
+  let [lfind, cfind] = [lorig, corig]
+  if cfind == 1
+    let lfind = max([1, lfind - 1]) | exe lfind
+    let cfind = col('$')
   endif
-  call cursor(lsearch, csearch - 1)
-  call search(s:delim_regex(), 'e')
-  return s:move_cursor(line('.'), col('.') + 1, lorig, corig)
-endfunction
-
-" Special popup menu behavior just for me and my .vimrc!
-" No one has to know ;)
-function! succinct#pum_close() abort
-  if !pumvisible() || !exists('b:pum_pos')
-    return ''
-  elseif b:pum_pos
-    let b:pum_pos = 0
-    return "\<C-y>\<C-]>"
-  else
-    return "\<C-e>"
-  endif
+  call cursor(lfind, cfind - 1)
+  call s:find_delim('e')
+  let keys = s:move_delim(line('.'), col('.') + 1, lorig, corig)
+  return keys
 endfunction
 
 "-----------------------------------------------------------------------------"
