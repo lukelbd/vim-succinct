@@ -1,122 +1,132 @@
 "-----------------------------------------------------------------------------
 " Snippet and delimiter registering
 "-----------------------------------------------------------------------------
-" Escape command separator character for strings interpreted as mapping declarations
-function! s:map_escape(string) abort
-  return escape(a:string, '|')
-endfunction
-
 " Add snippet variables
-" Note: Funcref cannot be assigned as local variable so do not iterate over items()
-function! succinct#add_snippets(map, ...) abort
+" Warning: Funcref cannot be assigned as local variable so do not iterate over items()
+function! s:parse_input(input) abort
+  let chars = {'r': "\r", 'n': "\n", '1': "\1", '2': "\2", '3': "\3", '4': "\4", '5': "\5", '6': "\6", '7': "\7"}
+  let chars = type(a:input) == 1 ? chars : {}
+  let output = type(a:input) == 1 ? a:input : ''
+  for [char, repl] in items(chars)
+    let check = char2nr(repl) > 7 ? '\w\@!' : ''
+    let output = substitute(output, '\\' . char . check, repl, 'g')
+  endfor
+  return empty(output) ? a:input : output
+endfunction
+function! succinct#add_snippets(source, ...) abort
   let scope = a:0 && a:1 ? b: : g:
-  for key in keys(a:map)
-    let scope['snippet_' . char2nr(key)] = a:map[key]
+  for key in keys(a:source)  " funcref cannot be lower case so iterate keys
+    let name = 'snippet_' . char2nr(key)
+    let scope[name] = s:parse_input(a:source[key])
   endfor
 endfunction
 
 " Add delimiters and text objects simultaneously
-" Note: Funcref delimiters cannot be automatically translated to text objects
-function! succinct#add_delims(map, ...) abort
+" Warning: Funcref delimiters cannot be automatically translated to text objects
+function! s:escape_key(key) abort  " escape command separate for map delcarations
+  return escape(a:key, '|')
+endfunction
+function! s:escape_value(value) abort  " escape regular expressions and allow indents
+  return substitute(escape(a:value, '[]\.*~^$'), '\(\n\|\\n\)', '\\_s*', 'g')
+endfunction
+function! succinct#add_delims(source, ...) abort
   let scope = a:0 && a:1 ? b: : g:
-  for key in keys(a:map)
-    let scope['surround_' . char2nr(key)] = a:map[key]
+  for key in keys(a:source)  " funcref cannot be lower case so iterate keys
+    let name = 'surround_' . char2nr(key)
+    let scope[name] = s:parse_input(a:source[key])
   endfor
-  let dest = {}
   let flag = a:0 && a:1 ? '<buffer> ' : ''
-  for key in keys(a:map)
-    if type(a:map[key]) != 1
+  let specs = {}
+  for key in keys(a:source)
+    if type(a:source[key]) != 1
       echohl WarningMsg
       echom "Warning: Cannot add key '" . key . "' as text object (non-string type)."
       echohl None
       continue
     endif
-    let pattern = succinct#process_value(a:map[key], 1)
-    let pattern = split(pattern, "\r")
-    if pattern[0] ==# pattern[1]  " special handling if delims are identical, e.g. $$
-      let dest['textobj_' . char2nr(key) . '_i'] = {
-        \ 'pattern': pattern[0] . '\zs.\{-}\ze' . pattern[0],
-        \ 'select': flag . 'i' . s:map_escape(key),
+    let pair = s:parse_input(a:source[key])
+    let pair = succinct#process_value(pair, 1)
+    if count(pair, "\r") != 1 | continue | endif
+    let [match1, match2] = split(pair, "\r")
+    if match1 ==# match2 || match1 =~# '\\\@<!['  " special handling e.g. '$$'
+      let name1 = 'textobj_' . char2nr(key) . '_i'
+      let name2 = 'textobj_' . char2nr(key) . '_a'
+      let specs[name1] = {
+        \ 'pattern': match1 . '\zs.\{-}\ze' . match2,
+        \ 'select': flag . 'i' . s:escape_key(key),
         \ }
-      let dest['textobj_' . char2nr(key) . '_a'] = {
-        \ 'pattern': pattern[0] . '.\{-}' . pattern[0],
-        \ 'select': flag . 'a' . s:map_escape(key),
+      let specs[name2] = {
+        \ 'pattern': match1 . '.\{-}' . match2,
+        \ 'select': flag . 'a' . s:escape_key(key),
         \ }
-    else
-      let dest['textobj_' . char2nr(key)] = {
-        \ 'pattern': pattern,
-        \ 'select-a': flag . 'a' . s:map_escape(key),
-        \ 'select-i': flag . 'i' . s:map_escape(key),
+    else  " standard handling
+      let name = 'textobj_' . char2nr(key)
+      let specs[name] = {
+        \ 'pattern': [match1, match2],
+        \ 'select-a': flag . 'a' . s:escape_key(key),
+        \ 'select-i': flag . 'i' . s:escape_key(key),
         \ }
     endif
   endfor
-  let name = a:0 && a:1 ? &filetype : 'global'
-  let name = substitute(name, '[._-]', '', 'g')  " compound filetypes and others
-  let name = 'succinct' . name  " prepend to avoid conflicts with native plugins
+  let plugin = a:0 && a:1 ? &filetype : 'global'
+  let plugin = substitute(plugin, '[._-]', '', 'g')  " compound filetypes
+  let command = substitute(plugin, '^\(\l\)', '\u\1', 0)  " command name
   if exists('*textobj#user#plugin')
-    call textobj#user#plugin(name, dest)
+    call textobj#user#plugin(plugin, specs)
+    silent! exe 'Textobj' . command . 'DefaultKeyMappings!'
   endif
 endfunction
 
 "-----------------------------------------------------------------------------"
 " Snippet and delimiter processing
 "-----------------------------------------------------------------------------"
-" Escape special regex characters and replace newline with arbitrary spaces
-" to account for automatic indentation
-function! s:regex_escape(string) abort
-  return substitute(escape(a:string, '[]\.*$~'), "\n", '\\_s*', 'g')
-endfunction
-
 " Obtain and process delimiters. If a:search is true return regex suitable for
 " *searching* for delimiters with searchpair(), else return delimiters themselves.
 " Note: this was adapted from vim-surround source code
 function! succinct#process_value(value, ...) abort
   " Acquire user-input for placeholders \1, \2, \3, ...
-  let search = a:0 && a:1 ? 1 : 0  " whether to insert or search the result
-  let input = type(a:value) == 2 ? a:value() : a:value  " the string or funcref
-  if empty(input) | return '' | endif  " e.g. funcs that start asynchronous fzf commands
+  let search = a:0 ? a:1 : 0  " whether to perform search
+  let input = type(a:value) == 2 ? a:value() : a:value  " string or funcref
+  if empty(input) | return '' | endif  " e.g. funcref that starts asynchronous fzf
   for nr in range(7)
-    let m = matchstr(input, nr2char(nr) . '.\{-\}\ze' . nr2char(nr))
-    if !empty(m)  " \1, \2, \3, ... found inside string
+    let idx = matchstr(input, nr2char(nr) . '.\{-\}\ze' . nr2char(nr))
+    if !empty(idx)  " \1, \2, \3, ... found inside string
       if search  " search possible user-input values
         let s = '\%(\k\|\.\|\*\)'  " match e.g. foo.bar() or \section*{}
         let repl_{nr} = s . '\@<!' . s . '\+'  " pick longest coherent match
       else  " acquire user-input values
-        let m = substitute(strpart(m, 1), '\r.*', '', '')
-        let repl_{nr} = input(match(m, '\w\+$') >= 0 ? m . ': ' : m)
+        let idx = substitute(strpart(idx, 1), '\r.*', '', '')
+        let repl_{nr} = input(match(idx, '\w\+$') >= 0 ? idx . ': ' : idx)
       endif
     endif
   endfor
-  " Generate the snippet or delimiter string
+  " Replace inner regions with user input result
   let idx = 0
+  let head = input[0] =~# '[''"]' ? '\(\<[frub]\+\)\?' : ''
+  let head = &filetype ==# 'python' && search ? head : ''
+  let input = search ? s:escape_value(input) : input
   let output = ''
   while idx < strlen(input)
-    let char = strpart(input, idx, 1)
-    if char2nr(char) > 7  " simply insert the character, escaping magic charaters
-      let part = search ? s:regex_escape(char) : char
-    else  " replace \1, \2, \3, ... with user-input values
-      let next = stridx(input, char, idx + 1)
-      if next == -1
-        let part = char  " use the literal \1, \2, etc.
-      else
-        let part = repl_{char2nr(char)}  " filled in above
-        let query = strpart(input, idx + 1, next - idx - 1)  " the query between \1...\1
-        let query = matchstr(query, '\r.*')  " a substitute initiation indication
-        while query =~# '^\r.*\r'
-          let group = matchstr(query, "^\r\\zs[^\r]*\r[^\r]*")  " a match and replace group
-          let sub = strpart(group, 0, stridx(group, "\r"))  " the substitute
-          let repl = strpart(group, stridx(group, "\r") + 1)  " the replacement
-          let repl = search ? s:regex_escape(repl) : repl
-          let part = substitute(part, sub, repl, '')  " apply substitution as requested
-          let query = strpart(query, strlen(group) + 1)  " skip over the group
-        endwhile
-        let idx = next
-      endif
+    let part = strpart(input, idx, 1)
+    let other = char2nr(part) <= 7 ? stridx(input, part, idx + 1) : -1
+    if other > 0  " replace \1, \2, \3, ... with user input using inner text as prompt
+      let query = strpart(input, idx + 1, other - idx - 1)  " query between \1...\1
+      let query = matchstr(query, '\r.*')  " substitute initiation indication
+      let part = repl_{char2nr(part)}  " defined above
+      let idx = other  " resume after
+      while query =~# '^\r.*\r'
+        let group = matchstr(query, '^\r\zs[^\r]*\r[^\r]*')  " match replace group
+        let sub = strpart(group, 0, stridx(group, "\r"))  " the substitute
+        let repl = strpart(group, stridx(group, "\r") + 1)  " the replacement
+        let repl = search ? s:escape_value(repl) : repl
+        let part = substitute(part, sub, repl, '')  " apply substitution as requested
+        let query = strpart(query, strlen(group) + 1)  " skip over the group
+      endwhile
     endif
-    let output .= part
     let idx += 1
+    let output .= part
   endwhile
-  return output
+  return head . output
 endfunction
 
 "-----------------------------------------------------------------------------
@@ -146,16 +156,16 @@ endfunction
 
 " Delimiter and snippet sources and sinks
 " Note: See below for more on fzf limitations.
-function! s:snippet_surround_source(string) abort
+function! s:variable_source(prefix) abort
   let opts = {}
   for scope in ['g:', 'b:']
-    let vars = getcompletion(scope . a:string . '_', 'var')
+    let vars = getcompletion(scope . a:prefix . '_', 'var')
     for name in vars
-      let key = nr2char(substitute(name, scope . a:string . '_', '', ''))
-      let opts[key] = eval(name)  " local vars will overwrite global vars
+      let key = substitute(name, scope . a:prefix . '_', '', '')
+      let opts[nr2char(key)] = eval(name)  " local will overwrite global variables
     endfor
   endfor
-  return map(items(opts), "v:val[0] . ': ' . string(v:val[1])")
+  return map(items(opts), 'v:val[0] . '': '' . string(v:val[1])')
 endfunction
 function! s:snippet_sink(item) abort
   let key = split(a:item, ':')[0]
@@ -175,9 +185,12 @@ endfunction
 " with no window options and letting it fill the screen (use --height=100% to ensure
 " all entries shown). In future may have to make this work but for now this is fine.
 function! s:fzf_check() abort
-  let flag = exists('*fzf#run')
-  if !flag | echohl WarningMsg | echom 'Warning: FZF plugin not found.' | echohl None | endif
-  return flag
+  if !exists('*fzf#run')
+    echohl WarningMsg
+    echom 'Warning: FZF plugin not found.'
+    echohl None
+  endif
+  return exists('*fzf#run')
 endfunction
 function! succinct#template_select() abort
   let templates = s:template_source(expand('%:e'))
@@ -193,7 +206,7 @@ function! succinct#snippet_select() abort
   if !s:fzf_check() | return | endif
   call fzf#run({
     \ 'sink': function('s:snippet_sink'),
-    \ 'source': s:snippet_surround_source('snippet'),
+    \ 'source': s:variable_source('snippet'),
     \ 'options': '--no-sort --height=100% --prompt="Snippet> "',
     \ })
 endfunction
@@ -201,7 +214,7 @@ function! succinct#surround_select(mode) abort
   if !s:fzf_check() | return | endif
   call fzf#run({
     \ 'sink': function('s:surround_sink', [a:mode]),
-    \ 'source': s:snippet_surround_source('surround'),
+    \ 'source': s:variable_source('surround'),
     \ 'options': '--no-sort --height=100% --prompt="Surround> "',
     \ })
 endfunction
@@ -232,22 +245,22 @@ endfunction
 " Warning: Some dict entries may be funcrefs and cannot assign as local variable
 function! succinct#insert_snippet(...) abort
   let pad = ''
-  let snippet = ''
+  let text = ''
   let char = a:0 ? a:1 : s:get_char()
-  if char =~# '\s'  " similar to surround, permit <C-a><Space><Key> to surround with space
+  if char =~# '\s'  " similar to surround, permit <C-e><Space><Key> to surround spaces
     let pad = char
     let char = s:get_char()
   endif
   if !empty(char)
-    let key = 'snippet_' . char2nr(char)
-    for scope in ['b:', 'g:']  " note buffer maps have priority
-      if exists(scope . key) && !empty(eval(scope . key))
-        let snippet = succinct#process_value(eval(scope . key))
+    let name = 'snippet_' . char2nr(char)
+    for scope in [b:, g:]  " note buffer maps have priority
+      if !empty(get(scope, name, ''))
+        let text = succinct#process_value(scope[name], 0)
         break
       endif
     endfor
   endif
-  return empty(snippet) ? '' : pad . snippet . pad
+  return empty(text) ? '' : pad . text . pad
 endfunction
 
 "-----------------------------------------------------------------------------"
@@ -336,8 +349,11 @@ function! s:get_delims(search) abort
   else
     let string = nr2char(nr) . "\r" . nr2char(nr)
   endif
-  let delims = succinct#process_value(string, a:search)
-  return split(delims, "\r")
+  let text = succinct#process_value(string, a:search)
+  let head = text[0] =~# '[''"]' ? '\(\<[frub]\+\)\?' : ''
+  let head = &filetype ==# 'python' ? head : ''
+  let head = ''
+  return split(head . text, "\r")
 endfunction
 
 " Driver function that accepts left and right delims, and runs normal mode commands
@@ -347,12 +363,9 @@ endfunction
 " make sure your command accounts for that!
 function! s:pair_action(left, right, lexpr, rexpr, count) abort
   " Get positions for *start* of matches
-  if !exists('*searchpairpos')  " older versions
-    return
-  endif
   for _ in range(a:count)
     " Find positions
-    if a:left ==# a:right
+    if a:left ==# a:right || a:left =~# '\\\@<!['  " python string headers
       let [l1, c11] = searchpos(a:left, 'bnW')
       let [l2, c21] = searchpos(a:left, 'nW')
     else
@@ -363,16 +376,13 @@ function! s:pair_action(left, right, lexpr, rexpr, count) abort
       continue
     endif
     " Delete or change right delim. If this leaves an empty line, delete it.
-    " Note: Right must come first!
     call cursor(l2, c21)
     let [l2, c22] = searchpos(a:right, 'cen')
     call setpos("'z", [0, l2, c22, 0])
     set paste
     exe 'normal! ' . a:rexpr
     set nopaste
-    if empty(substitute(getline(l2), '^\_s*\(.\{-}\)\_s*$', '\1', ''))  " strip whitespace
-      exe l2 . 'd'
-    endif
+    if empty(trim(getline(l2))) | exe l2 . 'd' | endif
     " Delete or change left delim
     call cursor(l1, c11)
     let [l1, c12] = searchpos(a:left, 'cen')
@@ -380,17 +390,17 @@ function! s:pair_action(left, right, lexpr, rexpr, count) abort
     set paste
     exe 'normal! ' . a:lexpr
     set nopaste
-    if empty(substitute(getline(l1), '^\_s*\(.\{-}\)\_s*$', '\1', ''))  " strip whitespace
-      exe l1 . 'd'
-    endif
+    if empty(trim(getline(l1))) | exe l1 . 'd' | endif
   endfor
 endfunction
 
 " Change surrounding delimiters
 function! succinct#change_delims() abort
-  let [prev1, prev2] = s:get_delims(1)
-  let [new1, new2] = s:get_delims(0)
-  call s:pair_action(prev1, prev2, '"_c`z' . new1 . "\<Delete>", '"_c`z' . new2 . "\<Delete>", v:count1)
+  let [prev1, prev2] = s:get_delims(1)  " disallow user input
+  let [repl1, repl2] = s:get_delims(0)  " request user input
+  let expr1 = '"_c`z' . repl1 . "\<Delete>"
+  let expr2 = '"_c`z' . repl2 . "\<Delete>"
+  call s:pair_action(prev1, prev2, expr1, expr2, v:count1)
   if exists('*repeat#set')
     call repeat#set("\<Plug>ChangeDelims")
   endif
@@ -399,7 +409,9 @@ endfunction
 " Delete surrounding delimiters
 function! succinct#delete_delims() abort
   let [delim1, delim2] = s:get_delims(1)  " disallow user input
-  call s:pair_action(delim1, delim2, '"_d`z"_x', '"_d`z"_x', v:count1)
+  let expr1 = '"_d`z"_x'
+  let expr2 = '"_d`z"_x'
+  call s:pair_action(delim1, delim2, expr1, expr2, v:count1)
   if exists('*repeat#set')
     call repeat#set("\<Plug>DeleteDelims")
   endif

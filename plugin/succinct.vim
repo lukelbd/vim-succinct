@@ -74,23 +74,24 @@ nmap cs <Plug>ResetDelims<Plug>ChangeDelims
 " Add $global$ *delimiters* and text objects
 " Note: For surrounding with spaces can hit space twice, and for surrounding
 " with enter can hit enter twice. Very simple.
-call succinct#add_delims({
-  \ '': "\n\r\n",
-  \ "'": "'\r'",
-  \ '"': "\"\r\"",
-  \ 'q': "‘\r’",
-  \ 'Q': "“\r”",
-  \ 'b': "(\r)",
-  \ '(': "(\r)",
-  \ 'c': "{\r}",
-  \ 'B': "{\r}",
-  \ '{': "{\r}",
-  \ '*': "*\r*",
-  \ 'r': "[\r]",
-  \ '[': "[\r]",
-  \ 'a': "<\r>",
-  \ '<': "<\r>",
-  \ '\': "\\\"\r\\\"",
-  \ 'f': "\1function: \1(\r)",
-  \ 'A': "\1array: \1[\r]",
-  \ })
+let s:delims = {
+  \ '': '\n\r\n',
+  \ "'": '''\r''',
+  \ '"': '\"\r\"',
+  \ 'q': '‘\r’',
+  \ 'Q': '“\r”',
+  \ 'b': '(\r)',
+  \ '(': '(\r)',
+  \ 'c': '{\r}',
+  \ 'B': '{\r}',
+  \ '{': '{\r}',
+  \ '*': '*\r*',
+  \ 'r': '[\r]',
+  \ '[': '[\r]',
+  \ 'a': '<\r>',
+  \ '<': '<\r>',
+  \ '\': '\"\r\"',
+  \ 'f': '\1function: \1(\r)',
+  \ 'A': '\1array: \1[\r]',
+  \ }
+call succinct#add_delims(s:delims, 0, 1)
