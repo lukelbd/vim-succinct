@@ -52,11 +52,11 @@ function! succinct#add_delims(source, ...) abort
       let name1 = 'textobj_' . char2nr(key) . '_i'
       let name2 = 'textobj_' . char2nr(key) . '_a'
       let specs[name1] = {
-        \ 'pattern': match1 . '\zs.\{-}\ze' . match2,
+        \ 'pattern': match1 . '\zs\_s*.\{-}\_s*\ze' . match2,
         \ 'select': flag . 'i' . s:escape_key(key),
         \ }
       let specs[name2] = {
-        \ 'pattern': match1 . '.\{-}' . match2,
+        \ 'pattern': match1 . '\_s*.\{-}\_s*' . match2,
         \ 'select': flag . 'a' . s:escape_key(key),
         \ }
     else  " standard handling
