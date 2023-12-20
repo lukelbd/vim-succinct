@@ -118,6 +118,9 @@ endfunction
 function! succinct#get_object(mode, delim, ...) abort
   let ldelim = a:delim
   let rdelim = a:0 ? a:1 : a:delim
+  if s:get_syntax() !~# '^\(Constant\|Comment\)$'
+    return 0
+  endif
   if !search(ldelim, 'bW')
     return 0
   endif
