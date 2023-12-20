@@ -77,7 +77,7 @@ nmap cs <Plug>ResetDelims<Plug>ChangeDelims
 let s:delims = {
   \ '': '\n\r\n',
   \ "'": '''\r''',
-  \ '"': '\"\r\"',
+  \ '"': '"\r"',
   \ 'q': '‘\r’',
   \ 'Q': '“\r”',
   \ 'b': '(\r)',
@@ -90,7 +90,6 @@ let s:delims = {
   \ '[': '[\r]',
   \ 'a': '<\r>',
   \ '<': '<\r>',
-  \ '\': '\"\r\"',
   \ 'f': '\1function: \1(\r)',
   \ 'A': '\1array: \1[\r]',
   \ }

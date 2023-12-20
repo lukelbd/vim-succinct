@@ -23,11 +23,18 @@ endfunction
 
 " Add delimiters and text objects simultaneously
 " Warning: Funcref delimiters cannot be automatically translated to text objects
+" Note: Use ad-hoc approach for including python string headers instead of relying
+" on user so that built-in change-delim and delete-delim commands that rely on
+" buffer and global surround variables still include header, but without including
+" regex for built-in visual, insert, and motion based vim-surround insertions.
 function! s:escape_key(key) abort  " escape command separate for map delcarations
   return escape(a:key, '|')
 endfunction
 function! s:escape_value(value) abort  " escape regular expressions and allow indents
-  return substitute(escape(a:value, '[]\.*~^$'), '\(\n\|\\n\)', '\\_s*', 'g')
+  return substitute(escape(a:value, '[]\.*~^$'), '\n', '\\_s*', 'g')
+endfunction
+function! s:remove_groups(input) abort
+  return substitute(a:input, '\(\\_\)\?\(\\(.\+\\)\|\[.\+\]\|\\\?.\)\(\\?\|\\\@<!\*\)', '', 'g')
 endfunction
 function! succinct#add_delims(source, ...) abort
   let scope = a:0 && a:1 ? b: : g:
@@ -48,23 +55,43 @@ function! succinct#add_delims(source, ...) abort
     let pair = succinct#process_value(pair, 1)
     if count(pair, "\r") != 1 | continue | endif
     let [match1, match2] = split(pair, "\r")
-    if match1 ==# match2 || match1 =~# '\\\@<!['  " special handling e.g. '$$'
-      let name1 = 'textobj_' . char2nr(key) . '_i'
-      let name2 = 'textobj_' . char2nr(key) . '_a'
-      let specs[name1] = {
-        \ 'pattern': match1 . '\zs\_s*.\{-}\_s*\ze' . match2,
-        \ 'select': flag . 'i' . s:escape_key(key),
-        \ }
-      let specs[name2] = {
-        \ 'pattern': match1 . '\_s*.\{-}\_s*' . match2,
-        \ 'select': flag . 'a' . s:escape_key(key),
-        \ }
-    else  " standard handling
+    let [check1, check2] = [s:remove_groups(match1), s:remove_groups(match2)]
+    let check = substitute(check1, '\', '', 'g')  " e.g. escaped * * delimiters
+    if check1 !=# check2
       let name = 'textobj_' . char2nr(key)
       let specs[name] = {
         \ 'pattern': [match1, match2],
         \ 'select-a': flag . 'a' . s:escape_key(key),
         \ 'select-i': flag . 'i' . s:escape_key(key),
+        \ }
+    elseif len(check) <= 1  " single-line identical delimiters
+      let inner = 'textobj_' . char2nr(key) . '_i'
+      let outer = 'textobj_' . char2nr(key) . '_a'
+      let specs[inner] = {
+        \ 'pattern': match1 . '\zs.\{-}\ze' . match2,
+        \ 'select': flag . 'i' . s:escape_key(key),
+        \ }
+      let specs[outer] = {
+        \ 'pattern': match1 . '.\{-}' . match2,
+        \ 'select': flag . 'a' . s:escape_key(key),
+        \ }
+    else  " multi-line identical delimiters
+      let code = [
+        \ 'function! s:textobj_' . char2nr(key) . '_i() abort',
+        \ '  return succinct#get_object("i", ' . string(match1) . ', ' . string(match2) . ')',
+        \ 'endfunction',
+        \ 'function! s:textobj_' . char2nr(key) . '_a() abort',
+        \ '  return succinct#get_object("a", ' . string(match1) . ', ' . string(match2) . ')',
+        \ 'endfunction'
+        \ ]
+      exe join(code, "\n")
+      let plugin = 'textobj_' . char2nr(key)
+      let specs[plugin] = {
+        \ 'sfile': expand('<script>:p'),
+        \ 'select-i': flag . 'i' . s:escape_key(key),
+        \ 'select-a': flag . 'a' . s:escape_key(key),
+        \ 'select-i-function': 's:textobj_' . char2nr(key) . '_i',
+        \ 'select-a-function': 's:textobj_' . char2nr(key) . '_a',
         \ }
     endif
   endfor
@@ -80,20 +107,59 @@ endfunction
 "-----------------------------------------------------------------------------"
 " Snippet and delimiter processing
 "-----------------------------------------------------------------------------"
+" Functional text object declaration
+" Note: This is currently only used for python docstrings. Needed since searchpairpos()
+" fails with identical delimiters and textobj#user workaround only supports one line
+function! s:get_syntax() abort
+  let stack = synstack(line('.'), col('.'))
+  let stack = map(stack, 'synIDattr(synIDtrans(v:val), "name")')
+  return get(stack, 0, 'Unknown')
+endfunction
+function! succinct#get_object(mode, delim, ...) abort
+  let ldelim = a:delim
+  let rdelim = a:0 ? a:1 : a:delim
+  if !search(ldelim, 'bW')
+    return 0
+  endif
+  if s:get_syntax() !~# '^\(Constant\|Comment\)$'
+    return 0
+  endif
+  if a:mode ==# 'a'
+    let pos1 = getpos('.')  " jump to start of match
+    call search(ldelim, 'eW')
+  elseif a:mode ==# 'i'  " match first character after tripple quote
+    call search(ldelim . '\_s*\zs', 'W')
+    let pos1 = getpos('.')
+  endif
+  if !search(rdelim, 'eW')
+    return 0  " ending quote not found
+  endif
+  if s:get_syntax() !~# '^\(Constant\|Comment\)$'
+    return 0
+  endif
+  if a:mode ==# 'i'
+    call search('\_.\_s*' . rdelim, 'bW')
+  endif
+  let pos2 = getpos('.')
+  return ['v', pos1, pos2]
+endfunction
+
 " Obtain and process delimiters. If a:search is true return regex suitable for
 " *searching* for delimiters with searchpair(), else return delimiters themselves.
-" Note: this was adapted from vim-surround source code
 function! succinct#process_value(value, ...) abort
   " Acquire user-input for placeholders \1, \2, \3, ...
+  " Note: This was adapted from vim-surround source code
   let search = a:0 ? a:1 : 0  " whether to perform search
   let input = type(a:value) == 2 ? a:value() : a:value  " string or funcref
+  let head = input[0] =~# '[''"]' ? '\(\<[frub]\+\)\?' : ''
+  let head = search && &filetype ==# 'python' ? head : ''
   if empty(input) | return '' | endif  " e.g. funcref that starts asynchronous fzf
   for nr in range(7)
     let idx = matchstr(input, nr2char(nr) . '.\{-\}\ze' . nr2char(nr))
     if !empty(idx)  " \1, \2, \3, ... found inside string
       if search  " search possible user-input values
-        let s = '\%(\k\|\.\|\*\)'  " match e.g. foo.bar() or \section*{}
-        let repl_{nr} = s . '\@<!' . s . '\+'  " pick longest coherent match
+        let regex = '\%(\k\|\.\|\*\)'  " match e.g. foo.bar() or \section*{}
+        let repl_{nr} = regex . '\@<!' . regex . '\+'  " pick longest coherent match
       else  " acquire user-input values
         let idx = substitute(strpart(idx, 1), '\r.*', '', '')
         let repl_{nr} = input(match(idx, '\w\+$') >= 0 ? idx . ': ' : idx)
@@ -101,30 +167,30 @@ function! succinct#process_value(value, ...) abort
     endif
   endfor
   " Replace inner regions with user input result
+  " Note: Critical to escape characters one-by-one or else internal \r\r groups caught
   let idx = 0
-  let head = input[0] =~# '[''"]' ? '\(\<[frub]\+\)\?' : ''
-  let head = &filetype ==# 'python' && search ? head : ''
-  let input = search ? s:escape_value(input) : input
   let output = ''
   while idx < strlen(input)
-    let part = strpart(input, idx, 1)
-    let other = char2nr(part) <= 7 ? stridx(input, part, idx + 1) : -1
-    if other > 0  " replace \1, \2, \3, ... with user input using inner text as prompt
-      let query = strpart(input, idx + 1, other - idx - 1)  " query between \1...\1
+    let char = strpart(input, idx, 1)
+    let jdx = char2nr(char) > 7 ? -1 : stridx(input, char, idx + 1)
+    if jdx == -1  " match individual character
+      let part = search ? s:escape_value(char) : char
+    else  " replace \1, \2, \3, ... with user input using inner text as prompt
+      let part = repl_{char2nr(char)}  " defined above
+      let query = strpart(input, idx + 1, jdx - idx - 1)  " query between \1...\1
       let query = matchstr(query, '\r.*')  " substitute initiation indication
-      let part = repl_{char2nr(part)}  " defined above
-      let idx = other  " resume after
       while query =~# '^\r.*\r'
-        let group = matchstr(query, '^\r\zs[^\r]*\r[^\r]*')  " match replace group
+        let group = matchstr(query, "^\r\\zs[^\r]*\r[^\r]*")  " match replace group
         let sub = strpart(group, 0, stridx(group, "\r"))  " the substitute
         let repl = strpart(group, stridx(group, "\r") + 1)  " the replacement
         let repl = search ? s:escape_value(repl) : repl
         let part = substitute(part, sub, repl, '')  " apply substitution as requested
         let query = strpart(query, strlen(group) + 1)  " skip over the group
       endwhile
+      let idx = jdx  " resume after
     endif
-    let idx += 1
     let output .= part
+    let idx += 1
   endwhile
   return head . output
 endfunction
