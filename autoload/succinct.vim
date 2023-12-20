@@ -138,7 +138,7 @@ function! succinct#get_object(mode, delim, ...) abort
     return 0
   endif
   if a:mode ==# 'i'
-    call search('\_.\_s*' . rdelim, 'bW')
+    call search('\S\_s*' . rdelim, 'bW')
   endif
   let pos2 = getpos('.')
   return ['v', pos1, pos2]
