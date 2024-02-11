@@ -374,8 +374,8 @@ function! succinct#prev_delim() abort
   return keys
 endfunction
 
-" Move to right of next delim. Why starting from current position? Even if cursor is on
-" delimiter, want to find it and move to the right of it
+" Move to right of next delim. Why starting from current position? Even
+" if cursor is on delimiter, want to find it and move to the right of it
 " Warning: Cannot use search() because it fails to detect current column. Could
 " use setpos() but then if fail to find delim that moves cursor which is weird.
 function! succinct#next_delim() abort
