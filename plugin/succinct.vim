@@ -45,9 +45,18 @@ augroup END
 inoremap <Plug>SelectIsnippet <Cmd>call succinct#snippet_select()<CR>
 inoremap <Plug>SelectIsurround <Cmd>call succinct#surround_select('I')<CR>
 vnoremap <Plug>SelectVsurround <Cmd>call succinct#surround_select('V')<CR>
+nnoremap <Plug>SelectDsurround <Cmd>call succinct#surround_select('d')<CR>
+nnoremap <Plug>SelectCsurround <Cmd>call succinct#surround_select('c')<CR>
+nnoremap <Plug>SelectYsurround <Cmd>call succinct#surround_select('y')<CR>
 exe 'imap ' . repeat(g:succinct_snippet_map, 2) . ' <Plug>SelectIsnippet'
 exe 'imap ' . repeat(g:succinct_surround_map, 2) . ' <Plug>SelectIsurround'
 exe 'vmap ' . repeat(g:succinct_surround_map, 2) . ' <Plug>SelectVsurround'
+exe 'nmap y' . g:succinct_surround_map . ' <Plug>SelectYsurround'
+exe 'nmap c' . g:succinct_surround_map . ' <Plug>SelectCsurround'
+exe 'nmap d' . g:succinct_surround_map . ' <Plug>SelectDsurround'
+exe 'nmap ys' . g:succinct_surround_map . ' <Plug>SelectYsurround'
+exe 'nmap cs' . g:succinct_surround_map . ' <Plug>SelectCsurround'
+exe 'nmap ds' . g:succinct_surround_map . ' <Plug>SelectDsurround'
 
 " Delimiter navigation and modification mappings
 " Note: Redirect nonexistent <Plug>Vsurround to defined <Plug>VSurround for

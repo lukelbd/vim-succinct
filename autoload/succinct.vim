@@ -242,7 +242,11 @@ function! s:snippet_sink(item) abort
 endfunction
 function! s:surround_sink(mode, item) abort
   let key = split(a:item, ':')[0]
-  call feedkeys("\<Plug>" . a:mode . 'surround' . key, 'ti')
+  if a:mode =~# '^[ydc]$'  " e.g. ys, ds, cs maps which do not use operator pending
+    call feedkeys(a:mode . 's' . key, 't')
+  else  " e.g. <Plug>Isurround and <Plug>Vsurround
+    call feedkeys("\<Plug>" . a:mode . 'surround' . key, 'ti')
+  endif
 endfunction
 
 " Fuzzy select functions
