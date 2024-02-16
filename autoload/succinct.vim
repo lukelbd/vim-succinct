@@ -250,6 +250,8 @@ function! s:surround_sink(mode, item) abort
 endfunction
 
 " Fuzzy select functions
+" Note: Have to disable autocommands when not using fzf#wrap or else screen flashes
+" twice. Not sure why
 " Warning: Currently calling default fzf#run with any window options (e.g. by calling
 " fzf#wrap) causes vim to exit insert mode (seems to be related to triggering use_term=1
 " inside fzf#run), requiring us to recover cursor position and sometimes triggering
@@ -277,7 +279,7 @@ function! succinct#template_select() abort
 endfunction
 function! succinct#snippet_select() abort
   if !s:fzf_check() | return | endif
-  call fzf#run({
+  noautocmd call fzf#run({
     \ 'sink': function('s:snippet_sink'),
     \ 'source': s:variable_source('snippet'),
     \ 'options': '--no-sort --height=100% --prompt="Snippet> "',
@@ -285,7 +287,7 @@ function! succinct#snippet_select() abort
 endfunction
 function! succinct#surround_select(mode) abort
   if !s:fzf_check() | return | endif
-  call fzf#run({
+  noautocmd call fzf#run({
     \ 'sink': function('s:surround_sink', [a:mode]),
     \ 'source': s:variable_source('surround'),
     \ 'options': '--no-sort --height=100% --prompt="Surround> "',
