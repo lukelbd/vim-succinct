@@ -205,8 +205,8 @@ endfunction
 function! s:template_sink(file) abort
   if exists('g:succinct_templates_path') && !empty(a:file)
     let templates = expand(g:succinct_templates_path)
-    execute '0r ' . templates . '/' . a:file
-    filetype detect
+    let path = templates . '/' . a:file
+    execute '0r ' . path | doautocmd BufRead
   endif
 endfunction
 function! s:template_source(ext) abort
