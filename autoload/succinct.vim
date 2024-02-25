@@ -118,15 +118,9 @@ endfunction
 function! succinct#get_object(mode, delim, ...) abort
   let ldelim = a:delim
   let rdelim = a:0 ? a:1 : a:delim
-  if s:get_syntax() !~# '^\(Constant\|Comment\)$'
-    return 0
-  endif
-  if !search(ldelim, 'bW')
-    return 0
-  endif
-  if s:get_syntax() !~# '^\(Constant\|Comment\)$'
-    return 0
-  endif
+  if s:get_syntax() !~# '^\(Constant\|Comment\)$' | return | endif
+  if !search(ldelim, 'bW') | return | endif
+  if s:get_syntax() !~# '^\(Constant\|Comment\)$' | return | endif
   if a:mode ==# 'a'
     let pos1 = getpos('.')  " jump to start of match
     call search(ldelim, 'eW')
@@ -134,15 +128,9 @@ function! succinct#get_object(mode, delim, ...) abort
     call search(ldelim . '\_s*\zs', 'W')
     let pos1 = getpos('.')
   endif
-  if !search(rdelim, 'eW')
-    return 0  " ending quote not found
-  endif
-  if s:get_syntax() !~# '^\(Constant\|Comment\)$'
-    return 0
-  endif
-  if a:mode ==# 'i'
-    call search('\S\_s*' . rdelim, 'bW')
-  endif
+  if !search(rdelim, 'eW') | return | endif  " ending quote not found
+  if s:get_syntax() !~# '^\(Constant\|Comment\)$' | return | endif
+  if a:mode ==# 'i' | call search('\S\_s*' . rdelim, 'bW') | endif
   let pos2 = getpos('.')
   return ['v', pos1, pos2]
 endfunction
