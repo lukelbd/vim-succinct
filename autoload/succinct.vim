@@ -467,11 +467,9 @@ endfunction
 " Helper fucntions for wrapping native vim-surround utilities
 " Note: This permits e.g. <C-e><Space><Snippet> to surround with spaces or
 " <C-e><CR><Snippet> to surround with newlines, similar to vim-surround.
-function! s:feed_repeat(name, ...) abort
+function! s:feed_repeat(keys, ...) abort
   if !exists('*repeat#set') | return | endif
-  let plug = '\<Plug>' . a:name
-  let cnt = a:0 ? a:1 : v:count
-  let cmd = 'call repeat#set("' . plug . '", ' . cnt . ')'
+  let cmd = 'call repeat#set("' . a:keys . '", ' . (a:0 ? a:1 : v:count) . ')'
   call feedkeys("\<Cmd>" . cmd . "\<CR>", 'n')
 endfunction
 function! succinct#reset_repeat() abort
@@ -532,7 +530,11 @@ function! succinct#insert_delims(type) range abort
   let b:surround_indent = 0  " override repititions with manual indentation
   call feedkeys(cmd, 'n')  " pass built-in operator function
   call feedkeys("\1", 't')  " force vim-surround to read b:surround_1
-  call s:feed_repeat('SurroundRepeat' . "\1")  " ensure repeition
+  if a:type =~? "v\\|\<C-v>"  " disable repeition
+    call s:feed_repeat("\<Ignore>")
+  else  " ensure repeition
+    call s:feed_repeat("\<Plug>SurroundRepeat" . "\1")
+  endif
 endfunction
 function! succinct#insert_normal(break) abort
   let snr = succinct#get_snr('vim-surround/plugin/surround.vim', 1)
@@ -602,7 +604,7 @@ function! succinct#delete_delims(count, break) abort
   for _ in range(a:count ? a:count : 1)
     call s:modify_delims(delim1, delim2, expr1, expr2, cnt)
   endfor
-  call s:feed_repeat('Dsuccinct', a:count)  " capital-S not needed since newline added to cache
+  call s:feed_repeat("\<Plug>Dsuccinct", a:count)  " capital-S not needed
 endfunction
 function! succinct#change_delims(count, break) abort
   let [prev1, prev2, cnt] = s:get_cached(1, a:break)  " disable user input
@@ -614,5 +616,5 @@ function! succinct#change_delims(count, break) abort
   for _ in range(a:count ? a:count : 1)
     call s:modify_delims(prev1, prev2, expr1, expr2, cnt)
   endfor
-  call s:feed_repeat('Csuccinct', a:count)  " capital-S not needed since newline added to cache
+  call s:feed_repeat("\<Plug>Csuccinct", a:count)  " capital-S not needed
 endfunction
