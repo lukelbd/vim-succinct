@@ -370,8 +370,11 @@ function! succinct#process_value(value, ...) abort
 endfunction
 
 " Insert user-defined snippet (either fixed string or input with prefix/suffix)
-" Note: This takes alternative approach to vim-surround by manually padding newline
-" with spaces instead of re-indenting with '=' normal mode command.
+" Note: Previously inserted indentations manually (below snippet) but now override
+" with a separately-fed post-processing command. Generally gives more reliable results
+" e.g. in python and supports surrounding cursor by newlines with simply e.g. yssn
+" let space = &l:expandtab ? repeat(' ', &l:tabstop) : \"\t\"
+" let part1 = substitute(part1, \"\n\", \"\n\" . space, 'g')
 function! s:get_cached(search, ...) abort
   let target = get(b:, 'succinct_target', [])
   let replace = get(b:, 'succinct_replace', [])
@@ -412,15 +415,9 @@ function! succinct#process_result(snippet, search, ...) abort
   else  " e.g. <Space><CR><Cursor><CR><Space>
     let [pad1, pad2] = [pad, reverse(pad)]
   endif
+
   let [part1, part2] = [part1 . pad1, pad2 . part2]
-  let indent = get(b:, 'surround_indent', get(g:, 'surround_indent', 1))
-  let indent = get(b:, 'succinct_indent', get(g:, 'succinct_indent', 1))
-  if indent && !a:search && part1 =~# "\n"  " manually indent result
-    " let indent = matchstr(getline('.'), '^\s*')
-    let space = &l:expandtab ? repeat(' ', &l:tabstop) : "\t"
-    let part1 = substitute(part1, "\n", "\n" . space, 'g')
-    " let part2 = substitute(part2, "\n", "\n" . indent, 'g')
-  endif
+
   if a:snippet
     return [part1 . part2, cnt]
   else
@@ -467,19 +464,9 @@ function! succinct#get_scripts(...) abort
   return [paths, sids]
 endfunction
 
-" Insert the requested snippet or delimiter
+" Helper fucntions for wrapping native vim-surround utilities
 " Note: This permits e.g. <C-e><Space><Snippet> to surround with spaces or
 " <C-e><CR><Snippet> to surround with newlines, similar to vim-surround.
-function! succinct#reset_repeat() abort
-  let b:succinct_target = [] | let b:succinct_replace = []
-  silent! unlet b:surround_1 | silent! unlet b:surround_indent
-  if exists('b:surround_restore') | let b:surround_indent = b:surround_restore | endif
-endfunction
-function! succinct#insert_snippet() abort
-  let [text, cnt] = succinct#process_result(1, 0)
-  let snippet = empty(text) ? '' : repeat(text, cnt)
-  return snippet  " directly type snippet
-endfunction
 function! s:feed_repeat(name, ...) abort
   if !exists('*repeat#set') | return | endif
   let plug = '\<Plug>' . a:name
@@ -487,11 +474,53 @@ function! s:feed_repeat(name, ...) abort
   let cmd = 'call repeat#set("' . plug . '", ' . cnt . ')'
   call feedkeys("\<Cmd>" . cmd . "\<CR>", 'n')
 endfunction
-function! succinct#insert_delims(type) range abort
+function! succinct#reset_repeat() abort
+  let b:succinct_target = [] | let b:succinct_replace = []
+  silent! unlet b:surround_1 | silent! unlet b:surround_indent
+  if exists('b:surround_restore') | let b:surround_indent = b:surround_restore | endif
+endfunction
+function! succinct#post_process(...) abort
+  let enabled = get(b:, 'surround_indent', get(g:, 'surround_indent', 1))
+  let enabled = get(b:, 'succinct_indent', get(g:, 'succinct_indent', enabled))
+  let [line1, line2] = a:0 ? a:000 : [line("'['"), line("']'")]
+  if line1 == line2 | return | endif
+  let range = join(sort([line1, line2], 'n'), ',')
+  keepjumps exe 'silent ' . range . 's/\s*$//g'
+  let setting = !empty(&equalprg) || !empty(&indentexpr)
+  let setting = setting || &lisp || &cindent || &smartindent
+  let action = line1 . 'G=' . line2 . 'G'
+  if enabled && setting | keepjumps exe 'silent normal! ' . action | endif
+endfunction
+function! succinct#operate_delims(type) abort
+  let indent = get(b:, 'surround_indent', -1)
   let opfunc = s:operator_snr . 'opfunc'
-  let break = s:operator_break  " YSurround-style additional linebreak
-  let [delim1, delim2, cnt] = succinct#process_result(0, 0, break)
-  let cmd = "\<Cmd>call " . opfunc . '(' . string(a:type) . ")\<CR>"
+  try
+    let b:surround_indent = 0  " override with manual approach
+    call call(opfunc, [a:type])  " native vim-surround function
+    call succinct#post_process()  " post-process results
+  catch /.*/
+    throw v:exception
+  finally
+    if indent == -1  " restore indent
+      silent! exe 'unlet let b:surround_indent'
+    else  " manual indent
+      let b:surround_indent = indent
+    endif
+  endtry
+endfunction
+
+" Insert the requested snippet or delimiter
+" Note: This permits e.g. yss<Delimiter> to surround the default 'inner line'
+" object or ys<CR><Delimiter> to pad with properly-indented newlines.
+function! succinct#insert_snippet() abort
+  let [text, cnt] = succinct#process_result(1, 0)
+  let snippet = empty(text) ? '' : repeat(text, cnt)
+  return snippet  " directly type snippet
+endfunction
+function! succinct#insert_delims(type) range abort
+  let [delim1, delim2, cnt] = succinct#process_result(0, 0, s:operator_break)
+  setlocal operatorfunc=succinct#operate_delims  " '.' -> 'g@<motion>' -> here
+  let cmd = "\<Cmd>call succinct#operate_delims(" . string(a:type) . ")\<CR>"
   if empty(delim1 . delim2)  " padding was not applied if delimiter not passed
     let &l:operatorfunc = '' | return
   endif
@@ -501,14 +530,10 @@ function! succinct#insert_delims(type) range abort
   let delims = repeat(delim1, cnt) . "\r" . repeat(delim2, cnt)
   let b:surround_1 = delims  " assign name that should never conflict with users
   let b:surround_indent = 0  " override repititions with manual indentation
-  let &l:operatorfunc = opfunc  " '.' repeition of 'g@<motion>' goes to vim-surround
   call feedkeys(cmd, 'n')  " pass built-in operator function
   call feedkeys("\1", 't')  " force vim-surround to read b:surround_1
+  call s:feed_repeat('SurroundRepeat' . "\1")  " ensure repeition
 endfunction
-
-" Insert the requested snippet or delimiter
-" Note: This permits e.g. yss<Delimiter> to surround the default 'inner line'
-" object or ys<CR><Delimiter> to pad with properly-indented newlines.
 function! succinct#insert_normal(break) abort
   let snr = succinct#get_snr('vim-surround/plugin/surround.vim', 1)
   let s:operator_snr = snr
@@ -532,15 +557,19 @@ function! succinct#insert_visual() abort
   endif
 endfunction
 
+
 " Modify delimiters across normal mode expressions ( ( ( ( [  [  ] ] ) ) ) )
 " Note: This permits typical vim-surround modifications e.g. space surround. Also
 " note docstring header handling takes place in succinct#process_values().
 " Run normal mode commands between leftmost character of left and right delims. This
 " sets the mark 'z to the end of each delimiter, so expression can be e.g. d`zx
-" Warning: Critical to run with :keepjumps or else `z adds a bunch of jumps, and
-" note mark motions below only works up to and excluding the mark.
 " Note: Here use count as in vim-surround to identify nested exterior delimiters. Note
 " the backwards search when on a delimiter will fail so loop should move outwards.
+" Apply delimiters using succinct but processing input here
+" Note: Native succinct does not record results of input delimiters so cannot
+" repeat user-input results. This lets us hit '.' and keep the results.
+" Note: Typing e.g. ds2b deletes the second bracket outside from cursor while
+" typing e.g. 2dsb repeats the delete bracket command twice.
 function! s:modify_delims(left, right, lexpr, rexpr, ...) abort
   for _ in range(a:0 ? a:1 : 1)
     if a:left ==# a:right || a:left =~# '\\\@<!['  " python string headers
@@ -556,22 +585,15 @@ function! s:modify_delims(left, right, lexpr, rexpr, ...) abort
   call cursor(l2, c21)  " delete or change right delimiter
   let [l2, c22] = searchpos(a:right, 'cen')
   call setpos("'z", [0, l2, c22, 0])
-  set paste
   keepjumps exe 'normal! ' . a:rexpr
-  set nopaste
+  let line2 = line("']")
   call cursor(l1, c11)  " delete or change left delimiter
   let [l1, c12] = searchpos(a:left, 'cen')
   call setpos("'z", [0, l1, c12, 0])
-  set paste
   keepjumps exe 'normal! ' . a:lexpr
-  set nopaste
+  let line1 = line("'[")
+  call succinct#post_process(line1, line2)
 endfunction
-
-" Apply delimiters using succinct but processing input here
-" Note: Native succinct does not record results of input delimiters so cannot
-" repeat user-input results. This lets us hit '.' and keep the results.
-" Note: Typing e.g. ds2b deletes the second bracket outside from cursor while
-" typing e.g. 2dsb repeats the delete bracket command twice.
 function! succinct#delete_delims(count, break) abort
   let [delim1, delim2, cnt] = s:get_cached(1, a:break)  " disable user input
   if empty(delim1) || empty(delim2) | return | endif
