@@ -63,26 +63,27 @@ exe 'nmap ds' . g:succinct_surround_map . ' <Plug>SelectDsurround'
 " consistency with <Plug>Isurround and s:surround_sink() in autoload utilities.
 " Note: Lowercase Isurround plug inserts delims without newlines. Can be added using
 " either ISurround (note uppercase) or just pressing <CR> before delim character.
-" Note: The Ysurround maps manually process the input delimiter then send a key
-" to vim-surround that directs to a b:surround_{char} variable that we've assigned
-" the processed result. This permits custom behavior e.g. ysiw<CR>b and lets us repeat
-" user-constructed delimiters. See: https://github.com/tpope/vim-surround/issues/140
-" vnoremap <silent> <Plug>VSurround  :<C-U>call <SID>opfunc(visualmode(),visualmode() ==# 'V' ? 1 : 0)<CR>
-" vnoremap <silent> <Plug>VgSurround :<C-U>call <SID>opfunc(visualmode(),visualmode() ==# 'V' ? 0 : 1)<CR>
+" Note: Ysuccinct manually processes the delimiter then sends '\1' to vim-surround
+" that directs to a b:surround_1 variable that we've assigned the processed result.
+" This permits custom count/indent behavior e.g. ysiw<CR>b and lets us repeat \1...\1
+" style user-input delimiters with '.'. And Yssuccint reproduces the vim-text-obj-line
+" result 'ys<Key>il' in-house. See: https://github.com/tpope/vim-surround/issues/140
 inoremap <Plug>ResetUndo <C-g>u
 inoremap <expr> <Plug>PrevDelim succinct#prev_delim()
 inoremap <expr> <Plug>NextDelim succinct#next_delim()
 inoremap <Plug>Isnippet <C-r>=succinct#insert_snippet()<CR>
 vnoremap <Plug>VSuccinct :<C-u>call succinct#insert_visual()<CR>
 nnoremap <Plug>ResetRepeat <Cmd>call succinct#reset_repeat()<CR>
-nnoremap <Plug>Dsuccinct <Cmd>call succinct#delete_delims(v:prevcount)<CR>
+nnoremap <Plug>Dsuccinct <Cmd>call succinct#delete_delims(v:prevcount, 0)<CR>
+nnoremap <Plug>DSuccinct <Cmd>call succinct#delete_delims(v:prevcount, 1)<CR>
 nnoremap <Plug>Csuccinct <Cmd>call succinct#change_delims(v:prevcount, 0)<CR>
 nnoremap <Plug>CSuccinct <Cmd>call succinct#change_delims(v:prevcount, 1)<CR>
-nnoremap <expr> <Plug>Ysuccinct succinct#insert_normal(0, 0)
-nnoremap <expr> <Plug>YSuccinct succinct#insert_normal(1, 0)
-nnoremap <expr> <Plug>Yssuccinct succinct#insert_normal(0, 1)
-nnoremap <expr> <Plug>YSsuccinct succinct#insert_normal(1, 1)
+nnoremap <expr> <Plug>Ysuccinct succinct#insert_normal(0)
+nnoremap <expr> <Plug>YSuccinct succinct#insert_normal(1)
+nnoremap <expr> <Plug>Yssuccinct '^' . v:count1 . succinct#insert_normal(0) . 'g_'
+nnoremap <expr> <Plug>YSsuccinct '^' . v:count1 . succinct#insert_normal(1) . 'g_'
 nmap ds <Plug>ResetRepeat<Plug>Dsuccinct
+nmap dS <Plug>ResetRepeat<Plug>DSuccinct
 nmap cs <Plug>ResetRepeat<Plug>Csuccinct
 nmap cS <Plug>ResetRepeat<Plug>CSuccinct
 nmap ys <Plug>ResetRepeat<Plug>Ysuccinct
@@ -100,7 +101,6 @@ exe 'imap ' . g:succinct_nextdelim_map . ' <Plug>NextDelim'
 " Add $global$ *delimiters* and text objects
 " Note: For surrounding with spaces can hit space twice, and for surrounding
 " with enter can use e.g. 'yS' intead of 'ys', so '^M' regex works here.
-" \ '\': '\n\r\n',
 let s:delims = {
   \ "'": '''\r''',
   \ '"': '"\r"',
@@ -116,6 +116,7 @@ let s:delims = {
   \ '[': '[\r]',
   \ 'a': '<\r>',
   \ '<': '<\r>',
+  \ 'n': '\n\r\n',
   \ 'f': '\1function: \1(\r)',
   \ 'A': '\1array: \1[\r]',
 \ }
