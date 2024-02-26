@@ -480,6 +480,13 @@ function! succinct#insert_snippet() abort
   let snippet = empty(text) ? '' : repeat(text, cnt)
   return snippet  " directly type snippet
 endfunction
+function! s:feed_repeat(name, ...) abort
+  if !exists('*repeat#set') | return | endif
+  let plug = '\<Plug>' . a:name
+  let cnt = a:0 ? a:1 : v:count
+  let cmd = 'call repeat#set("' . plug . '", ' . cnt . ')'
+  call feedkeys("\<Cmd>" . cmd . "\<CR>", 'n')
+endfunction
 function! succinct#insert_delims(type) range abort
   let opfunc = s:operator_snr . 'opfunc'
   let break = s:operator_break  " YSurround-style additional linebreak
@@ -552,14 +559,12 @@ function! s:modify_delims(left, right, lexpr, rexpr, ...) abort
   set paste
   keepjumps exe 'normal! ' . a:rexpr
   set nopaste
-  if empty(trim(getline(l2))) | exe l2 . 'd' | endif  " delete empty line
   call cursor(l1, c11)  " delete or change left delimiter
   let [l1, c12] = searchpos(a:left, 'cen')
   call setpos("'z", [0, l1, c12, 0])
   set paste
   keepjumps exe 'normal! ' . a:lexpr
   set nopaste
-  if empty(trim(getline(l1))) | exe l1 . 'd' | endif  " delete empty line
 endfunction
 
 " Apply delimiters using succinct but processing input here
@@ -575,9 +580,7 @@ function! succinct#delete_delims(count, break) abort
   for _ in range(a:count ? a:count : 1)
     call s:modify_delims(delim1, delim2, expr1, expr2, cnt)
   endfor
-  if exists('*repeat#set')
-    call repeat#set("\<Plug>Dsuccinct", a:count)
-  endif
+  call s:feed_repeat('Dsuccinct', a:count)  " capital-S not needed since newline added to cache
 endfunction
 function! succinct#change_delims(count, break) abort
   let [prev1, prev2, cnt] = s:get_cached(1, a:break)  " disable user input
@@ -589,7 +592,5 @@ function! succinct#change_delims(count, break) abort
   for _ in range(a:count ? a:count : 1)
     call s:modify_delims(prev1, prev2, expr1, expr2, cnt)
   endfor
-  if exists('*repeat#set')  " <Plug>CSuccinct not needed since newline added to cache
-    call repeat#set("\<Plug>Csuccinct", a:count)
-  endif
+  call s:feed_repeat('Csuccinct', a:count)  " capital-S not needed since newline added to cache
 endfunction
