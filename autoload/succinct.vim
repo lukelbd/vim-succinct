@@ -496,14 +496,15 @@ endfunction
 function! succinct#insert_normal(break, quick) abort
   let snr = succinct#get_snr('vim-surround/plugin/surround.vim', 1)
   let s:operator_snr = snr
+  call feedkeys(a:quick ? 'il' : '', 't')
   if empty(snr) || !exists('*' . snr . 'opfunc')  " revert to native method
     let key1 = a:break ? 'S' : 's'  " e.g. YSurround
     let key2 = a:quick ? 's' : ''  " e.g. Yssurround
-    return "\<Plug>Y" . key1 . key2 . 'urround' . (a:quick ? 'il' : '')
+    return "\<Plug>Y" . key1 . key2 . 'urround'
   else  " call override after motion
     let s:operator_break = a:break
     setlocal operatorfunc=succinct#insert_delims
-    return 'g@' . (a:quick ? 'il' : '')  " await operator motion
+    return 'g@'  " await operator motion
   endif
 endfunction
 
