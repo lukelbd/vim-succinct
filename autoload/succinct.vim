@@ -498,12 +498,12 @@ function! s:feed_repeat(keys, ...) abort
   call feedkeys("\<Cmd>" . cmd . "\<CR>", 'n')
 endfunction
 function! s:find_opfunc() abort
-  let fname = get(s:, 'surround_opfunc', '')
-  if empty(fname)  " attemp to assign
+  let funcname = get(s:, 'surround_opfunc', '')
+  if empty(funcname)  " attemp to assign
     let snr = succinct#get_snr('vim-surround/plugin/surround.vim', 1)
-    let fname = !empty(snr) && exists('*' . snr . 'opfunc') ? snr . 'opfunc' : ''
+    let funcname = !empty(snr) && exists('*' . snr . 'opfunc') ? snr . 'opfunc' : ''
   endif
-  let s:surround_opfunc = fname | return fname
+  let s:surround_opfunc = funcname | return funcname
 endfunction
 function! succinct#surround_delims(type) abort
   if exists('b:surround_indent')  " record default
