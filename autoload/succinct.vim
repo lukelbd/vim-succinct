@@ -491,8 +491,9 @@ endfunction
 " wrapper tha simply calls vim-surround opfunc() then post-processes the result.
 function! s:feed_repeat(keys, ...) abort
   if !exists('*repeat#set') | return | endif
-  let cmd = 'call repeat#set("' . a:keys . '", ' . (a:0 ? a:1 : v:count) . ')'
-  call feedkeys(":\<C-u>" . cmd . "\<CR>", 'n')
+  let iargs = '"\' . a:keys . '", ' . (a:0 ? a:1 : v:count)
+  let cmd = 'call repeat#set(' . iargs . ')'
+  call feedkeys("\<Cmd>" . cmd . "\<CR>", 'n')
 endfunction
 function! s:find_opfunc() abort
   let funcname = get(s:, 'surround_opfunc', '')
@@ -524,9 +525,9 @@ function! succinct#surround_finish(type) range abort
   call feedkeys(cmd, 'n')  " pass built-in operator function
   call feedkeys("\1", 't')  " force vim-surround to read b:surround_1
   if a:type =~? "v\\|\<C-v>"  " disable repeition
-    call s:feed_repeat("\<Ignore>")
+    call s:feed_repeat('<Ignore>')
   else  " ensure repeition
-    call s:feed_repeat("\<Plug>SurroundRepeat" . "\1")
+    call s:feed_repeat('<Plug>SurroundRepeat' . "\1")
   endif
 endfunction
 
@@ -625,7 +626,7 @@ function! succinct#delete_delims(count, break) abort
   for _ in range(a:count ? a:count : 1)
     call s:modify_delims(delim1, delim2, expr1, expr2, cnt)
   endfor
-  call s:feed_repeat("\<Plug>Dsuccinct", a:count)  " capital-S not needed
+  call s:feed_repeat('<Plug>Dsuccinct', a:count)  " capital-S not needed
 endfunction
 function! succinct#change_delims(count, break) abort
   let [prev1, prev2, cnt] = s:get_cached(1, a:break)  " disable user input
@@ -637,5 +638,5 @@ function! succinct#change_delims(count, break) abort
   for _ in range(a:count ? a:count : 1)
     call s:modify_delims(prev1, prev2, expr1, expr2, cnt)
   endfor
-  call s:feed_repeat("\<Plug>Csuccinct", a:count)  " capital-S not needed
+  call s:feed_repeat('<Plug>Csuccinct', a:count)  " capital-S not needed
 endfunction
