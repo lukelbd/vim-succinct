@@ -55,42 +55,6 @@ function! succinct#next_delim() abort
   return keys
 endfunction
 
-" Get the fzf.vim/autoload/fzf/vim.vim script id for overriding. This is also used
-" in dotfiles to override fzf marks command and support jumping to existing tabs.
-" See: https://stackoverflow.com/a/49447600/4970632
-function! succinct#get_snr(regex, ...) abort
-  silent! call fzf#vim#with_preview()  " trigger autoload if not already done
-  let [paths, sids] = succinct#get_scripts(1)
-  let path = filter(copy(paths), 'v:val =~# a:regex')
-  let idx = index(paths, get(path, 0, ''))
-  if !empty(path) && idx >= 0
-    return "\<snr>" . sids[idx] . '_'
-  elseif a:0 && a:1  " optionally suppress warning
-    return ''
-  else  " emit warning
-    echohl WarningMsg
-    echom "Warning: Autoload script '" . a:regex . "' not found."
-    echohl None | return ''
-  endif
-endfunction
-function! succinct#get_scripts(...) abort
-  let suppress = a:0 > 0 ? a:1 : 0
-  let regex = a:0 > 1 ? a:2 : ''
-  let [paths, sids] = [[], []]  " no dictionary because confusing
-  for path in split(execute('scriptnames'), "\n")
-    let sid = substitute(path, '^\s*\(\d*\):.*$', '\1', 'g')
-    let path = substitute(path, '^\s*\d*:\s*\(.*\)$', '\1', 'g')
-    let path = fnamemodify(resolve(expand(path)), ':p')  " then compare to home
-    if !empty(regex) && path !~# regex
-      continue
-    endif
-    call add(paths, path)
-    call add(sids, sid)
-  endfor
-  if !suppress | echom 'Script names: ' . join(paths, ', ') | endif
-  return [paths, sids]
-endfunction
-
 "-----------------------------------------------------------------------------
 " Register snippets and delimiters
 "-----------------------------------------------------------------------------
@@ -486,49 +450,59 @@ endfunction
 " Insert the requested snippet or delimiter
 " Note: This permits e.g. <C-e><Space><Snippet> to surround with spaces or
 " <C-e><CR><Snippet> to surround with newlines, similar to vim-surround.
-" Note: Have to effectively use two operator functions here, one as the 'initial'
-" function for queueing and sending to vim-surround (below) and another as a thin
-" wrapper tha simply calls vim-surround opfunc() then post-processes the result.
+" Note: Use two operator functions here, one setup function for queueing and sending
+" to vim-surround and another as a thin wrapper tha simply calls vim-surround opfunc()
+" then post-processes the result. Get the script-local name of opfunc() by sending
+" <Plug>Ysurround<Esc> which consumes v:count, so send count as input argument.
 function! s:feed_repeat(keys, ...) abort
   if !exists('*repeat#set') | return | endif
-  let iargs = '"\' . a:keys . '", ' . (a:0 ? a:1 : v:count)
-  let cmd = 'call repeat#set(' . iargs . ')'
+  let cmd = 'call repeat#set("\' . a:keys . '", ' . (a:0 ? a:1 : v:count) . ')'
   call feedkeys("\<Cmd>" . cmd . "\<CR>", 'n')
 endfunction
-function! s:find_opfunc() abort
-  let funcname = get(s:, 'surround_opfunc', '')
-  if empty(funcname)  " attemp to assign
-    let snr = succinct#get_snr('vim-surround/plugin/surround.vim', 1)
-    let funcname = !empty(snr) && exists('*' . snr . 'opfunc') ? snr . 'opfunc' : ''
-  endif
-  let s:surround_opfunc = funcname | return funcname
+function! s:wrap_opfunc(...) abort
+  let opfunc = &l:operatorfunc  " surround.vim script-local function
+  let s:opfunc_args = [opfunc] + copy(a:000)
+  return 'succinct#_surround_setup'
 endfunction
-function! succinct#surround_delims(type) abort
+function! succinct#_surround_init() abort
+  silent! exe 'unlet b:surround_1'
+  let b:succinct_target = []
+  let b:succinct_replace = []
+  return "\<Plug>Ysurround\<Esc>" . v:count1
+endfunction
+function! succinct#_surround_opfunc(type) abort
   if exists('b:surround_indent')  " record default
     let s:surround_indent = b:surround_indent
   endif
   let b:surround_indent = 0  " override with manual approach
-  let opfunc = s:find_opfunc()
+  let opfunc = s:opfunc_args[0]
   call call(opfunc, [a:type])  " native vim-surround function
   call succinct#post_process()
 endfunction
-function! succinct#surround_finish(type) range abort
-  let [delim1, delim2, cnt] = succinct#process_result(0, 0, s:surround_break)
-  setlocal operatorfunc=succinct#surround_delims  " '.' -> 'g@<motion>' -> here
-  let cmd = "\<Cmd>call succinct#surround_delims(" . string(a:type) . ")\<CR>"
-  echom 'Delimiters: ' . delim1 . ' ' . delim2
+function! succinct#_surround_setup(type) range abort
+  let [opfunc, opcount, oparg] = s:opfunc_args
+  if type(oparg)  " visual-mode argument passed manually
+    let [break, type] = [oparg =~# '^[A-Z]', oparg]  " e.g. V not v
+  else  " automatic opfunc argument provided by vim
+    let [break, type] = [oparg, a:type]
+  endif
+  let [delim1, delim2, cnt] = succinct#process_result(0, 0, break)
   if empty(delim1) && empty(delim2)  " padding not applied if delimiter not passed
     let &l:operatorfunc = '' | return
   endif
-  let delims = repeat(delim1, cnt) . "\r" . repeat(delim2, cnt)
-  let b:surround_1 = delims  " assign name that should never conflict with users
-  call feedkeys(cmd, 'n')  " pass built-in operator function
+  let cnt *= max([opcount, 1])  " after motion or before 'ys'
+  let [delim1, delim2] = [repeat(delim1, cnt), repeat(delim2, cnt)]
+  let b:surround_1 = delim1 . "\r" . delim2  " final processed delimiters
+  setlocal operatorfunc=succinct#_surround_opfunc
+  let cmd = "\<Cmd>call succinct#_surround_opfunc(" . string(a:type) . ")\<CR>"
+  call feedkeys(cmd, 'n')  " runs vim-surround operator function
   call feedkeys("\1", 't')  " force vim-surround to read b:surround_1
-  if a:type =~? "v\\|\<C-v>"  " disable repeition
-    call s:feed_repeat('<Ignore>')
-  else  " ensure repeition
-    call s:feed_repeat('<Plug>SurroundRepeat' . "\1")
-  endif
+  call s:feed_repeat('<Plug>SurroundRepeat' . "\1", 1)  " count already applied
+  " if type(a:arg1)  " disable repetition?
+  "   call s:feed_repeat('<Ignore>')
+  " else  " ensure repeition
+  "   call s:feed_repeat('<Plug>SurroundRepeat' . "\1")
+  " endif
 endfunction
 
 " Insert normal and visual mode delimiters
@@ -537,35 +511,13 @@ endfunction
 " Note: Post-processing features allow using e.g. yss<CR> to easily surround the
 " cursor line with empty lines without trailing whitespace, or e.g. ysib<CR><Key>
 " or even ysibm to convert a single-line parenthetical to black-style parentheses.
-function! succinct#reset_cache() abort
-  silent! exe 'unlet b:surround_1'
-  let b:succinct_target = []
-  let b:succinct_replace = []
+function! succinct#surround_normal(...) abort
+  let &l:operatorfunc = s:wrap_opfunc(v:count, a:0 ? a:1 : 0)
+  return 'g@'  " await normal-mode motion
 endfunction
 function! succinct#snippet_insert() abort
   let [text, cnt] = succinct#process_result(1, 0)
-  let value = empty(text) ? '' : repeat(text, cnt)
-  return value  " insert mode typing
-endfunction
-function! succinct#surround_normal(break) abort
-  let opfunc = s:find_opfunc()
-  if empty(opfunc)  " revert to native method
-    let name = a:break ? 'YSurround' : 'Ysurround'  " native plugin name
-    return "\<Plug>" . name  " note Ysuccinct sends 'inner line' motion already
-  else  " call override function after motion
-    setlocal operatorfunc=succinct#surround_finish
-    let s:surround_break = a:break | return 'g@'  " await operator motion
-  endif
-endfunction
-function! succinct#surround_visual() abort
-  let opfunc = s:find_opfunc()
-  if empty(opfunc)  " revert to native method
-    let keys = "\<Plug>VSurround"
-    call feedkeys(keys, 'n')
-  else  " call override after motion
-    let s:surround_break = visualmode() ==# 'V'  " handle ourselves
-    call succinct#surround_finish(visualmode())
-  endif
+  return empty(text) ? '' : repeat(text, cnt)
 endfunction
 function! succinct#surround_insert() abort
   let [delim1, delim2, cnt] = succinct#process_result(0, 0)
@@ -578,7 +530,7 @@ function! succinct#surround_insert() abort
   endif
   let delim1 = substitute(delim1, '\n\s*$', '', 'g')
   let delim2 = substitute(delim2, '^\s*\n', '', 'g')
-  let b:surround_1 = delim1 . "\r" . delim2  " see succinct#surround_finish
+  let b:surround_1 = delim1 . "\r" . delim2  " see succinct#_surround_setup
   call feedkeys(plug, 'm') | call feedkeys("\1", 't') | return ''
 endfunction
 
