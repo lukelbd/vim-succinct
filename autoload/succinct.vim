@@ -435,7 +435,7 @@ function! succinct#process_result(snippet, search, ...) abort
   if a:search  " convert e.g. literal '\n  ' to regex '\_s*'
     let [pad1, pad2] = [s:regex_value(pad), s:regex_value(pad)]
   else  " e.g. <Space><CR><Cursor><CR><Space>
-    let [pad1, pad2] = [pad, join(reverse(split(pad, '.\zs')), '')]
+    let [pad1, pad2] = [pad, join(reverse(split(pad, '\zs')), '')]
   endif
   if a:snippet
     return [part1 . pad1 . pad2 . part2, cnt]
