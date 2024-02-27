@@ -4,32 +4,31 @@ Vim succinct
 A suite of utilities for succinctly editing documents using delimiters, text objects,
 text snippets, and file templates. Includes the following features:
 
-* Adding custom snippet keys with `succinct#add_snippets()`. Implementation is similar
-  to the [vim-surround](https://github.com/tpope/vim-surround) internals.
-  `<C-e>-` is used to insert snippets, selected because the `e` key is relatively
-  close to the `s` used for delimiters, but not so close that it can be easily
-  confused with `<C-s>-`. Snippets can be function handles that prompt for user
-  input or include `\1...\1` prompt indicators (see `:help surround-customizing`).
-* Adding custom delimiter keys with `succinct#add_delims()`. This simultaneously defines
-  [vim-surround](https://github.com/tpope/vim-surround) delimiters for normal mode
-  operations like `yss-` and visual and insert mode operations like `<C-s>-`, as well as
-  [vim-textobj](https://github.com/kana/vim-textobj-user) text objects for normal mode
-  operations like `ca-`, `ci-`, `da-`, `di-`. Delimiters can include `\1...\1` prompt
-  indicators (see `:help surround-customizing`).
-* Changing and deleting custom [vim-surround](https://github.com/tpope/vim-surround)
-  delimiters with operations like `cs-` and `ds-`. Natively, vim-surround does not
-  support this -- it only supports *inserting* custom delimiters with operations like
-  `yss-` and `ysS-`.
-* Jumping to the right of the previous or next "bracket" or "quote" delimiter defined by
-  [delimitMate](https://github.com/Raimondi/delimitMate) with the insert mode mappings
-  `<C-h>` and `<C-l>`, and displaying and selecting from available
-  [vim-surround](https://github.com/tpope/vim-surround) snippets and delimiters using
-  [fzf](https://github.com/junegunn/fzf) fuzzy-search selection with the insert mode
-  mappings `<C-e><C-e>` and `<C-s><C-s>`.
-* Loading arbitrary file templates stored in `g:succinct_templates_path` using
-  [fzf](https://github.com/junegunn/fzf) fuzzy-search selection. The fuzzy search is
-  invoked when creating a new file and when there are files in the templates folder
-  that have the same extension.
+* Filling empty buffers with text from arbitrary file templates stored in
+  `g:succinct_templates_path` (default `'~/templates'`) with the same path extension
+  as the buffer. This works by opening [fzf](https://github.com/junegunn/fzf) fuzzy-search windows on new buffers and
+  populating the window with the relevant template files. Note the template window will
+  not open if there are no matching templates in `g:succinct_templates_path`.
+* Adding custom snippet maps with `succinct#add_snippets()` and using them in insert
+  mode with the default prefix `<C-e><Key>` (selected because the `e` key is relatively
+  close to the `s` used for delimiters). Implementation is similar to [vim-surround](https://github.com/tpope/vim-surround),
+  and definitions can be simple strings, strings with `\1...\1` style prompt indicators
+  (see `:help surround-customizing`), or function handles that prompt for user input.
+* Adding custom delimiter maps with `succinct#add_delims()` and using them with the
+  default insert/visual mode prefix `<C-s><Key>` and normal-mode vim-surround prefixes
+  `ys`, `yss`, `yS`, and `ySS`. This simultaneously defines delimiter variables for
+  built-in [vim-surround](https://github.com/tpope/vim-surround) operations and registers [vim-textobj](https://github.com/kana/vim-textobj-user) objects by translating
+  the input delimiters to the proper regular expressions or functions.
+* Changing and deleting custom [vim-surround](https://github.com/tpope/vim-surround) delimiters with the vim-surround prefixes
+  `c[sS]` and `d[sS]`, then auto-indenting the result and removing trailing whitespace
+  (native vim-surround does not support changing or deleting custom delimiters). Use
+  e.g. `cs<CR>bb` or `csb<CR>b` to remove (add) newlines from (to) parentheses, and use
+  e.g. `cs2b` or `ds2b` to target outer parentheses within nested sequences.
+* Moving to the right of the previous or next "bracket" or "quote" delimiters defined
+  by [delimitMate](https://github.com/Raimondi/delimitMate) with the default insert mode mappings `<C-h>` and `<C-l>`, and
+  selecting from available [vim-surround](https://github.com/tpope/vim-surround) snippets and delimiters using [fzf](https://github.com/junegunn/fzf) fuzzy-search
+  windows with the default insert mode mapping `<C-e><C-e>`, insert and visual-mode
+  `<C-s><C-s>`, and normal-mode `y<C-s>`, `c<C-s>`, `d<C-s>`.
 
 
 Documentation
@@ -40,11 +39,11 @@ Mappings
 
 | Mapping | Description |
 | ---- | ---- |
-| `<C-e><key>` | Add a snippet defined with `succinct#add_snippets()` during insert mode. |
-| `<C-s><key>`, `ys<motion><key>`, `ys<block><key>`... | Add a default delimiter or a delimiter defined with `succinct#add_delims()` during insert, visual, or normal mode. |
-| `cs<key><key>` | Change a default or manually defined delimiter from the given key to the next key. |
-| `ds<key>` | Delete a default or manually defined delimiter surrounding the cursor. |
-| `ya<key>`, `ci<key>`, ... | Yank, change, delete, or select inside or around a default or manually defined delimiter during normal mode. |
+| `<C-e><Mods><Key>` | Use a snippet defined with `succinct#add_snippets()` during insert mode. |
+| `<C-s><Mods><Key>`, `y[sS][sS]<Motion><Mods><Key>` | Use a default delimiter or a delimiter defined with `succinct#add_delims()` during insert, visual, or normal mode. |
+| `c[sS]<Mods><Key><Mods><Key>` | Change a default or manually defined delimiter from the given key to the next key. |
+| `d[sS]<Mods><Key>` | Delete a default or manually defined delimiter surrounding the cursor. |
+| `[ycd][ai]<Mods><Key>` | Yank, change, delete, or select inside or around a default or manually defined delimiter during normal mode. |
 | `<C-h>`, `<C-l>` | Jump to the left (right) of the previous (next) quote or delimiter in insert mode. |
 
 Customization
