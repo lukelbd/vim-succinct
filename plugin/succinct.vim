@@ -69,12 +69,12 @@ nnoremap <Plug>Csuccinct <Cmd>call succinct#change_delims(v:prevcount, 0)<CR>
 nnoremap <Plug>CSuccinct <Cmd>call succinct#change_delims(v:prevcount, 1)<CR>
 nnoremap <Plug>Dsuccinct <Cmd>call succinct#delete_delims(v:prevcount, 0)<CR>
 nnoremap <Plug>DSuccinct <Cmd>call succinct#delete_delims(v:prevcount, 1)<CR>
-nnoremap <expr> <Plug>Yssetup succinct#_surround_init()
-nnoremap <expr> <Plug>Ysuccinct succinct#surround_normal(0)
-nnoremap <expr> <Plug>YSuccinct succinct#surround_normal(1)
-nnoremap <expr> <Plug>Yssuccinct '^' . v:count1 . succinct#surround_normal(0) . 'g_'
-nnoremap <expr> <Plug>YSsuccinct '^' . v:count1 . succinct#surround_normal(1) . 'g_'
-vnoremap <expr> <Plug>Vsuccinct succinct#surround_normal(visualmode())
+nnoremap <expr> <Plug>Yssetup succinct#surround_setup()
+nnoremap <expr> <Plug>Ysuccinct succinct#surround_motion(0)
+nnoremap <expr> <Plug>YSuccinct succinct#surround_motion(1)
+nnoremap <expr> <Plug>Yssuccinct '^' . v:count1 . succinct#surround_motion(0) . 'g_'
+nnoremap <expr> <Plug>YSsuccinct '^' . v:count1 . succinct#surround_motion(1) . 'g_'
+vnoremap <expr> <Plug>Vsuccinct succinct#surround_motion(visualmode())
 nmap cs <Plug>Yssetup<Plug>Csuccinct
 nmap cS <Plug>Yssetup<Plug>CSuccinct
 nmap ds <Plug>Yssetup<Plug>Dsuccinct
