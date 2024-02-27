@@ -471,7 +471,7 @@ function! succinct#process_result(snippet, search, ...) abort
   if a:search  " convert e.g. literal '\n  ' to regex '\_s*'
     let [pad1, pad2] = [s:regex_value(pad), s:regex_value(pad)]
   else  " e.g. <Space><CR><Cursor><CR><Space>
-    let [pad1, pad2] = [pad, reverse(pad)]
+    let [pad1, pad2] = [pad, join(reverse(split(pad, '.\zs')), '')]
   endif
   if a:snippet
     return [part1 . pad1 . pad2 . part2, cnt]
@@ -492,7 +492,7 @@ endfunction
 function! s:feed_repeat(keys, ...) abort
   if !exists('*repeat#set') | return | endif
   let cmd = 'call repeat#set("' . a:keys . '", ' . (a:0 ? a:1 : v:count) . ')'
-  call feedkeys("\<Cmd>" . cmd . "\<CR>", 'n')
+  call feedkeys(":\<C-u>" . cmd . "\<CR>", 'n')
 endfunction
 function! s:find_opfunc() abort
   let funcname = get(s:, 'surround_opfunc', '')
