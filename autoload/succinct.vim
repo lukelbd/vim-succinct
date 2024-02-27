@@ -498,14 +498,14 @@ function! s:feed_repeat(keys, ...) abort
   call feedkeys("\<Cmd>" . cmd . "\<CR>", 'n')
 endfunction
 function! s:find_opfunc() abort
-  let opfunc = get(s:, 'surround_opfunc', '')
-  if empty(opfunc)  " attemp to assign
+  let fname = get(s:, 'surround_opfunc', '')
+  if empty(fname)  " attemp to assign
     let snr = succinct#get_snr('vim-surround/plugin/surround.vim', 1)
-    let opfunc = !empty(snr) && exists('*' . snr . 'opfunc') ? snr . 'opfunc' : ''
+    let fname = !empty(snr) && exists('*' . snr . 'opfunc') ? snr . 'opfunc' : ''
   endif
-  let s:surround_opfunc = opfunc | return opfunc  " possibly empty
+  let s:surround_opfunc = fname | return fname
 endfunction
-function! succinct#operate_delims(type) abort
+function! succinct#surround_delims(type) abort
   if exists('b:surround_indent')  " record default
     let s:surround_indent = b:surround_indent
   endif
@@ -514,11 +514,11 @@ function! succinct#operate_delims(type) abort
   call call(opfunc, [a:type])  " native vim-surround function
   call succinct#post_process()
 endfunction
-function! succinct#insert_delims(type) range abort
+function! succinct#surround_finish(type) range abort
   let [delim1, delim2, cnt] = succinct#process_result(0, 0, s:surround_break)
-  setlocal operatorfunc=succinct#operate_delims  " '.' -> 'g@<motion>' -> here
-  let cmd = "\<Cmd>call succinct#operate_delims(" . string(a:type) . ")\<CR>"
-  if empty(delim1 . delim2)  " padding was not applied if delimiter not passed
+  setlocal operatorfunc=succinct#surround_delims  " '.' -> 'g@<motion>' -> here
+  let cmd = "\<Cmd>call succinct#surround_delims(" . string(a:type) . ")\<CR>"
+  if empty(delim1) && empty(delim2)  " padding not applied if delimiter not passed
     let &l:operatorfunc = '' | return
   endif
   let delims = repeat(delim1, cnt) . "\r" . repeat(delim2, cnt)
@@ -533,39 +533,54 @@ function! succinct#insert_delims(type) range abort
 endfunction
 
 " Insert normal and visual mode delimiters
-" Note: This permits e.g. yss<Delimiter> to surround the default 'inner line'
-" object or ys<CR><Delimiter> to pad with properly-indented newlines.
-" Note: This permits typical vim-surround modifications e.g. space surround. Also
-" note docstring header handling takes place in succinct#process_values().
+" Note: The surround.vim function s:insert() applies special settings including
+" s:reindent() only for line-mode mapping ISurround not Isurround. So pass here.
+" Note: Post-processing features allow using e.g. yss<CR> to easily surround the
+" cursor line with empty lines without trailing whitespace, or e.g. ysib<CR><Key>
+" or even ysibm to convert a single-line parenthetical to black-style parentheses.
 function! succinct#reset_repeat() abort
   silent! unlet b:surround_1
   let b:succinct_target = []
   let b:succinct_replace = []
 endfunction
-function! succinct#insert_snippet() abort
+function! succinct#snippet_insert() abort
   let [text, cnt] = succinct#process_result(1, 0)
   let value = empty(text) ? '' : repeat(text, cnt)
   return value  " insert mode typing
 endfunction
-function! succinct#insert_normal(break) abort
+function! succinct#surround_normal(break) abort
   let opfunc = s:find_opfunc()
   if empty(opfunc)  " revert to native method
     let name = a:break ? 'YSurround' : 'Ysurround'  " native plugin name
     return "\<Plug>" . name  " note Ysuccinct sends 'inner line' motion already
   else  " call override function after motion
-    setlocal operatorfunc=succinct#insert_delims
+    setlocal operatorfunc=succinct#surround_finish
     let s:surround_break = a:break | return 'g@'  " await operator motion
   endif
 endfunction
-function! succinct#insert_visual() abort
+function! succinct#surround_visual() abort
   let opfunc = s:find_opfunc()
   if empty(opfunc)  " revert to native method
     let keys = "\<Plug>VSurround"
     call feedkeys(keys, 'n')
   else  " call override after motion
     let s:surround_break = visualmode() ==# 'V'  " handle ourselves
-    call succinct#insert_delims(visualmode())
+    call succinct#surround_finish(visualmode())
   endif
+endfunction
+function! succinct#surround_insert() abort
+  let [delim1, delim2, cnt] = succinct#process_result(0, 0)
+  if empty(delim1) && empty(delim2) | return '' | endif
+  let [delim1, delim2] = [repeat(delim1, cnt), repeat(delim2, cnt)]
+  if delim1 =~# '\n\s*$' && delim2 =~# '^\s*\n'  " surround plugin
+    let plug = "\<Plug>ISurround"
+  else  " surround plugin
+    let plug = "\<Plug>Isurround"
+  endif
+  let delim1 = substitute(delim1, '\n\s*$', '', 'g')
+  let delim2 = substitute(delim2, '^\s*\n', '', 'g')
+  let b:surround_1 = delim1 . "\r" . delim2  " see succinct#surround_finish
+  call feedkeys(plug, 'm') | call feedkeys("\1", 't') | return ''
 endfunction
 
 " Run normal mode commands between leftmost character of left and right delims. This
@@ -595,7 +610,7 @@ function! s:modify_delims(left, right, lexpr, rexpr, ...) abort
   call setpos("'z", [0, l1, c12, 0])
   keepjumps exe 'normal! ' . a:lexpr
   let line1 = line("'[")
-  let line2 += count(a:lexpr, "\n") + count(a:lexpr, "\r")
+  let line2 += count(a:lexpr, "\n")
   call succinct#post_process(line1, line2)
 endfunction
 

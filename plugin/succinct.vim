@@ -1,11 +1,16 @@
 "-----------------------------------------------------------------------------
-" Author: Luke Davis (lukelbd@gmail.com)
-" Date:   2018-09-09
+" Author:  Luke Davis (lukelbd@gmail.com)
 " Tools for working with snippets, delimiters, and text objects in vim. Includes
 " utilities for defining text objects and vim-surround delimiters in one go and
 " defining snippet and delimiter mappings under a standardized prefix.
 "-----------------------------------------------------------------------------
-" Define mappings and delimiters
+" Template select autocommand
+augroup succinct
+  au!
+  au BufNewFile * call succinct#template_select()
+augroup END
+
+" Mappings and other settings
 scriptencoding utf-8
 if !exists('g:succinct_templates_path')
   let g:succinct_templates_path = '~/templates'
@@ -32,71 +37,62 @@ endif
 "-----------------------------------------------------------------------------
 " Default commands, mappings, delims, and text objects
 "-----------------------------------------------------------------------------
-" Template selection with safety measures
-" Note: If statement must be embedded in function to avoid race condition issues
-augroup succinct
-  au!
-  au BufNewFile * call succinct#template_select()
-augroup END
-
-" Fuzzy delimiter and snippet selection
-" Warning: Again the <Plug> name cannot start with <Plug>Isnippet or <Plug>Isurround
-" or else vim will wait until another keystroke to figure out which <Plug> is meant.
-inoremap <Plug>SelectIsnippet <Cmd>call succinct#snippet_select()<CR>
-inoremap <Plug>SelectIsurround <Cmd>call succinct#surround_select('I')<CR>
-vnoremap <Plug>SelectVsurround <Cmd>call succinct#surround_select('V')<CR>
-nnoremap <Plug>SelectDsurround <Cmd>call succinct#surround_select('d')<CR>
-nnoremap <Plug>SelectCsurround <Cmd>call succinct#surround_select('c')<CR>
-nnoremap <Plug>SelectYsurround <Cmd>call succinct#surround_select('y')<CR>
-exe 'imap ' . repeat(g:succinct_snippet_map, 2) . ' <Plug>SelectIsnippet'
-exe 'imap ' . repeat(g:succinct_surround_map, 2) . ' <Plug>SelectIsurround'
-exe 'vmap ' . repeat(g:succinct_surround_map, 2) . ' <Plug>SelectVsurround'
-exe 'nmap y' . g:succinct_surround_map . ' <Plug>SelectYsurround'
-exe 'nmap c' . g:succinct_surround_map . ' <Plug>SelectCsurround'
-exe 'nmap d' . g:succinct_surround_map . ' <Plug>SelectDsurround'
-exe 'nmap ys' . g:succinct_surround_map . ' <Plug>SelectYsurround'
-exe 'nmap cs' . g:succinct_surround_map . ' <Plug>SelectCsurround'
-exe 'nmap ds' . g:succinct_surround_map . ' <Plug>SelectDsurround'
-
-" Delimiter navigation and modification mappings
-" Note: Redirect nonexistent <Plug>Vsurround to defined <Plug>VSurround for
-" consistency with <Plug>Isurround and s:surround_sink() in autoload utilities.
-" Note: Lowercase Isurround plug inserts delims without newlines. Can be added using
-" either ISurround (note uppercase) or just pressing <CR> before delim character.
+" Selecting and using insert/visual mode delimiters/snippets
+" Note: <Plug> names cannot begin with same letters or vim will hang until next
+" key resolve ambiguity (<Plug>Name is parsed by vim as successive keystrokes).
 " Note: Ysuccinct manually processes the delimiter then sends '\1' to vim-surround
 " that directs to a b:surround_1 variable that we've assigned the processed result.
-" This permits custom count/indent behavior e.g. ysiw<CR>b and lets us repeat \1...\1
-" style user-input delimiters with '.'. And Yssuccint reproduces the vim-text-obj-line
-" result 'ys<Key>il' in-house. See: https://github.com/tpope/vim-surround/issues/140
 inoremap <Plug>ResetUndo <C-g>u
-inoremap <expr> <Plug>PrevDelim succinct#prev_delim()
-inoremap <expr> <Plug>NextDelim succinct#next_delim()
-inoremap <Plug>Isnippet <C-r>=succinct#insert_snippet()<CR>
-vnoremap <Plug>VSuccinct :<C-u>call succinct#insert_visual()<CR>
-nnoremap <Plug>ResetRepeat <Cmd>call succinct#reset_repeat()<CR>
-nnoremap <Plug>Dsuccinct <Cmd>call succinct#delete_delims(v:prevcount, 0)<CR>
-nnoremap <Plug>DSuccinct <Cmd>call succinct#delete_delims(v:prevcount, 1)<CR>
+vnoremap <Plug>Vsselect <Cmd>call succinct#surround_select('V')<CR>
+inoremap <Plug>Isselect <Cmd>call succinct#surround_select('I')<CR>
+inoremap <Plug>Ieselect <Cmd>call succinct#snippet_select()<CR>
+vnoremap <silent> <Plug>Vsuccinct :<C-u>call succinct#surround_visual()<CR>
+inoremap <expr> <silent> <Plug>PrevDelim succinct#prev_delim()
+inoremap <expr> <silent> <Plug>NextDelim succinct#next_delim()
+inoremap <expr> <silent> <Plug>Isuccinct succinct#surround_insert()
+inoremap <expr> <silent> <Plug>Isnippet succinct#snippet_insert()
+exe 'imap ' . g:succinct_prevdelim_map . ' <Plug>PrevDelim'
+exe 'imap ' . g:succinct_nextdelim_map . ' <Plug>NextDelim'
+exe 'vmap ' . g:succinct_surround_map . ' <Plug>ResetRepeat<Plug>Vsuccinct'
+exe 'imap ' . g:succinct_surround_map . ' <Plug>ResetUndo<Plug>Isuccinct'
+exe 'imap ' . g:succinct_snippet_map . ' <Plug>ResetUndo<Plug>Isnippet'
+exe 'vmap ' . repeat(g:succinct_surround_map, 2) . ' <Plug>Vsselect'
+exe 'imap ' . repeat(g:succinct_surround_map, 2) . ' <Plug>Isselect'
+exe 'imap ' . repeat(g:succinct_snippet_map, 2) . ' <Plug>Ieselect'
+
+" Selecting, using, changing, and deleting normal-mode delimiters
+" Note: This supports fancy count/indent behavior e.g. ysiw<CR>b to surround current
+" word by parentheses and put on a new indented line, and supports repeating \1...\1
+" style user-input delimiters with '.'. Also 'yss<Key>' gives result identical to
+" vim-text-obj-line 'ys<Key>il' See: https://github.com/tpope/vim-surround/issues/140.
+nnoremap <Plug>Ysselect <Cmd>call succinct#surround_select('y')<CR>
+nnoremap <Plug>Csselect <Cmd>call succinct#surround_select('c')<CR>
+nnoremap <Plug>Dsselect <Cmd>call succinct#surround_select('d')<CR>
 nnoremap <Plug>Csuccinct <Cmd>call succinct#change_delims(v:prevcount, 0)<CR>
 nnoremap <Plug>CSuccinct <Cmd>call succinct#change_delims(v:prevcount, 1)<CR>
-nnoremap <expr> <Plug>Ysuccinct succinct#insert_normal(0)
-nnoremap <expr> <Plug>YSuccinct succinct#insert_normal(1)
-nnoremap <expr> <Plug>Yssuccinct '^' . v:count1 . succinct#insert_normal(0) . 'g_'
-nnoremap <expr> <Plug>YSsuccinct '^' . v:count1 . succinct#insert_normal(1) . 'g_'
-nmap ds <Plug>ResetRepeat<Plug>Dsuccinct
-nmap dS <Plug>ResetRepeat<Plug>DSuccinct
+nnoremap <Plug>Dsuccinct <Cmd>call succinct#delete_delims(v:prevcount, 0)<CR>
+nnoremap <Plug>DSuccinct <Cmd>call succinct#delete_delims(v:prevcount, 1)<CR>
+nnoremap <expr> <Plug>Ysuccinct succinct#surround_normal(0)
+nnoremap <expr> <Plug>YSuccinct succinct#surround_normal(1)
+nnoremap <expr> <Plug>Yssuccinct '^' . v:count1 . succinct#surround_normal(0) . 'g_'
+nnoremap <expr> <Plug>YSsuccinct '^' . v:count1 . succinct#surround_normal(1) . 'g_'
+noremap <Plug>ResetRepeat <Cmd>call succinct#reset_repeat()<CR>
 nmap cs <Plug>ResetRepeat<Plug>Csuccinct
 nmap cS <Plug>ResetRepeat<Plug>CSuccinct
+nmap ds <Plug>ResetRepeat<Plug>Dsuccinct
+nmap dS <Plug>ResetRepeat<Plug>DSuccinct
 nmap ys <Plug>ResetRepeat<Plug>Ysuccinct
 nmap YS <Plug>ResetRepeat<Plug>YSuccinct
 nmap yss <Plug>ResetRepeat<Plug>Yssuccinct
 nmap ySs <Plug>ResetRepeat<Plug>YSsuccinct
 nmap ysS <Plug>ResetRepeat<Plug>YSsuccinct
 nmap ySS <Plug>ResetRepeat<Plug>YSsuccinct
-exe 'vmap ' . g:succinct_surround_map . ' <Plug>VSuccinct'
-exe 'imap ' . g:succinct_snippet_map . ' <Plug>ResetUndo<Plug>Isnippet'
-exe 'imap ' . g:succinct_surround_map . ' <Plug>ResetUndo<Plug>Isurround'
-exe 'imap ' . g:succinct_prevdelim_map . ' <Plug>PrevDelim'
-exe 'imap ' . g:succinct_nextdelim_map . ' <Plug>NextDelim'
+exe 'nmap y' . g:succinct_surround_map . ' <Plug>Ysselect'
+exe 'nmap c' . g:succinct_surround_map . ' <Plug>Csselect'
+exe 'nmap d' . g:succinct_surround_map . ' <Plug>Dsselect'
+exe 'nmap ys' . g:succinct_surround_map . ' <Plug>Ysselect'
+exe 'nmap cs' . g:succinct_surround_map . ' <Plug>Csselect'
+exe 'nmap ds' . g:succinct_surround_map . ' <Plug>Dsselect'
 
 " Add $global$ *delimiters* and text objects
 " Note: For surrounding with spaces can hit space twice, and for surrounding
