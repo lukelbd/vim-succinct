@@ -39,12 +39,14 @@ Mappings
 
 | Mapping | Description |
 | ---- | ---- |
-| `<C-e><Mods><Key>` | Use a snippet defined with `succinct#add_snippets()` during insert mode. |
-| `<C-s><Mods><Key>`, `y[sS][sS]<Motion><Mods><Key>` | Use a default delimiter or a delimiter defined with `succinct#add_delims()` during insert, visual, or normal mode. |
-| `c[sS]<Mods><Key><Mods><Key>` | Change a default or manually defined delimiter from the given key to the next key. |
-| `d[sS]<Mods><Key>` | Delete a default or manually defined delimiter surrounding the cursor. |
-| `[ycd][ai]<Mods><Key>` | Yank, change, delete, or select inside or around a default or manually defined delimiter during normal mode. |
-| `<C-h>`, `<C-l>` | Jump to the left (right) of the previous (next) quote or delimiter in insert mode. |
+| `<C-e><Mods><Key>` | Insert a snippet defined with `succinct#add_snippets()` during insert mode. Use `<Mods>` e.g. `<Space>`/`<CR>` for space/newline padding of the snippet or e.g. `2` for repitition. |
+| `<C-s><Mods><Key>` | Insert delimiters defined with `succinct#add_delims()` or included with vim-surround during insert or visual mode. Use `<Mods>` e.g. `<Space>`/`<CR>` for space/newline padding or e.g. `2` for repitition. |
+| `<Count>y[sS]<Motion><Mods><Key>` | Insert user-defined and default delimiters around the normal mode motion. Use a capital `S` for newlines, a preceding `<Count>` for repitition, or `<Mods>` as with `<C-s>`.
+| `<Count>y[sS][sS]<Motion><Mods><Key>` | Insert user-defined and default delimiters between the cursor motions `^` to `g_` (same as vim-surround `yss` mappings and similar to the vim-textobj-inner-line). |
+| `d[sS]<Mods><Key>` | Delete user-defined and default delimiters surrounding the cursor. Use capital `S` or `<CR>` in `<Mods>` to include newlines and leading/trailing whitespace, as with the `y[sS]` mappings. |
+| `c[sS]<Mods><Key><Mods><Key>` | Change an arbitrary user-defined or default delimiter around the cursor to another delimiter. Use capital `S` or the first `<Mods>` as with `d[sS]`, or use the second `<Mods>` as with `y[sS]`. |
+| `[ycdv][ai]<Mods><Key>` | Yank, change, delete, or select delimiters defined with `succinct#add_delims()` or included with vim-textobj. This works by auto-translating variables to vim-textobj-user plugin entries. |
+| `<C-h>`, `<C-l>` | Jump to the left (right) of the previous (next) delimiter in insert mode. This works for arbtirary delimitmate-defined bracket and quote style delimiters. |
 
 Customization
 -------------
