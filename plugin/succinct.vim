@@ -53,7 +53,7 @@ inoremap <expr> <silent> <Plug>Isuccinct succinct#surround_insert()
 inoremap <expr> <silent> <Plug>Isnippet succinct#snippet_insert()
 exe 'imap ' . g:succinct_prevdelim_map . ' <Plug>PrevDelim'
 exe 'imap ' . g:succinct_nextdelim_map . ' <Plug>NextDelim'
-exe 'vmap ' . g:succinct_surround_map . ' <Plug>ResetRepeat<Plug>Vsuccinct'
+exe 'vmap ' . g:succinct_surround_map . ' <Plug>Vsuccinct'
 exe 'imap ' . g:succinct_surround_map . ' <Plug>ResetUndo<Plug>Isuccinct'
 exe 'imap ' . g:succinct_snippet_map . ' <Plug>ResetUndo<Plug>Isnippet'
 exe 'vmap ' . repeat(g:succinct_surround_map, 2) . ' <Plug>Vsselect'
@@ -76,17 +76,17 @@ nnoremap <expr> <Plug>Ysuccinct succinct#surround_normal(0)
 nnoremap <expr> <Plug>YSuccinct succinct#surround_normal(1)
 nnoremap <expr> <Plug>Yssuccinct '^' . v:count1 . succinct#surround_normal(0) . 'g_'
 nnoremap <expr> <Plug>YSsuccinct '^' . v:count1 . succinct#surround_normal(1) . 'g_'
-noremap <Plug>ResetRepeat <Cmd>call succinct#reset_repeat()<CR>
-nmap cs <Plug>ResetRepeat<Plug>Csuccinct
-nmap cS <Plug>ResetRepeat<Plug>CSuccinct
-nmap ds <Plug>ResetRepeat<Plug>Dsuccinct
-nmap dS <Plug>ResetRepeat<Plug>DSuccinct
-nmap ys <Plug>ResetRepeat<Plug>Ysuccinct
-nmap YS <Plug>ResetRepeat<Plug>YSuccinct
-nmap yss <Plug>ResetRepeat<Plug>Yssuccinct
-nmap ySs <Plug>ResetRepeat<Plug>YSsuccinct
-nmap ysS <Plug>ResetRepeat<Plug>YSsuccinct
-nmap ySS <Plug>ResetRepeat<Plug>YSsuccinct
+noremap <Plug>ResetCache <Cmd>call succinct#reset_cache()<CR>
+nmap cs <Plug>ResetCache<Plug>Csuccinct
+nmap cS <Plug>ResetCache<Plug>CSuccinct
+nmap ds <Plug>ResetCache<Plug>Dsuccinct
+nmap dS <Plug>ResetCache<Plug>DSuccinct
+nmap ys <Plug>ResetCache<Plug>Ysuccinct
+nmap YS <Plug>ResetCache<Plug>YSuccinct
+nmap yss <Plug>ResetCache<Plug>Yssuccinct
+nmap ySs <Plug>ResetCache<Plug>YSsuccinct
+nmap ysS <Plug>ResetCache<Plug>YSsuccinct
+nmap ySS <Plug>ResetCache<Plug>YSsuccinct
 exe 'nmap y' . g:succinct_surround_map . ' <Plug>Ysselect'
 exe 'nmap c' . g:succinct_surround_map . ' <Plug>Csselect'
 exe 'nmap d' . g:succinct_surround_map . ' <Plug>Dsselect'

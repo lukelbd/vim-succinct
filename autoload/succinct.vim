@@ -538,8 +538,8 @@ endfunction
 " Note: Post-processing features allow using e.g. yss<CR> to easily surround the
 " cursor line with empty lines without trailing whitespace, or e.g. ysib<CR><Key>
 " or even ysibm to convert a single-line parenthetical to black-style parentheses.
-function! succinct#reset_repeat() abort
-  silent! unlet b:surround_1
+function! succinct#reset_cache() abort
+  silent! exe 'unlet b:surround_1'
   let b:succinct_target = []
   let b:succinct_replace = []
 endfunction
