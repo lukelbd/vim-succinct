@@ -461,7 +461,7 @@ function! s:feed_repeat(keys, ...) abort
 endfunction
 function! s:wrap_opfunc(...) abort
   let opfunc = &l:operatorfunc  " surround.vim script-local function
-  let s:opfunc_args = [opfunc] + copy(a:000)
+  let s:surround_args = [opfunc] + copy(a:000)
   return 'succinct#_surround_setup'
 endfunction
 function! succinct#_surround_init() abort
@@ -475,12 +475,12 @@ function! succinct#_surround_opfunc(type) abort
     let s:surround_indent = b:surround_indent
   endif
   let b:surround_indent = 0  " override with manual approach
-  let opfunc = s:opfunc_args[0]
+  let opfunc = s:surround_args[0]
   call call(opfunc, [a:type])  " native vim-surround function
   call succinct#post_process()
 endfunction
 function! succinct#_surround_setup(type) range abort
-  let [opfunc, opcount, oparg] = s:opfunc_args
+  let [opfunc, opcount, oparg] = s:surround_args
   if type(oparg)  " visual-mode argument passed manually
     let [break, type] = [oparg =~# '^[A-Z]', oparg]  " e.g. V not v
   else  " automatic opfunc argument provided by vim
