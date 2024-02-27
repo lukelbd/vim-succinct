@@ -1,8 +1,11 @@
 Vim succinct
 ============
 
-A suite of utilities for succinctly editing documents using delimiters, text objects,
-text snippets, and file templates. Includes the following features:
+A suite of utilities for succinctly editing documents using vim-surround delimiters,
+vim-textobj objects, insert-mode snippets, and file templates.
+
+Includes the following features (see `plugin/succinct.vim` for a usage example and
+default mappings):
 
 * Filling empty buffers with text from arbitrary file templates stored in
   `g:succinct_templates_path` (default `'~/templates'`) with the same path extension
@@ -42,7 +45,7 @@ Mappings
 | `<C-e><Mods><Key>` | Insert a snippet defined with `succinct#add_snippets()` during insert mode. Use `<Mods>` e.g. `<Space>`/`<CR>` for space/newline padding of the snippet or e.g. `2` for repitition. |
 | `<C-s><Mods><Key>` | Insert delimiters defined with `succinct#add_delims()` or included with vim-surround during insert or visual mode. Use `<Mods>` e.g. `<Space>`/`<CR>` for space/newline padding or e.g. `2` for repitition. |
 | `<Count>y[sS]<Motion><Mods><Key>` | Insert user-defined and default delimiters around the normal mode motion. Use a capital `S` for newlines, a preceding `<Count>` for repitition, or `<Mods>` as with `<C-s>`.
-| `<Count>y[sS][sS]<Motion><Mods><Key>` | Insert user-defined and default delimiters between the cursor motions `^` to `g_` (same as vim-surround `yss` mappings and similar to the vim-textobj-inner-line). |
+| `<Count>y[sS][sS]<Motion><Mods><Key>` | Insert user-defined and default delimiters between the cursor motions `^` to `g_` (same as vim-surround `yss` mappings and similar to [vim-textobj-line](https://github.com/kana/vim-textobj-line)). |
 | `d[sS]<Mods><Key>` | Delete user-defined and default delimiters surrounding the cursor. Use capital `S` or `<CR>` in `<Mods>` to include newlines and leading/trailing whitespace, as with the `y[sS]` mappings. |
 | `c[sS]<Mods><Key><Mods><Key>` | Change an arbitrary user-defined or default delimiter around the cursor to another delimiter. Use capital `S` or the first `<Mods>` as with `d[sS]`, or use the second `<Mods>` as with `y[sS]`. |
 | `[ycdv][ai]<Mods><Key>` | Yank, change, delete, or select delimiters defined with `succinct#add_delims()` or included with vim-textobj. This works by auto-translating variables to vim-textobj-user plugin entries. |
@@ -53,11 +56,11 @@ Customization
 
 | Option | Description |
 | ---- | ---- |
-| `g:succinct_snippet_map` | Insert mode snippet mapping prefix. Default is `<C-e>` (mnemonic is the "e" in snippets). |
+| `g:succinct_snippet_map` | Insert mode snippet mapping prefix. Default is `<C-e>` (simple mnemonic is the "e" in snippets). |
 | `g:succinct_surround_map` | Insert and visual mode surround mapping prefix. Default is `<C-s>` (requires adding `bind -r '"\C-s"'` to `~/.bashrc` or `~/.bash_profile`). |
 | `g:succinct_prevdelim_map` | Insert mode mapping for jumping to the previous quote or delimiter. Default is `<C-h>`. |
 | `g:succinct_nextdelim_map` | Insert mode mapping for jumping to the next quote or delimiter. Default is `<C-l>`. |
-| `g:succinct_templates_path` | Location where templates are stored. These are optionally loaded when creating new files. Default is `~/templates`. |
+| `g:succinct_templates_path` | The folder where templates are stored. These are optionally loaded when creating new files. Default is `~/templates`. |
 
 Installation
 ============
