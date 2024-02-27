@@ -453,12 +453,12 @@ endfunction
 function! succinct#process_result(snippet, search, ...) abort
   let [key, pad, cnt] = s:get_target()
   if a:snippet
-    let [prefix, default] = ['snippet', '']
+    let [head, value] = ['snippet', '']
   else
-    let [prefix, default] = ['surround', key . "\r" . key]
+    let [head, value] = ['surround', empty(key) ? key : key . "\r" . key]
   endif
-  let name = prefix . '_' . char2nr(key)  " note char2nr('') == 0
-  let text = succinct#process_value(get(b:, name, get(g:, name, default)), a:search)
+  let name = head . '_' . char2nr(key)  " note char2nr('') == 0
+  let text = succinct#process_value(get(b:, name, get(g:, name, value)), a:search)
   if empty(text)  " e.g. empty 'key', empty 'surround_{key}', or input cancellation
     return a:snippet ? ['', cnt] : ['', '', cnt]
   endif
@@ -473,13 +473,10 @@ function! succinct#process_result(snippet, search, ...) abort
   else  " e.g. <Space><CR><Cursor><CR><Space>
     let [pad1, pad2] = [pad, reverse(pad)]
   endif
-
-  let [part1, part2] = [part1 . pad1, pad2 . part2]
-
   if a:snippet
-    return [part1 . part2, cnt]
+    return [part1 . pad1 . pad2 . part2, cnt]
   else
-    return [part1, part2, cnt]
+    return [part1 . pad1, pad2 . part2, cnt]
   endif
 endfunction
 
@@ -518,6 +515,7 @@ function! succinct#surround_finish(type) range abort
   let [delim1, delim2, cnt] = succinct#process_result(0, 0, s:surround_break)
   setlocal operatorfunc=succinct#surround_delims  " '.' -> 'g@<motion>' -> here
   let cmd = "\<Cmd>call succinct#surround_delims(" . string(a:type) . ")\<CR>"
+  echom 'Delimiters: ' . delim1 . ' ' . delim2
   if empty(delim1) && empty(delim2)  " padding not applied if delimiter not passed
     let &l:operatorfunc = '' | return
   endif
