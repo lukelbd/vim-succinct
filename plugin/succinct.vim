@@ -15,17 +15,11 @@ scriptencoding utf-8
 if !exists('g:succinct_templates_path')
   let g:succinct_templates_path = '~/templates'
 endif
-if exists('g:succinct_snippet_prefix')  " backwards compatibility
-  let g:succinct_snippet_map = g:succinct_snippet_prefix
-endif
 if !exists('g:succinct_snippet_map')  " backwards compatibility
-  let g:succinct_snippet_map = '<C-e>'
+  let g:succinct_snippet_map = get(g:, 'succinct_snippet_prefix', '<C-e>')
 endif
-if exists('g:succinct_surround_prefix')
-  let g:succinct_surround_map = g:succinct_surround_prefix
-endif
-if !exists('g:succinct_surround_map')
-  let g:succinct_surround_map = '<C-s>'
+if !exists('g:succinct_surround_map')  " backwards compatibility
+  let g:succinct_surround_map = get(g:, 'succinct_surround_prefix', '<C-s>')
 endif
 if !exists('g:succinct_prevdelim_map')
   let g:succinct_prevdelim_map = '<C-h>'
