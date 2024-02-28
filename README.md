@@ -51,8 +51,8 @@ Mappings
 | `[ycdv][ai]<Mods><Key>` | Yank, change, delete, or select delimiters defined with `succinct#add_delims()` or included with vim-textobj. This works by auto-translating variables to vim-textobj-user plugin entries. |
 | `<C-h>`, `<C-l>` | Jump to the left (right) of the previous (next) delimiter in insert mode. This works for arbtirary delimitmate-defined bracket and quote style delimiters. |
 
-Customization
--------------
+Options
+-------
 
 | Option | Description |
 | ---- | ---- |
