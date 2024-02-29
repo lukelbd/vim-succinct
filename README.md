@@ -9,7 +9,7 @@ default mappings):
 
 * Filling empty buffers with text from arbitrary file templates stored in
   `g:succinct_templates_path` (default `'~/templates'`) with the same path extension
-  as the buffer. This works by opening [fzf](https://github.com/junegunn/fzf) fuzzy-search windows on new buffers and
+  as the buffer. This works by opening [fzf.vim](https://github.com/junegunn/fzf.vim) fuzzy-search windows on new buffers and
   populating the window with the relevant template files. Note the template window will
   not open if there are no matching templates in `g:succinct_templates_path`.
 * Adding custom snippet maps with `succinct#add_snippets()` and using them in insert
@@ -29,9 +29,9 @@ default mappings):
   e.g. `cs2b` or `ds2b` to target outer parentheses within nested sequences.
 * Moving to the right of the previous or next "bracket" or "quote" delimiters defined
   by [delimitMate](https://github.com/Raimondi/delimitMate) with the default insert mode mappings `<C-h>` and `<C-l>`, and
-  selecting from available [vim-surround](https://github.com/tpope/vim-surround) snippets and delimiters using [fzf](https://github.com/junegunn/fzf) fuzzy-search
-  windows with the default insert mode mapping `<C-e><C-e>`, insert and visual-mode
-  `<C-s><C-s>`, and normal-mode `y<C-s>`, `c<C-s>`, `d<C-s>`.
+  selecting from available [vim-surround](https://github.com/tpope/vim-surround) snippets and delimiters using [fzf.vim](https://github.com/junegunn/fzf.vim)
+  fuzzy-search windows with the default insert mode mapping `<C-e><C-e>`, insert and
+  visual-mode `<C-s><C-s>`, and normal-mode `y<C-s>`, `c<C-s>`, `d<C-s>`.
 
 
 Documentation
