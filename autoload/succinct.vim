@@ -56,28 +56,48 @@ function! succinct#next_delim() abort
 endfunction
 
 "-----------------------------------------------------------------------------
-" Register snippets and delimiters
+" Register snippets, delimiters, and objects
 "-----------------------------------------------------------------------------
-" Translate delimiters to text object declarations
-" Warning: Funcref delimiters below cannot be automatically translated to text objects
-" Note: This figures out the required text object declaration based on uniqueness of
-" left-right delimiters after removing group regexes. The finall approach is currently
-" only needed for python docstring since searchpairpos() fails for identical delimiters
-" and textobj#user workaround only supports single-character e.g. quote delimiters.
-function! s:get_inside(...) abort  " verify inside regex group
-  let [lnum, cnum] = [line('.'), col('.')]
+" Helper functions
+" Note: Support defining vim-surround delimiters with unescaped \r \n \1
+" etc. for convenience (e.g. working with heavily backslashed delimiters).
+let s:literals = {
+  \ 'r': "\r", 'n': "\n", '0': "\0", '1': "\1", '2': "\2",
+  \ '3': "\3", '4': "\4", '5': "\5", '6': "\6", '7': "\7",
+\ }
+function! s:get_surround(arg) abort
+  let opts = type(a:arg) == 1 ? s:literals : {}
+  let output = type(a:arg) == 1 ? a:arg : ''
+  for [char, repl] in items(opts)
+    let check = char2nr(repl) > 7 ? '\w\@!' : ''
+    let output = substitute(output, '\\' . char . check, repl, 'g')
+  endfor
+  return empty(output) ? a:arg : output
+endfunction
+function! s:get_syntax(...) abort  " verify inside regex group
+  if a:0 >= 2  " input line column
+    let [lnum, cnum] = a:000
+  elseif a:0 >= 1  " input line
+    let [lnum, cnum] = [a:1, 1]
+  else  " cursor position
+    let [lnum, cnum] = [line('.'), col('.')]
+  endif
   let expr = "synIDattr(synIDtrans(v:val), 'name')"
   let stack = map(synstack(lnum, cnum), expr)
-  for item in a:000  " iterate over options
-    if index(stack, item) != -1 | return 1 | endif
-  endfor | return 0
+  return get(stack, 0, 'Unknown')
 endfunction
+
+" Text object functional searching
+" Note: Use this approach only for docstring text objects since searchpairpos() fails
+" for identical delimeters and textobj#user workaround only supports single-character
+" delimiters. Restrict to when cursor is in docstring or in comment
 function! succinct#text_object(mode, delim, ...) abort
+  let winview = winsaveview()
   let ldelim = a:delim
   let rdelim = a:0 ? a:1 : a:delim
-  if !s:get_inside('Constant', 'Comment') | return | endif
-  if !search(ldelim, 'bW') | return | endif
-  if !s:get_inside('Constant', 'Comment') | return | endif
+  if !search(ldelim, 'bW')  " search failed
+    return
+  endif
   if a:mode ==# 'a'
     let pos1 = getpos('.')  " jump to start of match
     call search(ldelim, 'eW')
@@ -85,38 +105,66 @@ function! succinct#text_object(mode, delim, ...) abort
     call search(ldelim . '\_s*\zs', 'W')
     let pos1 = getpos('.')
   endif
-  if !search(rdelim, 'eW') | return | endif  " ending quote not found
-  if !s:get_inside('Constant', 'Comment') | return | endif
-  if a:mode ==# 'i' | call search('\S\_s*' . rdelim, 'bW') | endif
+  if !search(rdelim, 'eW')
+    call winrestview(winview) | return
+  endif  " ending quote not found
   let pos2 = getpos('.')
-  return ['v', pos1, pos2]
+  if a:mode ==# 'i'
+    call search('\S\_s*' . rdelim, 'bW')
+    let pos2 = getpos('.')
+  endif
+  let inner = pos2[1] <= pos1[1] ? [] : range(pos1[1] + 1, pos2[1] - 1)
+  let groups = map(inner, 's:get_syntax(v:val)')
+  call add(groups, call('s:get_syntax', pos1[1:2]))
+  call add(groups, call('s:get_syntax', pos2[1:2]))
+  let groups = uniq(sort(groups))  " unique syntax groups
+  if len(groups) > 1
+    call winrestview(winview) | return
+  else
+    return ['v', pos1, pos2]
+  endif
 endfunction
+
+" Translate delimiters to text object declarations
+" Warning: Funcref delimiters cannot be automatically translated to text objects
+" Note: This figures out the required text object declaration based on uniqueness
+" of left-right delimiters after removing group regexes.
 function! succinct#translate_delims(key, arg, ...) abort
-  let regex = '\(\\_\)\?\(\\(.\+\\)\|\[.\+\]\|\\\?.\)\(\\?\|\\\@<!\*\)'  " \(\) groups
-  let [objs, flag] = [{}, a:0 && a:1 ? '<buffer> ' : '']
-  let delim = succinct#process_value(s:parse_input(a:arg), 1)
+  let args = [s:get_surround(a:arg), 1] + a:000[1:]
+  let scope = a:0 && a:1 ? '<buffer> ' : ''
+  let delim = call('succinct#process_value', args)
   if count(delim, "\r") != 1 | return objs | endif
   let [delim1, delim2] = split(delim, "\r")
-  let check1 = substitute(delim1, regex, '', 'g')  " remove \(\) groups
-  let check2 = substitute(delim2, regex, '', 'g')  " remove \(\) groups
-  let rcheck = substitute(check1, '\', '', 'g')  " e.g. escaped * * delimiters
+  let single = '\(\\_\)\?\(\\(.\+\\)\|\[.\+\]\|\\\?.\)'  " \(\), [], \x, or characters
+  let multiple = single . '\(\\[?=]\|\\\@<!\*\)'  " optional-length \? or * indicators
+  let check1 = substitute(delim1, multiple, '', 'g')  " remove optional groups
+  let check2 = substitute(delim2, multiple, '', 'g')  " remove optional groups
+  let check = substitute(check1, '\', '', 'g')  " e.g. escaped * * delimiters
+  let check = substitute(check, single, '.', 'g')  " i.e. singular regex atoms
+  let objs = {}
   if check1 !=# check2  " distinct delimiters
     let name = 'textobj_' . char2nr(a:key)
     let objs[name] = {
       \ 'pattern': [delim1, delim2],
-      \ 'select-a': flag . 'a' . escape(a:key, '|'),
-      \ 'select-i': flag . 'i' . escape(a:key, '|'),
+      \ 'select-a': scope . 'a' . escape(a:key, '|'),
+      \ 'select-i': scope . 'i' . escape(a:key, '|'),
     \ }
-  elseif len(rcheck) <= 1  " single-line identical delimiters
+  elseif len(check) <= 1  " single-line identical delimiters
+    if empty(check)  " only optional delimiter
+      let delim1 = substitute(delim1, '\\[?=]', '', 'g')
+      let delim2 = substitute(delim2, '\\[?=]', '', 'g')
+      let delim1 = substitute(delim1, '\\\@<!\*', '\\+', 'g')
+      let delim2 = substitute(delim2, '\\\@<!\*', '\\+', 'g')
+    endif
     let inner = 'textobj_' . char2nr(a:key) . '_i'
     let outer = 'textobj_' . char2nr(a:key) . '_a'
     let objs[inner] = {
       \ 'pattern': delim1 . '\zs.\{-}\ze' . delim2,
-      \ 'select': flag . 'i' . escape(a:key, '|'),
+      \ 'select': scope . 'i' . escape(a:key, '|'),
     \ }
     let objs[outer] = {
       \ 'pattern': delim1 . '.\{-}' . delim2,
-      \ 'select': flag . 'a' . escape(a:key, '|'),
+      \ 'select': scope . 'a' . escape(a:key, '|'),
     \ }
   else  " multi-line identical delimiters
     let code = [
@@ -131,8 +179,8 @@ function! succinct#translate_delims(key, arg, ...) abort
     let plugin = 'textobj_' . char2nr(a:key)
     let objs[plugin] = {
       \ 'sfile': expand('<script>:p'),
-      \ 'select-i': flag . 'i' . escape(a:key, '|'),
-      \ 'select-a': flag . 'a' . escape(a:key, '|'),
+      \ 'select-i': scope . 'i' . escape(a:key, '|'),
+      \ 'select-a': scope . 'a' . escape(a:key, '|'),
       \ 'select-i-function': 's:textobj_' . char2nr(a:key) . '_i',
       \ 'select-a-function': 's:textobj_' . char2nr(a:key) . '_a',
     \ }
@@ -141,56 +189,47 @@ function! succinct#translate_delims(key, arg, ...) abort
 endfunction
 
 " Register text object plugins and define surround and snippet variables
-" Warning: Funcref cannot be assigned as local variable so do not iterate over items()
 " Note: Use ad-hoc approach for including python string headers instead of relying
 " on user so that built-in change-delim and delete-delim commands that rely on
 " buffer and global surround variables still include header, but without including
 " regex for built-in visual, insert, and motion based vim-surround insertions.
-let s:literals = {
-  \ 'r': "\r", 'n': "\n", '0': "\0", '1': "\1", '2': "\2",
-  \ '3': "\3", '4': "\4", '5': "\5", '6': "\6", '7': "\7",
-\ }
-function! s:parse_input(arg) abort
-  let opts = type(a:arg) == 1 ? s:literals : {}
-  let output = type(a:arg) == 1 ? a:arg : ''
-  for [char, repl] in items(opts)
-    let check = char2nr(repl) > 7 ? '\w\@!' : ''
-    let output = substitute(output, '\\' . char . check, repl, 'g')
-  endfor
-  return empty(output) ? a:arg : output
-endfunction
 function! succinct#add_snippets(source, ...) abort
   let scope = a:0 && a:1 ? b: : g:
   let snippets = {}  " for user reference
   for key in keys(a:source)  " funcref cannot be lower case so iterate keys
     let name = 'snippet_' . char2nr(key)
-    let scope[name] = s:parse_input(a:source[key])
+    let scope[name] = s:get_surround(a:source[key])
     let snippets[key] = scope[name]
   endfor
   return snippets
 endfunction
 function! succinct#add_delims(source, ...) abort
-  let force = a:0 > 1 ? a:2 : 1
-  let local = a:0 > 0 ? a:1 : 0
   let scope = a:0 && a:1 ? b: : g:
-  let [delims, objects] = [{}, {}]
+  let delims = {}
   for key in keys(a:source)  " funcref cannot be lower case so iterate keys
     let name = 'surround_' . char2nr(key)
-    let scope[name] = s:parse_input(a:source[key])
+    let scope[name] = s:get_surround(a:source[key])
     let delims[key] = scope[name]
   endfor
+  let args = [a:source] + a:000
+  call call('succinct#add_objects', args)
+endfunction
+function! succinct#add_objects(source, ...) abort
+  let defaults = a:0 > 1 ? a:2 : 0
+  let objects = {}
   for key in keys(a:source)
-    let outer = maparg('a' . key, 'o')
-    let inner = maparg('i' . key, 'o')
-    if !force && (!empty(outer) || !empty(inner))
-      continue
+    if defaults  " check existing maps
+      let outer = maparg('a' . key, 'o')
+      let inner = maparg('i' . key, 'o')
+      if !empty(outer) || !empty(inner) | continue | endif
     endif
     if type(a:source[key]) != 1
       echohl WarningMsg
       echom "Warning: Cannot add key '" . key . "' as text object (non-string type)."
       echohl None | continue
     endif
-    let objs = call('succinct#translate_delims', [key, a:source[key], local])
+    let args = [key, a:source[key]] + [a:0 ? a:1 : 0] + a:000[2:]
+    let objs = call('succinct#translate_delims', args)
     call extend(objects, objs)
   endfor
   let plugin = a:0 && a:1 ? &l:filetype : 'global'
@@ -368,7 +407,7 @@ function! s:get_value(snippet, search, ...) abort
   endif
   if a:0 && a:1 | let pad .= "\n" | endif
   if a:search  " convert e.g. literal '\n  ' to regex '\_s*'
-    let [pad1, pad2] = [s:regex_value(pad), s:regex_value(pad)]
+    let [pad1, pad2] = [s:search_value(pad), s:search_value(pad)]
   else  " e.g. <Space><CR><Cursor><CR><Space>
     let [pad1, pad2] = [pad, join(reverse(split(pad, '\zs')), '')]
   endif
@@ -383,8 +422,10 @@ endfunction
 " *searching* for delimiters with searchpair(), else return delimiters themselves.
 " Note: This was adapted from vim-surround/plugin/surround.vim. Note is critical to
 " escape characters one-by-one or \r\r groups inside user-input delimiters are caught.
-function! s:regex_value(value) abort  " escape regular expressions and allow indents
-  return substitute(escape(a:value, '[]\.*~^$'), '\_s\+', '\\_s*', 'g')
+function! s:search_value(value, ...) abort  " escape regular expressions and allow indents
+  let value = a:0 && a:1 ? a:value : escape(a:value, '[]\.*~^$')
+  let value = substitute(value, '\_s\+', '\\_s*', 'g')
+  return value
 endfunction
 function! succinct#process_value(value, ...) abort
   " Acquire user-input for placeholders \1, \2, \3, ...
@@ -396,12 +437,12 @@ function! succinct#process_value(value, ...) abort
   for nr in range(7)
     let idx = matchstr(input, nr2char(nr) . '.\{-\}\ze' . nr2char(nr))
     if !empty(idx)  " \1, \2, \3, ... found inside string
-      if search  " search possible user-input values
-        let regex = '\%(\k\|[:.*]\)'  " e.g. foo.bar() or \section*{} or s:function
-        let repl_{nr} = regex . '\@<!' . regex . '\+'  " pick longest coherent match
-      else  " acquire user-input values
+      if !search  " acquire user-input values
         let idx = substitute(strpart(idx, 1), '\r.*', '', '')
         let repl_{nr} = input(match(idx, '\w\+$') >= 0 ? idx . ': ' : idx)
+      else " search possible user-input values
+        let regex = '\%(\k\|[:.*]\)'  " e.g. foo.bar() or \section*{} or s:function
+        let repl_{nr} = regex . '\@<!' . regex . '\+'  " pick longest coherent match
       endif
     endif
   endfor
@@ -412,7 +453,8 @@ function! succinct#process_value(value, ...) abort
     let char = strpart(input, idx, 1)
     let jdx = char2nr(char) > 7 ? -1 : stridx(input, char, idx + 1)
     if jdx == -1  " match individual character
-      let part = !search ? char : s:regex_value(char)
+      let args = [char] + a:000[1:]  " additional configuration
+      let part = !search ? char : call('s:search_value', args)
     else  " replace \1, \2, \3, ... with user input using inner text as prompt
       let part = repl_{char2nr(char)}  " defined above
       let query = strpart(input, idx + 1, jdx - idx - 1)  " query between \1...\1
@@ -421,7 +463,7 @@ function! succinct#process_value(value, ...) abort
         let group = matchstr(query, "^\r\\zs[^\r]*\r[^\r]*")  " match replace group
         let sub = strpart(group, 0, stridx(group, "\r"))  " the substitute
         let repl = strpart(group, stridx(group, "\r") + 1)  " the replacement
-        let repl = !search ? repl : s:regex_value(repl)
+        let repl = !search ? repl : s:search_value(repl)
         let part = substitute(part, sub, repl, '')  " apply substitution as requested
         let query = strpart(query, strlen(group) + 1)  " skip over the group
       endwhile
