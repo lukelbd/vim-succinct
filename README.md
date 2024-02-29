@@ -5,7 +5,7 @@ A suite of utilities for succinctly editing documents using vim-surround delimit
 vim-textobj objects, insert-mode snippets, and file templates.
 
 Includes the following features (see `plugin/succinct.vim` for a usage example and
-default mappings):
+default delimiters):
 
 * Filling empty buffers with text from arbitrary file templates stored in
   `g:succinct_templates_path` (default `'~/templates'`) with the same path extension
