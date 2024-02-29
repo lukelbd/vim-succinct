@@ -170,6 +170,8 @@ function! succinct#add_snippets(source, ...) abort
   return snippets
 endfunction
 function! succinct#add_delims(source, ...) abort
+  let force = a:0 > 1 ? a:2 : 1
+  let local = a:0 > 0 ? a:1 : 0
   let scope = a:0 && a:1 ? b: : g:
   let [delims, objects] = [{}, {}]
   for key in keys(a:source)  " funcref cannot be lower case so iterate keys
@@ -178,12 +180,17 @@ function! succinct#add_delims(source, ...) abort
     let delims[key] = scope[name]
   endfor
   for key in keys(a:source)
+    let outer = maparg('a' . key, 'o')
+    let inner = maparg('i' . key, 'o')
+    if !force && (!empty(outer) || !empty(inner))
+      continue
+    endif
     if type(a:source[key]) != 1
       echohl WarningMsg
       echom "Warning: Cannot add key '" . key . "' as text object (non-string type)."
       echohl None | continue
     endif
-    let objs = call('succinct#translate_delims', [key, a:source[key]] + a:000)
+    let objs = call('succinct#translate_delims', [key, a:source[key], local])
     call extend(objects, objs)
   endfor
   let plugin = a:0 && a:1 ? &l:filetype : 'global'

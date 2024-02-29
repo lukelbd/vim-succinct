@@ -111,4 +111,4 @@ let s:delims = {
   \ 'f': '\1function: \1(\r)',
   \ 'A': '\1array: \1[\r]',
 \ }
-call succinct#add_delims(s:delims, 0, 1)
+call succinct#add_delims(s:delims, 0, 0)
