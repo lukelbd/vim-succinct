@@ -91,10 +91,6 @@ exe 'nmap ds' . g:succinct_surround_map . ' <Plug>Dsselect'
 " Add global delimiters and text objects
 " Note: For surrounding with spaces can hit space twice, and for surrounding
 " with enter can use e.g. 'yS' intead of 'ys', so '^M' regex works here.
-let s:plugin = {
-  \ 'g': '\_[^0-9A-Za-z]\r\_[^0-9A-Za-z]',
-  \ 'G': '\(\W\|^\|\%^\)\r\(\W\|$\|\%$\)',
-\ }
 let s:delims = {
   \ "'": '''\r''',
   \ '"': '"\r"',
@@ -123,4 +119,3 @@ let s:delims = {
   \ 'A': '\1array: \1[\r]',
 \ }
 call succinct#add_delims(s:delims, 0, 1)
-call succinct#add_objects('alpha', s:plugin, 0, 1, 1)
