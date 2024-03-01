@@ -89,13 +89,17 @@ function! succinct#search_pairs(left, right, count) abort
   let lnum = line('.')  " prefer matches on current line
   let [line1, col11] = searchpairpos(a:left, '', a:right, 'nbcW')
   let [line2, col21] = searchpairpos(a:left, '', a:right, 'ncW')
-  if line1 == lnum && line2 != lnum  " cursor may be on head of open or tail of close
+  if line1 && !line2 || line1 == lnum && line2 != lnum  " could be on head of open or tail of close
     call cursor(line1, col11) | normal! l
     let [line2, col21] = searchpairpos(a:left, '', a:right, 'ncW')
   endif
-  if line2 == lnum && line1 != lnum  " cursor may be somewhere on closing delimiter
+  if line2 && !line1 || line2 == lnum && line1 != lnum  " could be somewhere on closing delimiter
     call cursor(line2, col21) | normal! h
     let [line1, col11] = searchpairpos(a:left, '', a:right, 'nbcW')
+  endif
+  if line2 && !line1 && a:left =~# '^\\\\\a\{3,}'
+    call cursor(line2, col21)  " search may fail for long tex commands
+    let [line1, col21] = searchpos(a:left, 'nbcW')
   endif
   call cursor(line1, col11)  " 'bnW' and 'cnW' will deliberately fail
   for idx in range(2, a:count)  " additional matches beyond current one
