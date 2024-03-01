@@ -47,13 +47,12 @@ function! succinct#next_delim() abort
   return s:goto_delim(line('.'), col('.') + 1, lorig, corig)
 endfunction
 
-" Search for identical items and distinct item pairs
-" Note: Here searchpairpos(..., 'b') goes to the start of the first delimiter and
-" searchpairpos(..., '') goes to the start of the second delimiter.
-" Warning: Here searchpairpos(..., 'bc') fails if the cursor is anywhere on a closing
-" delimiter and searchpairpos(..., 'c') fails if the cursor is on the first character
-" of an opening delimiter or after the first character of a closing delimiter.
-function! s:get_syntax(...) abort  " verify inside regex group
+" Search helper functions
+" Note: Typically want '*' to include only traditional keywords but want surround
+" and object opultions to include e.g. python method chains, vim scope identifiers,
+" tex asterisk flags. Use this to temporarily modify iskeyword while searching.
+let s:keyword_mods = {'python': '.', 'tex': '*', 'vim': ':'}
+function! s:get_group(...) abort  " verify inside regex group
   if a:0 >= 2  " input line column
     let [lnum, cnum] = a:000
   elseif a:0 >= 1  " input line
@@ -65,48 +64,66 @@ function! s:get_syntax(...) abort  " verify inside regex group
   let stack = map(synstack(lnum, cnum), expr)
   return stack[:1]
 endfunction
+function! s:get_pos(...) abort
+  let cmd = a:0 > 3 ? 'searchpairpos' : 'searchpos'
+  let mods = get(s:keyword_mods, &l:filetype, '')
+  let mods = empty(mods) ? '' : ',' . join(split(mods, '\zs'), ',')
+  let keys = &l:iskeyword
+  let &l:iskeyword = keys . mods
+  try
+    let [lnum, cnum] = call(cmd, a:000)
+  finally
+    let &l:iskeyword = keys
+  endtry
+  return [lnum, cnum]
+endfunction
+
+" Search for identical items and distinct item pairs
+" Note: Here searchpairpos(..., 'b') goes to the start of the first delimiter and
+" searchpairpos(..., '') goes to the start of the second delimiter.
+" Warning: Here searchpairpos(..., 'bc') fails if the cursor is anywhere on a closing
+" delimiter and searchpairpos(..., 'c') fails if the cursor is on the first character
+" of an opening delimiter or after the first character of a closing delimiter.
+function! succinct#search_pairs(left, right, count) abort
+  let lnum = line('.')  " prefer matches on current line
+  let [line1, col11] = s:get_pos(a:left, '', a:right, 'nbcW')
+  let [line2, col21] = s:get_pos(a:left, '', a:right, 'ncW')
+  if line1 && !line2 || line1 == lnum && line2 != lnum  " could be on head of open or tail of close
+    call cursor(line1, col11) | normal! l
+    let [line2, col21] = s:get_pos(a:left, '', a:right, 'ncW')
+  endif
+  if line2 && !line1 || line2 == lnum && line1 != lnum  " could be somewhere on closing delimiter
+    call cursor(line2, col21) | normal! h
+    let [line1, col11] = s:get_pos(a:left, '', a:right, 'nbcW')
+  endif
+  call cursor(line1, col11)  " 'bnW' and 'cnW' will deliberately fail
+  for idx in range(2, a:count)  " additional matches beyond current one
+    let [line1, col11] = s:get_pos(a:left, '', a:right, 'nbW')
+    let [line2, col21] = s:get_pos(a:left, '', a:right, 'ncW')
+    call cursor(line1, col11)  " then searches will go beyond cursor
+  endfor
+  return [line1, col11, line2, col21]
+endfunction
 function! succinct#search_items(left, right, count) abort
+  let keys1 = &l:iskeyword
+  let keys2 = &l:filetype ==# 'vim' ? keys1 . ',:' : keys1
   let [lnum, cnum] = [line('.'), col('.')]
   for idx in range(a:count)  " select outer items
     let flags = idx == 0 ? 'bcW' : 'bW'  " include object under cursor *first*
-    let [line1, col11] = searchpos(a:left, flags)
+    let [line1, col11] = s:get_pos(a:left, flags)
   endfor
   call cursor(line1, col11)
   for idx in range(a:count)  " select outer items
     let flags = 'W'  " exclude object under cursor
-    let [line2, col21] = searchpos(a:left, flags)
+    let [line2, col21] = s:get_pos(a:left, flags)
   endfor
   if a:left =~# '[''"]'  " additional syntax check
-    let groups = s:get_syntax(line1, col11) + s:get_syntax(line2, col21)
+    let groups = s:get_group(line1, col11) + s:get_group(line2, col21)
     let inner = line2 > line1 ? range(line1 + 1, line2 - 1) : []
-    for inum in inner | call extend(groups, s:get_syntax(inum)) | endfor
+    for inum in inner | call extend(groups, s:get_group(inum)) | endfor
     let groups = uniq(sort(groups))  " unique syntax groups
     if len(groups) > 1 | return [0, 0, 0, 0] | endif
   endif
-  return [line1, col11, line2, col21]
-endfunction
-function! succinct#search_pairs(left, right, count) abort
-  let lnum = line('.')  " prefer matches on current line
-  let [line1, col11] = searchpairpos(a:left, '', a:right, 'nbcW')
-  let [line2, col21] = searchpairpos(a:left, '', a:right, 'ncW')
-  if line1 && !line2 || line1 == lnum && line2 != lnum  " could be on head of open or tail of close
-    call cursor(line1, col11) | normal! l
-    let [line2, col21] = searchpairpos(a:left, '', a:right, 'ncW')
-  endif
-  if line2 && !line1 || line2 == lnum && line1 != lnum  " could be somewhere on closing delimiter
-    call cursor(line2, col21) | normal! h
-    let [line1, col11] = searchpairpos(a:left, '', a:right, 'nbcW')
-  endif
-  if line2 && !line1 && a:left =~# '^\\\\\a\{3,}'
-    call cursor(line2, col21)  " search may fail for long tex commands
-    let [line1, col21] = searchpos(a:left, 'nbcW')
-  endif
-  call cursor(line1, col11)  " 'bnW' and 'cnW' will deliberately fail
-  for idx in range(2, a:count)  " additional matches beyond current one
-    let [line1, col11] = searchpairpos(a:left, '', a:right, 'nbW')
-    let [line2, col21] = searchpairpos(a:left, '', a:right, 'ncW')
-    call cursor(line1, col11)  " then searches will go beyond cursor
-  endfor
   return [line1, col11, line2, col21]
 endfunction
 
@@ -466,8 +483,8 @@ function! succinct#process_value(value, ...) abort
         let idx = substitute(strpart(idx, 1), '\r.*', '', '')
         let repl_{nr} = input(match(idx, '\w\+$') >= 0 ? idx . ': ' : idx)
       else " search possible user-input values
-        let regex = '\%(\k\|[.*]\)'  " e.g. foo.bar() or \section*{} or s:function
-        let repl_{nr} = regex . '\@<!' . regex . '\+'  " pick longest coherent match
+        let regex = '\<\k\+'  " see s:search_item() for iskeyword modifications
+        let repl_{nr} = regex
       endif
     endif
   endfor
@@ -569,8 +586,8 @@ function! s:post_process(...) abort
   endtry
 endfunction
 
-" Capture and manipulate arbitrary left and right delimiters
-" This sets the mark 'z to the end of each delimiter, so use with e.g. lexpr='d`zx'
+" Capture and manipulate arbitrary left and right delimiters. This sets
+" the mark 'z to the end of each delimiter, so use with e.g. lexpr='d`zx'.
 " Note: Here use count as in vim-surround to identify nested exterior delimiters.
 " Note the backwards search when on a delimiter will fail so loop should move
 " outwards. Apply delimiters using succinct but processing input here
@@ -579,18 +596,17 @@ function! s:feed_repeat(keys, ...) abort
   let cmd = 'call repeat#set("\' . a:keys . '", ' . (a:0 ? a:1 : v:count) . ')'
   call feedkeys("\<Cmd>" . cmd . "\<CR>", 'n')
 endfunction
-function! s:modify_delims(left, right, lexpr, rexpr, ...) abort
+function! s:expr_delims(left, right, lexpr, rexpr, ...) abort
   let args = [a:left, a:right, a:0 ? a:1 : 1]
   let [line1, col11, line2, col21] = call('succinct#get_delims', args)
-  if !line1 || !line2 | return | endif
-  let winview = winsaveview()  " restore on failure
+  if line1 == 0 || line2 == 0 | return | endif
   call cursor(line2, col21)  " delete or change right delimiter
-  let [line2, col22] = searchpos(a:right, 'cen')
+  let [line2, col22] = s:get_pos(a:right, 'cen')
   call setpos("'z", [0, line2, col22, 0])
   keepjumps exe 'normal! ' . a:rexpr
   let line2 = line("']")
   call cursor(line1, col11)  " delete or change left delimiter
-  let [line1, col12] = searchpos(a:left, 'cen')
+  let [line1, col12] = s:get_pos(a:left, 'cen')
   call setpos("'z", [0, line1, col12, 0])
   keepjumps exe 'normal! ' . a:lexpr
   let line1 = line("'[")
@@ -640,7 +656,7 @@ function! succinct#delete_delims(count, break) abort
   let expr1 = '"_d`z"_x'
   let expr2 = '"_d`z"_x'
   for _ in range(a:count ? a:count : 1)
-    call s:modify_delims(delim1, delim2, expr1, expr2, cnt)
+    call s:expr_delims(delim1, delim2, expr1, expr2, cnt)
   endfor
   call s:feed_repeat('<Plug>Dsuccinct', a:count)  " capital-S not needed
 endfunction
@@ -652,7 +668,7 @@ function! succinct#change_delims(count, break) abort
   let expr1 = '"_c`z' . repl1 . "\<Delete>" . "x\<BS>"
   let expr2 = '"_c`z' . repl2 . "\<Delete>"
   for _ in range(a:count ? a:count : 1)
-    call s:modify_delims(prev1, prev2, expr1, expr2, cnt)
+    call s:expr_delims(prev1, prev2, expr1, expr2, cnt)
   endfor
   call s:feed_repeat('<Plug>Csuccinct', a:count)  " capital-S not needed
 endfunction
