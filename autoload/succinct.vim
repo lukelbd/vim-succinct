@@ -1,9 +1,11 @@
 "-----------------------------------------------------------------------------"
-" Navigate simple delimiters
+" Navigate delimiters
 "-----------------------------------------------------------------------------"
-" Find delimiter and navigate without triggering InsertLeave
-" Note: This is used for insert-mode delimiter jumping maps
-" Todo: Consider using this navigation algorithm elsewhere
+" Navigate delimeters  ( [ [ ( "  "  asd) sdf    ]  sdd   ]  as) h adfas)
+" Todo: Consider using this insert-mode navigation algorithm elsewhere
+" Warning: Cannot use search() because it fails to detect current column. Could
+" use setpos() but then if fail to find delim that moves cursor. Also note cursor()
+" fails in insert mode, even though 'current position' changes inside function.
 function! s:find_delim(...) abort
   let name = 'delimitMate_matchpairs'
   let delims = get(b:, name, get(g:, name, &matchpairs))
@@ -28,39 +30,134 @@ function! s:goto_delim(lnum, cnum, lorig, corig) abort
   endif
   return action . motion
 endfunction
-
-" Navigate delimeters  ( [ [ ( "  "  asd) sdf    ]  sdd   ]  as) h adfas)
-" Warning: Cannot use search() because it fails to detect current column. Could
-" use setpos() but then if fail to find delim that moves cursor. Also note cursor()
-" fails in insert mode, even though 'current position' changes inside function.
 function! succinct#prev_delim() abort
-  let [_, lorig, corig, _] = getpos('.')
+  let [lorig, corig] = [line('.'), col('.')]
   call s:find_delim('eb')
   if col('.') > corig - 2
     call s:find_delim('eb')
   endif
-  let keys = s:goto_delim(line('.'), col('.') + 1, lorig, corig)
-  return keys
+  return s:goto_delim(line('.'), col('.') + 1, lorig, corig)
 endfunction
 function! succinct#next_delim() abort
-  let [_, lorig, corig, _] = getpos('.')
+  let [lorig, corig] = [line('.'), col('.')]
   let [lfind, cfind] = [lorig, corig]
-  if cfind == 1
-    let lfind = max([1, lfind - 1]) | exe lfind
-    let cfind = col('$')
-  endif
+  if cfind == 1 | let lfind = max([1, lfind - 1]) | exe lfind | let cfind = col('$') | endif
   call cursor(lfind, cfind - 1)
   call s:find_delim('e')
-  let keys = s:goto_delim(line('.'), col('.') + 1, lorig, corig)
-  return keys
+  return s:goto_delim(line('.'), col('.') + 1, lorig, corig)
+endfunction
+
+" Search for identical items and distinct item pairs
+" Note: Here searchpairpos(..., 'b') goes to the start of the first delimiter and
+" searchpairpos(..., '') goes to the start of the second delimiter.
+" Warning: Here searchpairpos(..., 'bc') fails if the cursor is anywhere on a closing
+" delimiter and searchpairpos(..., 'c') fails if the cursor is on the first character
+" of an opening delimiter or after the first character of a closing delimiter.
+function! s:get_syntax(...) abort  " verify inside regex group
+  if a:0 >= 2  " input line column
+    let [lnum, cnum] = a:000
+  elseif a:0 >= 1  " input line
+    let [lnum, cnum] = [a:1, 1]
+  else  " cursor position
+    let [lnum, cnum] = [line('.'), col('.')]
+  endif
+  let expr = "synIDattr(synIDtrans(v:val), 'name')"
+  let stack = map(synstack(lnum, cnum), expr)
+  return stack[:1]
+endfunction
+function! succinct#search_items(left, right, count) abort
+  let [lnum, cnum] = [line('.'), col('.')]
+  for idx in range(a:count)  " select outer items
+    let flags = idx == 0 ? 'bcW' : 'bW'  " include object under cursor *first*
+    let [line1, col11] = searchpos(a:left, flags)
+  endfor
+  call cursor(lnum, cnum)
+  for idx in range(a:count)  " select outer items
+    let flags = 'W'  " exclude object under cursor
+    let [line2, col21] = searchpos(a:left, flags)
+  endfor
+  let groups = s:get_syntax(line1, col11) + s:get_syntax(line2, col21)
+  let inner = line2 > line1 ? range(line1 + 1, line2 - 1) : []
+  for inum in inner | call extend(groups, s:get_syntax(inum)) | endfor
+  let groups = uniq(sort(groups))  " unique syntax groups
+  if len(groups) > 1  " failsafe e.g. invalid string selections
+    return [0, 0, 0, 0]
+  else
+    return [line1, col11, line2, col21]
+  endif
+endfunction
+function! succinct#search_pairs(left, right, count) abort
+  let lnum = line('.')  " prefer matches on current line
+  let [line1, col11] = searchpairpos(a:left, '', a:right, 'nbcW')
+  let [line2, col21] = searchpairpos(a:left, '', a:right, 'ncW')
+  if line1 == lnum && line2 != lnum  " cursor may be on head of open or tail of close
+    call cursor(line1, col11) | normal! l
+    let [line2, col21] = searchpairpos(a:left, '', a:right, 'ncW')
+  endif
+  if line2 == lnum && line1 != lnum  " cursor may be somewhere on closing delimiter
+    call cursor(line2, col21) | normal! h
+    let [line1, col11] = searchpairpos(a:left, '', a:right, 'nbcW')
+  endif
+  call cursor(line1, col11)  " 'bnW' and 'cnW' will deliberately fail
+  for idx in range(2, a:count)  " additional matches beyond current one
+    let [line1, col11] = searchpairpos(a:left, '', a:right, 'nbW')
+    let [line2, col21] = searchpairpos(a:left, '', a:right, 'ncW')
+    call cursor(line1, col11)  " then searches will go beyond cursor
+  endfor
+  return [line1, col11, line2, col21]
 endfunction
 
 "-----------------------------------------------------------------------------
 " Register snippets, delimiters, and objects
 "-----------------------------------------------------------------------------
-" Helper functions
+" Get surround delimiters and associated text object
 " Note: Support defining vim-surround delimiters with unescaped \r \n \1
 " etc. for convenience (e.g. working with heavily backslashed delimiters).
+" Note: This additionally filters to ensure we are capturing e.g. multi-line string
+" instead of content between strings. Note e.g. bash $variables and python {format}
+" indicators have the lowest-level syntax group 'Constant' so this still works.
+function! succinct#get_delims(left, right, count) abort
+  let atom = '\(\\_\)\?\(\\(.\+\\)\|\[.\+\]\|\\\?.\)'  " \(\), [], \x, or characters
+  let opts = '\(\\[?=]\|\\\@<!\*\)'  " optional-length \? or * indicators
+  let check1 = substitute(a:left, atom . opts, '', 'g')  " remove optional groups
+  let check2 = substitute(a:right, atom . opts, '', 'g')  " remove optional groups
+  let winview = winsaveview()
+  let [lnum, cnum] = [line('.'), col('.')]
+  if check1 !=# check2  " searchpairpos() is possible (distinct delimiters)
+    let [line1, col11, line2, col21] = succinct#search_pairs(a:left, a:right, a:count)
+  else  " searchpairpos() not possible (can fail e.g. for docstrings)
+    let [line1, col11, line2, col21] = succinct#search_items(a:left, a:right, a:count)
+  endif
+  if line1 == 0 || line2 == 0  " search failed
+    call winrestview(winview) | return [0, 0, 0, 0]
+  else  " search succeeded
+    return [line1, col11, line2, col21]
+  endif
+endfunction
+function! succinct#get_object(mode, delim, ...) abort
+  let [delim1, delim2] = [a:delim, a:0 ? a:1 : a:delim]
+  let [line1, col1, line2, col2] = succinct#get_delims(delim1, delim2, v:count1)
+  if line1 == 0 || line2 == 0 | return | endif
+  call cursor(line1, col1)
+  if a:mode ==# 'i'  " match first character after object
+    call search(delim1 . '\_s*\zs', 'cW')
+  endif
+  let pos1 = getpos('.')
+  call cursor(line2, col2) | call search(delim2, 'ceW')
+  if a:mode ==# 'i'
+    call search('\S\_s*' . delim2, 'cbW')
+  endif
+  let pos2 = getpos('.')
+  return ['v', pos1, pos2]
+endfunction
+
+" Translate delimiters to text object declarations
+" Note: Have to use literals instead of e.g. assigning s:[name] = function() since
+" vim-textobj-user calls with function(a:name)() which fails unless defined literally.
+" Note: Here 'select-[ai]' point to textobj#user#select_pair and searchpairpos() while
+" 'select' points to textobj#user#select and searchpos(..., 'c'). This fails for 'a'
+" objects that overlap with others on line (e.g. ya' -> '.\{-}' may go outside the
+" closest quotes, but '\zs.\{-}\ze' will not). So now use function definition instead.
 let s:literals = {
   \ 'r': "\r", 'n': "\n", '0': "\0", '1': "\1", '2': "\2",
   \ '3': "\3", '4': "\4", '5': "\5", '6': "\6", '7': "\7",
@@ -74,117 +171,31 @@ function! s:get_surround(arg) abort
   endfor
   return empty(output) ? a:arg : output
 endfunction
-function! s:get_syntax(...) abort  " verify inside regex group
-  if a:0 >= 2  " input line column
-    let [lnum, cnum] = a:000
-  elseif a:0 >= 1  " input line
-    let [lnum, cnum] = [a:1, 1]
-  else  " cursor position
-    let [lnum, cnum] = [line('.'), col('.')]
-  endif
-  let expr = "synIDattr(synIDtrans(v:val), 'name')"
-  let stack = map(synstack(lnum, cnum), expr)
-  return get(stack, 0, 'Unknown')
-endfunction
-
-" Text object functional searching
-" Note: Use this approach only for docstring text objects since searchpairpos() fails
-" for identical delimeters and textobj#user workaround only supports single-character
-" delimiters. Restrict to when cursor is in docstring or in comment
-function! succinct#text_object(mode, delim, ...) abort
-  let winview = winsaveview()
-  let ldelim = a:delim
-  let rdelim = a:0 ? a:1 : a:delim
-  if !search(ldelim, 'bW')  " search failed
-    return
-  endif
-  if a:mode ==# 'a'
-    let pos1 = getpos('.')  " jump to start of match
-    call search(ldelim, 'eW')
-  elseif a:mode ==# 'i'  " match first character after tripple quote
-    call search(ldelim . '\_s*\zs', 'W')
-    let pos1 = getpos('.')
-  endif
-  if !search(rdelim, 'eW')
-    call winrestview(winview) | return
-  endif  " ending quote not found
-  let pos2 = getpos('.')
-  if a:mode ==# 'i'
-    call search('\S\_s*' . rdelim, 'bW')
-    let pos2 = getpos('.')
-  endif
-  let inner = pos2[1] <= pos1[1] ? [] : range(pos1[1] + 1, pos2[1] - 1)
-  let groups = map(inner, 's:get_syntax(v:val)')
-  call add(groups, call('s:get_syntax', pos1[1:2]))
-  call add(groups, call('s:get_syntax', pos2[1:2]))
-  let groups = uniq(sort(groups))  " unique syntax groups
-  if len(groups) > 1
-    call winrestview(winview) | return
-  else
-    return ['v', pos1, pos2]
-  endif
-endfunction
-
-" Translate delimiters to text object declarations
-" Warning: Funcref delimiters cannot be automatically translated to text objects
-" Note: This figures out the required text object declaration based on uniqueness
-" of left-right delimiters after removing group regexes.
-function! succinct#translate_delims(key, arg, ...) abort
+function! succinct#translate_delims(plugin, key, arg, ...) abort
+  let head = a:0 && a:1 ? '<buffer> ' : ''
   let args = [s:get_surround(a:arg), 1] + a:000[1:]
-  let scope = a:0 && a:1 ? '<buffer> ' : ''
   let delim = call('succinct#process_value', args)
-  if count(delim, "\r") != 1 | return objs | endif
+  if count(delim, "\r") != 1 | return {} | endif
   let [delim1, delim2] = split(delim, "\r")
-  let single = '\(\\_\)\?\(\\(.\+\\)\|\[.\+\]\|\\\?.\)'  " \(\), [], \x, or characters
-  let multiple = single . '\(\\[?=]\|\\\@<!\*\)'  " optional-length \? or * indicators
-  let check1 = substitute(delim1, multiple, '', 'g')  " remove optional groups
-  let check2 = substitute(delim2, multiple, '', 'g')  " remove optional groups
-  let check = substitute(check1, '\', '', 'g')  " e.g. escaped * * delimiters
-  let check = substitute(check, single, '.', 'g')  " i.e. singular regex atoms
+  let name = 'textobj_' . a:plugin . '_' . char2nr(a:key)
+  let code = [
+    \ 'function! s:' . name . '_i() abort',
+    \ '  return succinct#get_object("i", ' . string(delim1) . ', ' . string(delim2) . ')',
+    \ 'endfunction',
+    \ 'function! s:' . name . '_a() abort',
+    \ '  return succinct#get_object("a", ' . string(delim1) . ', ' . string(delim2) . ')',
+    \ 'endfunction'
+  \ ]
+  exe join(code, "\n")
+  let obj = {
+    \ 'sfile': expand('<script>:p'),
+    \ 'select-i': head . 'i' . escape(a:key, '|'),
+    \ 'select-a': head . 'a' . escape(a:key, '|'),
+    \ 'select-i-function': 's:' . name . '_i',
+    \ 'select-a-function': 's:' . name . '_a',
+  \ }
   let objs = {}
-  if check1 !=# check2  " distinct delimiters
-    let name = 'textobj_' . char2nr(a:key)
-    let objs[name] = {
-      \ 'pattern': [delim1, delim2],
-      \ 'select-a': scope . 'a' . escape(a:key, '|'),
-      \ 'select-i': scope . 'i' . escape(a:key, '|'),
-    \ }
-  elseif len(check) <= 1  " single-line identical delimiters
-    if empty(check)  " only optional delimiter
-      let delim1 = substitute(delim1, '\\[?=]', '', 'g')
-      let delim2 = substitute(delim2, '\\[?=]', '', 'g')
-      let delim1 = substitute(delim1, '\\\@<!\*', '\\+', 'g')
-      let delim2 = substitute(delim2, '\\\@<!\*', '\\+', 'g')
-    endif
-    let inner = 'textobj_' . char2nr(a:key) . '_i'
-    let outer = 'textobj_' . char2nr(a:key) . '_a'
-    let objs[inner] = {
-      \ 'pattern': delim1 . '\zs.\{-}\ze' . delim2,
-      \ 'select': scope . 'i' . escape(a:key, '|'),
-    \ }
-    let objs[outer] = {
-      \ 'pattern': delim1 . '.\{-}' . delim2,
-      \ 'select': scope . 'a' . escape(a:key, '|'),
-    \ }
-  else  " multi-line identical delimiters
-    let code = [
-      \ 'function! s:textobj_' . char2nr(a:key) . '_i() abort',
-      \ '  return succinct#text_object("i", ' . string(delim1) . ', ' . string(delim2) . ')',
-      \ 'endfunction',
-      \ 'function! s:textobj_' . char2nr(a:key) . '_a() abort',
-      \ '  return succinct#text_object("a", ' . string(delim1) . ', ' . string(delim2) . ')',
-      \ 'endfunction'
-    \ ]
-    exe join(code, "\n")
-    let plugin = 'textobj_' . char2nr(a:key)
-    let objs[plugin] = {
-      \ 'sfile': expand('<script>:p'),
-      \ 'select-i': scope . 'i' . escape(a:key, '|'),
-      \ 'select-a': scope . 'a' . escape(a:key, '|'),
-      \ 'select-i-function': 's:textobj_' . char2nr(a:key) . '_i',
-      \ 'select-a-function': 's:textobj_' . char2nr(a:key) . '_a',
-    \ }
-  endif
+  let objs[name] = obj
   return objs
 endfunction
 
@@ -211,10 +222,20 @@ function! succinct#add_delims(source, ...) abort
     let scope[name] = s:get_surround(a:source[key])
     let delims[key] = scope[name]
   endfor
-  let args = [a:source] + a:000
-  call call('succinct#add_objects', args)
+  let plugin = a:0 && a:1 ? &l:filetype : 'global'  " plugin name
+  let plugin = substitute(plugin, '\A', '', 'g')  " alpahbetic required
+  let plugin = substitute(plugin, '\(\u\)', '\l', 'g')  " lower-case required
+  call call('succinct#add_objects', [plugin, a:source] + a:000)
+  return delims
 endfunction
-function! succinct#add_objects(source, ...) abort
+function! succinct#add_objects(plugin, source, ...) abort
+  let command = substitute(a:plugin, '^\(\l\)', '\u\1', 0)
+  if !exists('*textobj#user#plugin')
+    echohl WarningMsg
+    echom 'Warning: Cannot define text objects (vim-textobj-user not found).'
+    echohl None | return {}
+  endif
+  if exists(':' . command) | return {} | endif
   let defaults = a:0 > 1 ? a:2 : 0
   let objects = {}
   for key in keys(a:source)
@@ -228,17 +249,14 @@ function! succinct#add_objects(source, ...) abort
       echom "Warning: Cannot add key '" . key . "' as text object (non-string type)."
       echohl None | continue
     endif
-    let args = [key, a:source[key]] + [a:0 ? a:1 : 0] + a:000[2:]
+    let args = [a:plugin, key, a:source[key], a:0 ? a:1 : 0]
+    call extend(args, a:000[2:])
     let objs = call('succinct#translate_delims', args)
     call extend(objects, objs)
   endfor
-  let plugin = a:0 && a:1 ? &l:filetype : 'global'
-  let plugin = substitute(plugin, '[._-]', '', 'g')  " compound filetypes
-  let command = substitute(plugin, '^\(\l\)', '\u\1', 0)  " command name
-  if exists('*textobj#user#plugin')
-    call textobj#user#plugin(plugin, objects)
-    silent! exe 'Textobj' . command . 'DefaultKeyMappings!'
-  endif
+  call textobj#user#plugin(a:plugin, objects)  " enforces lowercase alphabet
+  exe 'Textobj' . command . 'DefaultKeyMappings!'
+  return objects
 endfunction
 
 "-----------------------------------------------------------------------------
@@ -441,7 +459,7 @@ function! succinct#process_value(value, ...) abort
         let idx = substitute(strpart(idx, 1), '\r.*', '', '')
         let repl_{nr} = input(match(idx, '\w\+$') >= 0 ? idx . ': ' : idx)
       else " search possible user-input values
-        let regex = '\%(\k\|[:.*]\)'  " e.g. foo.bar() or \section*{} or s:function
+        let regex = '\%(\k\|[.*]\)'  " e.g. foo.bar() or \section*{} or s:function
         let repl_{nr} = regex . '\@<!' . regex . '\+'  " pick longest coherent match
       endif
     endif
@@ -555,25 +573,18 @@ function! s:feed_repeat(keys, ...) abort
   call feedkeys("\<Cmd>" . cmd . "\<CR>", 'n')
 endfunction
 function! s:modify_delims(left, right, lexpr, rexpr, ...) abort
-  for _ in range(a:0 ? a:1 : 1)
-    if a:left ==# a:right || a:left =~# '\\\@<!['  " python string headers
-      let [l1, c11] = searchpos(a:left, 'bnW')
-      let [l2, c21] = searchpos(a:right, 'nW')
-    else  " set '' mark at current location
-      let [l1, c11] = searchpairpos(a:left, '', a:right, 'bnW')
-      let [l2, c21] = searchpairpos(a:left, '', a:right, 'nW')
-    endif
-    if !l1 || !l2 | return | endif
-    call cursor(l1, c11)  " then searches will go beyond cursor
-  endfor
-  call cursor(l2, c21)  " delete or change right delimiter
-  let [l2, c22] = searchpos(a:right, 'cen')
-  call setpos("'z", [0, l2, c22, 0])
+  let args = [a:left, a:right, a:0 ? a:1 : 1]
+  let [line1, col11, line2, col21] = call('succinct#get_delims', args)
+  if !line1 || !line2 | return | endif
+  let winview = winsaveview()  " restore on failure
+  call cursor(line2, col21)  " delete or change right delimiter
+  let [line2, col22] = searchpos(a:right, 'cen')
+  call setpos("'z", [0, line2, col22, 0])
   keepjumps exe 'normal! ' . a:rexpr
   let line2 = line("']")
-  call cursor(l1, c11)  " delete or change left delimiter
-  let [l1, c12] = searchpos(a:left, 'cen')
-  call setpos("'z", [0, l1, c12, 0])
+  call cursor(line1, col11)  " delete or change left delimiter
+  let [line1, col12] = searchpos(a:left, 'cen')
+  call setpos("'z", [0, line1, col12, 0])
   keepjumps exe 'normal! ' . a:lexpr
   let line1 = line("'[")
   let line2 += count(a:lexpr, "\n")
