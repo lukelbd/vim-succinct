@@ -71,20 +71,19 @@ function! succinct#search_items(left, right, count) abort
     let flags = idx == 0 ? 'bcW' : 'bW'  " include object under cursor *first*
     let [line1, col11] = searchpos(a:left, flags)
   endfor
-  call cursor(lnum, cnum)
+  call cursor(line1, col11)
   for idx in range(a:count)  " select outer items
     let flags = 'W'  " exclude object under cursor
     let [line2, col21] = searchpos(a:left, flags)
   endfor
-  let groups = s:get_syntax(line1, col11) + s:get_syntax(line2, col21)
-  let inner = line2 > line1 ? range(line1 + 1, line2 - 1) : []
-  for inum in inner | call extend(groups, s:get_syntax(inum)) | endfor
-  let groups = uniq(sort(groups))  " unique syntax groups
-  if len(groups) > 1  " failsafe e.g. invalid string selections
-    return [0, 0, 0, 0]
-  else
-    return [line1, col11, line2, col21]
+  if a:left =~# '[''"]'  " additional syntax check
+    let groups = s:get_syntax(line1, col11) + s:get_syntax(line2, col21)
+    let inner = line2 > line1 ? range(line1 + 1, line2 - 1) : []
+    for inum in inner | call extend(groups, s:get_syntax(inum)) | endfor
+    let groups = uniq(sort(groups))  " unique syntax groups
+    if len(groups) > 1 | return [0, 0, 0, 0] | endif
   endif
+  return [line1, col11, line2, col21]
 endfunction
 function! succinct#search_pairs(left, right, count) abort
   let lnum = line('.')  " prefer matches on current line
@@ -136,11 +135,15 @@ function! succinct#get_delims(left, right, count) abort
 endfunction
 function! succinct#get_object(mode, delim, ...) abort
   let [delim1, delim2] = [a:delim, a:0 ? a:1 : a:delim]
+  let delim1 = substitute(delim1, '\\[?=]', '', 'g')
+  let delim2 = substitute(delim2, '\\[?=]', '', 'g')
+  let delim1 = substitute(delim1, '\(\\\|[[^[]*\)\@<!\*', '\\+', 'g')
+  let delim2 = substitute(delim2, '\(\\\|[[^[]*\)\@<!\*', '\\+', 'g')
   let [line1, col1, line2, col2] = succinct#get_delims(delim1, delim2, v:count1)
   if line1 == 0 || line2 == 0 | return | endif
   call cursor(line1, col1)
   if a:mode ==# 'i'  " match first character after object
-    call search(delim1 . '\_s*\zs', 'cW')
+    call search(delim1 . '\_s*\S', 'ceW')
   endif
   let pos1 = getpos('.')
   call cursor(line2, col2) | call search(delim2, 'ceW')
@@ -159,14 +162,14 @@ endfunction
 " objects that overlap with others on line (e.g. ya' -> '.\{-}' may go outside the
 " closest quotes, but '\zs.\{-}\ze' will not). So now use function definition instead.
 let s:literals = {
-  \ 'r': "\r", 'n': "\n", '0': "\0", '1': "\1", '2': "\2",
-  \ '3': "\3", '4': "\4", '5': "\5", '6': "\6", '7': "\7",
+  \ '1': "\1", '2': "\2", '3': "\3", '4': "\4", '5': "\5",
+  \ '6': "\6", '7': "\7", 'r': "\r", 'n': "\n", '\t': "\t",
 \ }
 function! s:get_surround(arg) abort
   let opts = type(a:arg) == 1 ? s:literals : {}
   let output = type(a:arg) == 1 ? a:arg : ''
   for [char, repl] in items(opts)
-    let check = char2nr(repl) > 7 ? '\w\@!' : ''
+    let check = char2nr(repl) > 7 ? '\a\@!' : ''
     let output = substitute(output, '\\' . char . check, repl, 'g')
   endfor
   return empty(output) ? a:arg : output
@@ -229,13 +232,14 @@ function! succinct#add_delims(source, ...) abort
   return delims
 endfunction
 function! succinct#add_objects(plugin, source, ...) abort
-  let command = substitute(a:plugin, '^\(\l\)', '\u\1', 0)
+  let name = substitute(a:plugin, '^\(\l\)', '\u\1', 0)
+  let cmd = 'Textobj' . name . 'DefaultKeyMappings'
   if !exists('*textobj#user#plugin')
     echohl WarningMsg
     echom 'Warning: Cannot define text objects (vim-textobj-user not found).'
     echohl None | return {}
   endif
-  if exists(':' . command) | return {} | endif
+  if exists(':' . cmd) | return {} | endif
   let defaults = a:0 > 1 ? a:2 : 0
   let objects = {}
   for key in keys(a:source)
@@ -255,8 +259,7 @@ function! succinct#add_objects(plugin, source, ...) abort
     call extend(objects, objs)
   endfor
   call textobj#user#plugin(a:plugin, objects)  " enforces lowercase alphabet
-  exe 'Textobj' . command . 'DefaultKeyMappings!'
-  return objects
+  exe cmd . '!' | return objects
 endfunction
 
 "-----------------------------------------------------------------------------
