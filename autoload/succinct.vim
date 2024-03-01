@@ -141,18 +141,18 @@ function! succinct#get_object(mode, delim, ...) abort
   let [delim1, delim2] = [a:delim, a:0 ? a:1 : a:delim]
   let delim1 = substitute(delim1, '\\[?=]', '', 'g')
   let delim2 = substitute(delim2, '\\[?=]', '', 'g')
-  let delim1 = substitute(delim1, '\(\\\|[[^[]*\)\@<!\*', '\\+', 'g')
-  let delim2 = substitute(delim2, '\(\\\|[[^[]*\)\@<!\*', '\\+', 'g')
+  let delim1 = substitute(delim1, '\*$', '\\+', 'g')  " avoid process_value() [.*] atom
+  let delim2 = substitute(delim2, '\*$', '\\+', 'g')  " avoid process_value() [.*] atom
   let [line1, col1, line2, col2] = succinct#get_delims(delim1, delim2, v:count1)
   if line1 == 0 || line2 == 0 | return | endif
   call cursor(line1, col1)
-  if a:mode ==# 'i'  " match first character after object
-    call search(delim1 . '\_s*\S', 'ceW')
+  if a:mode ==# 'i'
+    call search(delim1 . '\_s*\(' . delim1 . '\)\@!\S', 'ceW')
   endif
   let pos1 = getpos('.')
   call cursor(line2, col2) | call search(delim2, 'ceW')
   if a:mode ==# 'i'
-    call search('\S\_s*' . delim2, 'cbW')
+    call search('\(' . delim2 . '\)\@!\S\_s*' . delim2, 'cbW')
   endif
   let pos2 = getpos('.')
   return ['v', pos1, pos2]
