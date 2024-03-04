@@ -4,35 +4,49 @@ Vim succinct
 A suite of utilities for succinctly editing documents using vim-surround delimiters,
 vim-textobj objects, insert-mode snippets, and file templates.
 
-Includes the following features (see `plugin/succinct.vim` for a usage example and
-default delimiters):
+Includes the following features:
 
 * Filling empty buffers with text from arbitrary file templates stored in
-  `g:succinct_templates_path` (default `'~/templates'`) with the same path extension
-  as the buffer. This works by opening [fzf.vim](https://github.com/junegunn/fzf.vim) fuzzy-search windows on new buffers and
-  populating the window with the relevant template files. Note the template window will
-  not open if there are no matching templates in `g:succinct_templates_path`.
-* Adding custom snippet maps with `succinct#add_snippets()` and using them in insert
+  `g:succinct_templates_path` (default `'~/templates'`). This works by opening [fzf.vim](https://github.com/junegunn/fzf.vim)
+  fuzzy-search windows on new buffers and allowing users to select from template files
+  whose extension matches the buffer extension. The window will not open if no matching
+  templates are found. Use e.g. `:edit` from any empty buffer to trigger manually.
+* Adding [vim-surround](https://github.com/tpope/vim-surround) delimiter mappings with e.g. `succinct#add_delims({'b': "(\r)", 'r': "[\r]", ...})`
+  and using them from insert or visual mode with the default prefix `<C-s><Key>`. This
+  (see `:help surround-customizing`). To add filetype-specific definitions, pass `1`
+  as the final argument with e.g. `succinct#add_delims({'b': "\\textbf{\r}", ...}, 1)`
+  and call from either `ftplugin/tex.vim` or with `autocmd FileType tex ...`.
+* Adding snippet mappings with `succinct#add_snippets()` and using them in insert
   mode with the default prefix `<C-e><Key>` (selected because the `e` key is relatively
   close to the `s` used for delimiters). Implementation is similar to [vim-surround](https://github.com/tpope/vim-surround),
   and definitions can be simple strings, strings with `\1...\1` style prompt indicators
   (see `:help surround-customizing`), or function handles that prompt for user input.
-* Adding custom delimiter maps with `succinct#add_delims()` and using them with the
-  default insert/visual mode prefix `<C-s><Key>` and normal-mode vim-surround prefixes
-  `ys`, `yss`, `yS`, and `ySS`. This simultaneously defines delimiter variables for
-  built-in [vim-surround](https://github.com/tpope/vim-surround) operations and registers [vim-textobj](https://github.com/kana/vim-textobj-user) objects by translating
-  the input delimiters to the proper regular expressions or functions.
-* Changing and deleting custom [vim-surround](https://github.com/tpope/vim-surround) delimiters with the vim-surround prefixes
-  `c[sS]` and `d[sS]`, then auto-indenting the result and removing trailing whitespace
-  (native vim-surround does not support changing or deleting custom delimiters). Use
-  e.g. `cs<CR>bb` or `csb<CR>b` to remove (add) newlines from (to) parentheses, and use
-  e.g. `cs2b` or `ds2b` to target outer parentheses within nested sequences.
-* Moving to the right of the previous or next "bracket" or "quote" delimiters defined
-  by [delimitMate](https://github.com/Raimondi/delimitMate) with the default insert mode mappings `<C-h>` and `<C-l>`, and
-  selecting from available [vim-surround](https://github.com/tpope/vim-surround) snippets and delimiters using [fzf.vim](https://github.com/junegunn/fzf.vim)
-  fuzzy-search windows with the default insert mode mapping `<C-e><C-e>`, insert and
-  visual-mode `<C-s><C-s>`, and normal-mode `y<C-s>`, `c<C-s>`, `d<C-s>`.
+* Adding global or filetype-specific [vim-textobj](https://github.com/kana/vim-textobj-user) text object mappings `i<Key>` and
+  `a<Key>` for every vim-surround delimiter passed to `succinct#add_delims`. The
+  objects are selected using `searchpair()` for non-identical bracket-like delimiters
+  and `search()` for identical quote-like delimiters, and the `i` mappings exclude
+  the delimiters themselves and any leading or trailing whitespace or newlines.
+* Inserting delimiters around a given normal-mode motion with the [vim-surround](https://github.com/tpope/vim-surround) mappings
+  `<Count>y[sS]<Motion><Count><Pad><Key>` or between the cursor motions `^` and `g_` with the
+  mappings `<Count>y[sS][sS]<Mods><Key>` (see `:help surround-mappings`). This is
+  similar to native vim-surround, except you can use `<Count>` and `<Pad>` for arbitrary
+  repitition or whitespace (e.g. `yss2<Space>b` surrounds lines with `( ( <text> ) )`).
+* Deleting or changing arbitrary delimiters around the cursor with the [vim-surround](https://github.com/tpope/vim-surround)
+  mappings `<Count>d[sS]<Count><Pad><Key>` and `<Count>c[sS]<Count><Pad><Key><Count><Pad><Key>`.
+  This is similar to native vim-surround, except this works with arbitrary user-input
+  delimiters and adds the `y[sS]` count and padding options (e.g. `cs<CR>bb` removes
+  newlines from surrounding parentheses, while `csb<CR>b` adds surrounding newlines).
+* Moving to the right of the previous or next "bracket" or "quote" delimiter defined
+  by [delimitMate](https://github.com/Raimondi/delimitMate) with default insert mode mappings `<C-h>` and `<C-l>`, selecting from
+  available [vim-surround](https://github.com/tpope/vim-surround) delimiters using [fzf.vim](https://github.com/junegunn/fzf.vim) fuzzy-search windows with the default
+  insert/visual mode mappings `<C-s><C-s>` or operator-pending mappings `[ycd]<C-s>`,
+  and selecting from available snippets with the default insert mode mapping `<C-e><C-e>`.
 
+Note this plugin defines several global delimiters and text objects by default (see
+`plugin/succinct.vim` for details). Also note that if any of the above operations
+create mulptile lines (e.g. `ySSb`, `yss<CR>b`, or `csb<CR>b`), any trailing whitespace
+is automatically removed, and the result is auto-indented with the normal-mode `=`
+operation unless `b:surround_indent` (if defined) or `g:surround_indent` is set to `0`.
 
 Documentation
 =============
@@ -42,13 +56,14 @@ Mappings
 
 | Mapping | Description |
 | ---- | ---- |
-| `<C-e><Mods><Key>` | Insert a snippet defined with `succinct#add_snippets()` during insert mode. Use `<Mods>` e.g. `<Space>`/`<CR>` for space/newline padding of the snippet or e.g. `2` for repitition. |
-| `<C-s><Mods><Key>` | Insert delimiters defined with `succinct#add_delims()` or included with vim-surround during insert or visual mode. Use `<Mods>` e.g. `<Space>`/`<CR>` for space/newline padding or e.g. `2` for repitition. |
-| `<Count>y[sS]<Motion><Mods><Key>` | Insert user-defined and default delimiters around the normal mode motion. Use a capital `S` for newlines, a preceding `<Count>` for repitition, or `<Mods>` as with `<C-s>`.
-| `<Count>y[sS][sS]<Motion><Mods><Key>` | Insert user-defined and default delimiters between the cursor motions `^` to `g_` (same as vim-surround `yss` mappings and similar to [vim-textobj-line](https://github.com/kana/vim-textobj-line)). |
-| `d[sS]<Mods><Key>` | Delete user-defined and default delimiters surrounding the cursor. Use capital `S` or `<CR>` in `<Mods>` to include newlines and leading/trailing whitespace, as with the `y[sS]` mappings. |
-| `c[sS]<Mods><Key><Mods><Key>` | Change an arbitrary user-defined or default delimiter around the cursor to another delimiter. Use capital `S` or the first `<Mods>` as with `d[sS]`, or use the second `<Mods>` as with `y[sS]`. |
-| `[ycdv][ai]<Mods><Key>` | Yank, change, delete, or select delimiters defined with `succinct#add_delims()` or included with vim-textobj. This works by auto-translating variables to vim-textobj-user plugin entries. |
+
+| `<C-e><Count><Pad><Key>` | Insert a snippet defined with `succinct#add_snippets()` during insert mode. Use `<Count>` e.g. `2b` for repitition and `<Pad>` e.g. `<Space>`/`<CR>` for space/newline padding of the snippet or e.g. `2` for repitition. |
+| `<Count><C-s><Count><Pad><Key>` | Insert delimiters defined with `succinct#add_delims()` or included with vim-surround during insert or visual mode. Use `<Space>` e.g. `<Space>`/`<CR>` for space/newline padding or e.g. `2` for repitition. |
+| `<Count>y[sS]<Motion><Count><Pad><Key>` | Insert user-defined and default delimiters around the normal mode motion. Use a capital `S` for newlines, a preceding `<Count>` for repitition, or `<Space>` as with `<C-s>`.
+| `<Count>y[sS][sS]<Motion><Count><Pad><Key>` | Insert user-defined and default delimiters between the cursor motions `^` to `g_` (same as vim-surround `yss` mappings and similar to [vim-textobj-line](https://github.com/kana/vim-textobj-line)). |
+| `<Count>d[sS]<Count><Pad><Key>` | Delete user-defined and default delimiters surrounding the cursor. Use capital `S` or `<CR>` in `<Space>` to include newlines and leading/trailing whitespace, as with the `y[sS]` mappings. |
+| `<Count>c[sS]<Count><Pad><Key><Count><Pad><Key>` | Change an arbitrary user-defined or default delimiter around the cursor to another delimiter. Use capital `S` or the first `<Pad>` as with `d[sS]`, or use the second `<Pad>` as with `y[sS]`. |
+| `[ycdv]<Count>[ai]<Key>` | Yank, change, delete, or select delimiters defined with `succinct#add_delims()` or included with vim-textobj. This works by auto-translating variables to vim-textobj-user plugin entries. |
 | `<C-h>`, `<C-l>` | Jump to the left (right) of the previous (next) delimiter in insert mode. This works for arbtirary delimitmate-defined bracket and quote style delimiters. |
 
 Options
