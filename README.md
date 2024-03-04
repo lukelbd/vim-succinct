@@ -26,21 +26,21 @@ Includes the following features:
   objects are selected using `searchpair()` for non-identical bracket-like delimiters
   and `search()` for identical quote-like delimiters, and the `i` mappings exclude
   the delimiters themselves and any leading or trailing whitespace or newlines.
-* Inserting delimiters around a given normal-mode motion with the [vim-surround](https://github.com/tpope/vim-surround) mappings
-  `<Count>y[sS]<Motion><Count><Pad><Key>` or between the cursor motions `^` and `g_` with the
-  mappings `<Count>y[sS][sS]<Mods><Key>` (see `:help surround-mappings`). This is
-  similar to native vim-surround, except you can use `<Count>` and `<Pad>` for arbitrary
-  repitition or whitespace (e.g. `yss2<Space>b` surrounds lines with `( ( <text> ) )`).
+* Inserting delimiters around arbitrary normal-mode motions with the [vim-surround](https://github.com/tpope/vim-surround) mappings
+  `<Count>y[sS]<Motion><Count><Pad><Key>` or between the motions `^` and `g_` with
+  `<Count>y[sS][sS]<Count><Pad><Key>` (see `:help surround-mappings`). This is similar to
+  native vim-surround, except you can use `<Count>` and `<Pad>` for arbitrary repitition
+  or whitespace (e.g. `yss2<Space>b` surrounds lines with `( ( <text> ) )`).
 * Deleting or changing arbitrary delimiters around the cursor with the [vim-surround](https://github.com/tpope/vim-surround)
   mappings `<Count>d[sS]<Count><Pad><Key>` and `<Count>c[sS]<Count><Pad><Key><Count><Pad><Key>`.
-  This is similar to native vim-surround, except this works with arbitrary user-input
-  delimiters and adds the `y[sS]` count and padding options (e.g. `cs<CR>bb` removes
-  newlines from surrounding parentheses, while `csb<CR>b` adds surrounding newlines).
+  This is similar to native vim-surround, except this works with arbitrary custom
+  delimiters and supports `y[sS]` style counts and padding (e.g. `cs<CR>bb` removes
+  newlines from surrounding parentheses, while `csb<CR>b` adds newlines).
 * Moving to the right of the previous or next "bracket" or "quote" delimiter defined
   by [delimitMate](https://github.com/Raimondi/delimitMate) with default insert mode mappings `<C-h>` and `<C-l>`, selecting from
   available [vim-surround](https://github.com/tpope/vim-surround) delimiters using [fzf.vim](https://github.com/junegunn/fzf.vim) fuzzy-search windows with the default
   insert/visual mode mappings `<C-s><C-s>` or operator-pending mappings `[ycd]<C-s>`,
-  and selecting from available snippets with the default insert mode mapping `<C-e><C-e>`.
+  and selecting from snippets with the default insert mode mapping `<C-e><C-e>`.
 
 Note this plugin defines several global delimiters and text objects by default (see
 `plugin/succinct.vim` for details). Also note that if any of the above operations
