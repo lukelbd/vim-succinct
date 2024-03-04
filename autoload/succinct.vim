@@ -431,7 +431,8 @@ function! s:get_cached(search, ...) abort
   return parts
 endfunction
 function! s:get_value(snippet, search, ...) abort
-  let [key, pad, cnt] = s:get_target()
+  let [key, pad, cnt] = s:get_target()  " user input target
+  let pad .= a:0 && a:1 ? "\n" : ''  " e.g. 'yS' instead of 'ys'
   if a:snippet
     let [head, value] = ['snippet', '']
   else
@@ -447,7 +448,6 @@ function! s:get_value(snippet, search, ...) abort
   else
     let [part1, part2] = split(text, "\r", 1)
   endif
-  if a:0 && a:1 | let pad .= "\n" | endif
   if a:search  " convert e.g. literal '\n  ' to regex '\_s*'
     let [pad1, pad2] = [s:search_value(pad), s:search_value(pad)]
   else  " e.g. <Space><CR><Cursor><CR><Space>
@@ -663,10 +663,10 @@ endfunction
 function! succinct#change_delims(count, break) abort
   let [prev1, prev2, cnt] = s:get_cached(1, a:break)  " disable user input
   if empty(prev1) || empty(prev2) | return | endif
-  let [repl1, repl2, _] = s:get_cached(0, a:break)  " request user input
+  let [repl1, repl2, rep] = s:get_cached(0, a:break)  " request user input
   if empty(repl1) || empty(repl2) | return | endif
-  let expr1 = '"_c`z' . repl1 . "\<Delete>" . "x\<BS>"
-  let expr2 = '"_c`z' . repl2 . "\<Delete>"
+  let expr1 = '"_c`z' . repeat(repl1, rep) . "\<Delete>" . "x\<BS>"
+  let expr2 = '"_c`z' . repeat(repl2, rep) . "\<Delete>"
   for _ in range(a:count ? a:count : 1)
     call s:expr_delims(prev1, prev2, expr1, expr2, cnt)
   endfor
