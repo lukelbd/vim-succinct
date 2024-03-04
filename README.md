@@ -11,7 +11,7 @@ Includes the following features:
   fuzzy-search windows on new buffers and allowing users to select from template files
   whose extension matches the buffer extension. The window will not open if no matching
   templates are found. Use e.g. `:edit` from any empty buffer to trigger manually.
-* Adding [vim-surround](https://github.com/tpope/vim-surround) delimiter mappings with e.g. `succinct#add_delims({'b': "(\r)", 'r': "[\r]", ...})`
+* Adding [vim-surround](https://github.com/tpope/vim-surround) delimiter mappings with e.g. `succinct#add_delims({'b': "(\r)", 'r': "[\r]"})`
   and using them from insert or visual mode with the default prefix `<C-s><Key>`. To
   add filetype-specific definitions, pass `1` as the final argument with e.g.
   `succinct#add_delims({...}, 1)` and call from either `ftplugin/type.vim` or
