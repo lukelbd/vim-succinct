@@ -19,8 +19,8 @@ Includes the following features:
 * Adding snippet mappings with `succinct#add_snippets()` and using them in insert
   mode with the default prefix `<C-e><Key>` (selected because the `e` key is relatively
   close to the `s` used for delimiters). Implementation is similar to [vim-surround](https://github.com/tpope/vim-surround),
-  and definitions can be simple strings, strings with `\1...\1` style prompt indicators
-  (see `:help surround-customizing`), or function handles that prompt for user input.
+  and definitions can be strings with optional `\1...\1` style prompt indicators (see
+  `:help surround-customizing`) or function refs that optionally prompt for user input.
 * Adding global or filetype-specific [vim-textobj](https://github.com/kana/vim-textobj-user) text object mappings `i<Key>` and
   `a<Key>` for every vim-surround delimiter passed to `succinct#add_delims`. The
   objects are selected using `searchpair()` for non-identical bracket-like delimiters
