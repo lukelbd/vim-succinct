@@ -56,7 +56,6 @@ Mappings
 
 | Mapping | Description |
 | ---- | ---- |
-
 | `<C-e><Count><Pad><Key>` | Insert a snippet defined with `succinct#add_snippets()` during insert mode. Use `<Count>` e.g. `2b` for repitition and `<Pad>` e.g. `<Space>`/`<CR>` for space/newline padding of the snippet or e.g. `2` for repitition. |
 | `<Count><C-s><Count><Pad><Key>` | Insert delimiters defined with `succinct#add_delims()` or included with vim-surround during insert or visual mode. Use `<Space>` e.g. `<Space>`/`<CR>` for space/newline padding or e.g. `2` for repitition. |
 | `<Count>y[sS]<Motion><Count><Pad><Key>` | Insert user-defined and default delimiters around the normal mode motion. Use a capital `S` for newlines, a preceding `<Count>` for repitition, or `<Space>` as with `<C-s>`.
