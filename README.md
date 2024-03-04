@@ -14,8 +14,8 @@ Includes the following features:
 * Adding [vim-surround](https://github.com/tpope/vim-surround) delimiter mappings with e.g. `succinct#add_delims({'b': "(\r)", 'r': "[\r]", ...})`
   and using them from insert or visual mode with the default prefix `<C-s><Key>` (see
   `:help surround-customizing` for details). To add filetype-specific definitions, pass
-  `1` as the final argument with e.g. `succinct#add_delims({'b': "\\textbf{\r}", ...}, 1)`
-  and call from either `ftplugin/tex.vim` or with `autocmd FileType tex`.
+  `1` as the final argument with e.g. `succinct#add_delims({...}, 1)` and call from
+  either `ftplugin/type.vim` or with `autocmd FileType type`.
 * Adding snippet mappings with `succinct#add_snippets()` and using them in insert
   mode with the default prefix `<C-e><Key>` (selected because the `e` key is relatively
   close to the `s` used for delimiters). Implementation is similar to [vim-surround](https://github.com/tpope/vim-surround),
