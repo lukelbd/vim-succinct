@@ -62,7 +62,7 @@ function! s:get_group(...) abort  " verify inside regex group
   endif
   let expr = "synIDattr(synIDtrans(v:val), 'name')"
   let stack = map(synstack(lnum, cnum), expr)
-  return stack[:1]
+  return empty(stack) ? [] : [stack[0]]
 endfunction
 function! s:get_pos(...) abort
   let cmd = a:0 > 3 ? 'searchpairpos' : 'searchpos'
