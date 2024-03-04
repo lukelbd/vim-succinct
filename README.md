@@ -56,12 +56,14 @@ Mappings
 
 | Mapping | Description |
 | ---- | ---- |
-| `<C-e><Count><Pad><Key>` | Insert a snippet defined with `succinct#add_snippets()` during insert mode. Use `<Count>` e.g. `2b` for repitition and `<Pad>` e.g. `<Space>`/`<CR>` for space/newline padding of the snippet or e.g. `2` for repitition. |
-| `<Count><C-s><Count><Pad><Key>` | Insert delimiters defined with `succinct#add_delims()` or included with vim-surround during insert or visual mode. Use `<Space>` e.g. `<Space>`/`<CR>` for space/newline padding or e.g. `2` for repitition. |
-| `<Count>y[sS]<Motion><Count><Pad><Key>` | Insert user-defined and default delimiters around the normal mode motion. Use a capital `S` for newlines, a preceding `<Count>` for repitition, or `<Space>` as with `<C-s>`.
-| `<Count>y[sS][sS]<Motion><Count><Pad><Key>` | Insert user-defined and default delimiters between the cursor motions `^` to `g_` (same as vim-surround `yss` mappings and similar to [vim-textobj-line](https://github.com/kana/vim-textobj-line)). |
-| `<Count>d[sS]<Count><Pad><Key>` | Delete user-defined and default delimiters surrounding the cursor. Use capital `S` or `<CR>` in `<Space>` to include newlines and leading/trailing whitespace, as with the `y[sS]` mappings. |
-| `<Count>c[sS]<Count><Pad><Key><Count><Pad><Key>` | Change an arbitrary user-defined or default delimiter around the cursor to another delimiter. Use capital `S` or the first `<Pad>` as with `d[sS]`, or use the second `<Pad>` as with `y[sS]`. |
+| `<C-e><Count><Pad><Key>` | Insert a snippet defined with `succinct#add_snippets()` during insert mode. Use `<Count>` e.g. `2b` to repeat the snippet and `<Pad>` e.g. `<Space>`/`<CR>` to add space(s) or auto-indented newline(s) around the snippet. |
+| `<Count><C-s><Count><Pad><Key>` | Insert delimiters defined with `succinct#add_delims()` or included with vim-surround during insert or visual mode. Use `<Count>` e.g. `2b` to repeat the delimiter and `<Pad>` e.g. `<Space>`/`<CR>` to add space(s) or newline(s) around the delimiters. |
+| `<Count>y[sS]<Motion><Count><Pad><Key>` | Insert user-defined and default delimiters around the normal mode motion. Use a capital `S` to add newlines around the delimiters, or use `<Count>` or `<Pad>` for arbitrary repitition or padding (as with `<C-s>` and `<C-e>`).
+| `<Count>y[sS][sS]<Motion><Count><Pad><Key>` | Insert user-defined and default delimiters between the cursor motions `^` to `g_` (i.e. around the first and last non-whitespace character, as with the vim-surround `yss` mappings and the [vim-textobj-line](https://github.com/kana/vim-textobj-line) object). |
+| `<Count>d[sS]<Count><Pad><Key>` | Delete user-defined and default delimiters surrounding the cursor. Use a capital `S` or `<CR>` in `<Pad>` to include newlines and leading/trailing whitespace (as with the `y[sS]` mappings), or use
+the first `<Count>` to delete multiple delimiters or the second `<Count>` to target nested outer delimiters.
+| `<Count>c[sS]<Count><Pad><Key><Count><Pad><Key>` | Change an arbitrary user-defined or default delimiter around the cursor to another delimiter. Use capital `S` or the first `<Count>` and `<Pad>` to change deletion
+behavior (as with `d[sS]`). Use the second `<Count>` and `<Pad>` to change insertion behavior (as with `y[sS]`).
 | `[ycdv]<Count>[ai]<Key>` | Yank, change, delete, or select delimiters defined with `succinct#add_delims()` or included with vim-textobj. This works by auto-translating variables to vim-textobj-user plugin entries. |
 | `<C-h>`, `<C-l>` | Jump to the left (right) of the previous (next) delimiter in insert mode. This works for arbtirary delimitmate-defined bracket and quote style delimiters. |
 
