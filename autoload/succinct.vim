@@ -255,10 +255,13 @@ endfunction
 function! succinct#add_objects(plugin, source, ...) abort
   let name = substitute(a:plugin, '^\(\l\)', '\u\1', 0)
   let cmd = 'Textobj' . name . 'DefaultKeyMappings'
-  if !exists('*textobj#user#plugin')
-    echohl WarningMsg
-    echom 'Warning: Cannot define text objects (vim-textobj-user not found).'
-    echohl None | return {}
+  if !exists('*textobj#user#plugin')  " see: https://vi.stackexchange.com/a/14911/8084
+    runtime autoload/textobj/user.vim
+    if !exists('*textobj#user#plugin')  " plugin not available
+      echohl WarningMsg
+      echom 'Warning: Cannot define text objects (vim-textobj-user not found).'
+      echohl None | return {}
+    endif
   endif
   if exists(':' . cmd) | return {} | endif
   let defaults = a:0 > 1 ? a:2 : 0
