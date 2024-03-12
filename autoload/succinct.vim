@@ -391,20 +391,24 @@ endfunction
 " the first delimiter and start of the second delimiter (see s:post_process)
 function! s:get_char() abort
   let char = getchar()  " returns number only if successful translation
-  let char = char =~# '^\d\+$' ? nr2char(char) : char
+  let char = string(char) =~# '^\d\+$' ? nr2char(char) : char
   return char
 endfunction
-function! s:get_target() abort
+function! s:get_target(snippet) abort
   let [cnt, pad] = ['', '']
   let key = s:get_char()
-  while key =~# '^\d\+$'  " user is providing a count
-    let cnt .= key
-    let key = s:get_char()
-  endwhile
-  while key =~# '\_s\|\r'  " user is requesting padding
-    let pad .= key =~# '\r' ? "\n" : key
-    let key = s:get_char()
-  endwhile
+  let head = a:snippet ? 'snippet_' : 'surround_'
+  let name = head . char2nr(key)
+  if !has_key(b:, name) && !has_key(g:, name)  " allow e.g. '1' delimiters
+    while key =~# '^\d\+$'
+      let cnt .= key  " user is providing count
+      let key = s:get_char()
+    endwhile
+    while key =~# '\_s\|\r'
+      let pad .= key =~# '\r' ? "\n" : key  " user is providing padding
+      let key = s:get_char()
+    endwhile
+  endif
   let key = key =~# '\p' ? key : ''
   let cnt = empty(cnt) || cnt ==# '0' ? 1 : str2nr(cnt)
   return [key, pad, cnt]
@@ -434,7 +438,7 @@ function! s:get_cached(search, ...) abort
   return parts
 endfunction
 function! s:get_value(snippet, search, ...) abort
-  let [key, pad, cnt] = s:get_target()  " user input target
+  let [key, pad, cnt] = s:get_target(a:snippet)  " user input target
   let pad .= a:0 && a:1 ? "\n" : ''  " e.g. 'yS' instead of 'ys'
   if a:snippet
     let [head, value] = ['snippet', '']
