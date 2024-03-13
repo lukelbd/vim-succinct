@@ -613,12 +613,12 @@ function! s:expr_delims(left, right, lexpr, rexpr, ...) abort
   call cursor(line2, col21)  " delete or change right delimiter
   let [line2, col22] = s:get_pos(a:right, 'cen')
   call setpos("'z", [0, line2, col22, 0])
-  keepjumps exe 'normal! ' . a:rexpr
+  exe 'keepjumps normal! ' . a:rexpr
   let line2 = line("']")
   call cursor(line1, col11)  " delete or change left delimiter
   let [line1, col12] = s:get_pos(a:left, 'cen')
   call setpos("'z", [0, line1, col12, 0])
-  keepjumps exe 'normal! ' . a:lexpr
+  exe 'keepjumps normal! ' . a:lexpr
   let line1 = line("'[")
   let line2 += count(a:lexpr, "\n")
   call s:post_process(line1, line2)
