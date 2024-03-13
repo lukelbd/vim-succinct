@@ -460,6 +460,9 @@ function! s:get_value(snippet, search, ...) abort
   else  " e.g. <Space><CR><Cursor><CR><Space>
     let [pad1, pad2] = [pad, join(reverse(split(pad, '\zs')), '')]
   endif
+  if &l:filetype ==# 'tex' && pad1 =~# '^\s*\n' && part1 =~# '{$'
+    let part1 = part1 . '%'
+  endif
   if a:snippet
     return [part1 . pad1 . pad2 . part2, cnt]
   else
