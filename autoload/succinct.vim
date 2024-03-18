@@ -409,7 +409,7 @@ function! s:get_target(snippet) abort
       let key = s:get_char()
     endwhile
   endif
-  let key = key =~# '\p' && key =~# '\A' ? key : ''
+  let key = key =~# '\p' ? key : ''
   let cnt = empty(cnt) || cnt ==# '0' ? 1 : str2nr(cnt)
   return [key, pad, cnt]
 endfunction
@@ -441,12 +441,12 @@ function! s:get_value(snippet, search, ...) abort
   let [key, pad, cnt] = s:get_target(a:snippet)  " user input target
   let pad .= a:0 && a:1 ? "\n" : ''  " e.g. 'yS' instead of 'ys'
   if a:snippet
-    let [head, value] = ['snippet', '']
+    let [head, default] = ['snippet', key]
   else
-    let [head, value] = ['surround', empty(key) ? key : key . "\r" . key]
+    let [head, default] = ['surround', empty(key) || key =~# '\a' ? key : key . "\r" . key]
   endif
   let name = head . '_' . char2nr(key)  " note char2nr('') == 0
-  let text = succinct#process_value(get(b:, name, get(g:, name, value)), a:search)
+  let text = succinct#process_value(get(b:, name, get(g:, name, default)), a:search)
   if empty(text)  " e.g. empty 'key', empty 'surround_{key}', or input cancellation
     return a:snippet ? ['', cnt] : ['', '', cnt]
   endif
