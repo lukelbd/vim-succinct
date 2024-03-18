@@ -409,7 +409,7 @@ function! s:get_target(snippet) abort
       let key = s:get_char()
     endwhile
   endif
-  let key = key =~# '\p' ? key : ''
+  let key = key =~# '\p' && key =~# '\A' ? key : ''
   let cnt = empty(cnt) || cnt ==# '0' ? 1 : str2nr(cnt)
   return [key, pad, cnt]
 endfunction
