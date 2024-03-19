@@ -37,7 +37,7 @@ Includes the following features:
   delimiters and supports `y[sS]` style counts and padding (e.g. `cs<CR>bb` removes
   newlines from surrounding parentheses, while `csb<CR>b` adds newlines).
 * Moving to the right of the previous or next "bracket" or "quote" delimiter defined
-  by [delimitMate](https://github.com/Raimondi/delimitMate) with default insert mode mappings `<C-h>` and `<C-l>`, selecting from
+  by [delimitMate](https://github.com/Raimondi/delimitMate) with default insert/normal mappings `<C-h>` and `<C-l>`, selecting from
   available [vim-surround](https://github.com/tpope/vim-surround) delimiters using [fzf.vim](https://github.com/junegunn/fzf.vim) fuzzy-search windows with the default
   insert/visual mode mappings `<C-s><C-s>` or operator-pending mappings `[ycd]<C-s>`,
   and selecting from snippets with the default insert mode mapping `<C-e><C-e>`.
@@ -70,12 +70,13 @@ Options
 
 | Option | Description |
 | ---- | ---- |
-| `g:succinct_nomap` | Whether to disable the default mappings. Default is `0`. If `1` you can add maps by pointing to the `<Plug>` maps (see `plugin/succinct.vim`). |
-| `g:succinct_nodelims` | Whether to disable the default delimiter definitions. Default is `g:succinct_nomap`. If `1` you can add delimiters with `succinct#add_delims()`. |
+| `g:succinct_nomap` | Whether to disable the default mappings. Default is `0`. If `1` you must add all maps manually (see `plugin/succinct.vim`). |
+| `g:succinct_nomap_actions` | Whether to disable the default action mappings. Default is `g:succinct_nomap`. If `1` you can add actions by pointing to the `<Plug>` maps. |
+| `g:succinct_nomap_objects` | Whether to disable the default delimiter mappings. Default is `g:succinct_nomap`. If `1` you can add delimiters with `succinct#add_delims()`. |
 | `g:succinct_snippet_map` | Insert mode snippet mapping prefix. Default is `<C-e>` (simple mnemonic is the "e" in snippets). |
 | `g:succinct_surround_map` | Insert and visual mode surround mapping prefix. Default is `<C-s>` (requires adding `bind -r '"\C-s"'` to `~/.bashrc` or `~/.bash_profile`). |
-| `g:succinct_prevdelim_map` | Insert mode mapping for jumping to the previous quote or delimiter. Default is `<C-h>`. |
-| `g:succinct_nextdelim_map` | Insert mode mapping for jumping to the next quote or delimiter. Default is `<C-l>`. |
+| `g:succinct_prevdelim_map` | Normal and insert mode mapping for jumping to the previous quote or delimiter. Default is `<C-h>`. |
+| `g:succinct_nextdelim_map` | Normal and insert mode mapping for jumping to the next quote or delimiter. Default is `<C-l>`. |
 | `g:succinct_templates_path` | The folder where templates are stored. These are optionally loaded when creating new files. Default is `~/templates`. |
 
 Installation

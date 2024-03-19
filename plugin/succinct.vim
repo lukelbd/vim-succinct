@@ -20,8 +20,11 @@ endif
 if !exists('g:succinct_nomap')
   let g:succinct_nomap = 0
 endif
-if !exists('g:succinct_nodelims')
-  let g:succinct_nodelims = g:succinct_nomap
+if !exists('g:succinct_nomap_actions')
+  let g:succinct_nomap_actions = g:succinct_nomap
+endif
+if !exists('g:succinct_nomap_objects')
+  let g:succinct_nomap_objects = g:succinct_nomap
 endif
 
 " Surround and snippet maps
@@ -58,7 +61,7 @@ inoremap <expr> <Plug>PrevDelim succinct#prev_delim()
 inoremap <expr> <Plug>NextDelim succinct#next_delim()
 noremap <expr> <Plug>PrevDelim succinct#prev_delim()
 noremap <expr> <Plug>NextDelim succinct#next_delim()
-if !g:succinct_nomap  " add mappings
+if !g:succinct_nomap_actions  " add mappings
   exe 'imap ' . repeat(g:succinct_surround_map, 2) . ' <Plug>Isselect'
   exe 'imap ' . repeat(g:succinct_snippet_map, 2) . ' <Plug>Ieselect'
   exe 'imap ' . g:succinct_surround_map . ' <Plug>Issetup<Plug>Isuccinct'
@@ -87,7 +90,7 @@ nnoremap <expr> <Plug>YSuccinct succinct#surround_motion(1)
 nnoremap <expr> <Plug>Yssuccinct '^' . v:count1 . succinct#surround_motion(0) . 'g_'
 nnoremap <expr> <Plug>YSsuccinct '^' . v:count1 . succinct#surround_motion(1) . 'g_'
 vnoremap <expr> <Plug>Vsuccinct succinct#surround_motion(visualmode())
-if !g:succinct_nomap
+if !g:succinct_nomap_actions
   nmap cs <Plug>Yssetup<Plug>Csuccinct
   nmap cS <Plug>Yssetup<Plug>CSuccinct
   nmap ds <Plug>Yssetup<Plug>Dsuccinct
@@ -138,6 +141,6 @@ let s:delims = {
   \ 'f': '\1function: \1(\r)',
   \ 'A': '\1array: \1[\r]',
 \ }
-if !g:succinct_nodelims
+if !g:succinct_nomap_objects
   call succinct#add_delims(s:delims, 0, 1)
 endif
