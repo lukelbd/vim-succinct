@@ -532,10 +532,13 @@ endfunction
 " to vim-surround and another as a thin wrapper tha simply calls vim-surround opfunc()
 " then post-processes the result. Get the script-local name of opfunc() by sending
 " <Plug>Ysurround<Esc> which consumes v:count, so send count as input argument.
-function! succinct#surround_setup() abort
-  silent! exe 'unlet b:surround_1'
-  let b:succinct_target = [] | let b:succinct_replace = []
+function! succinct#setup_motion() abort  " reset buffer variables
+  let [b:surround_1, b:succinct_target, b:succinct_replace] = ['', [], []]
   return "\<Plug>Ysurround\<Esc>" . v:count1
+endfunction
+function! succinct#setup_insert() abort  " reset insert-mode undo
+  if exists('*edit#insert_undo') | return edit#insert_undo() | endif
+  return "\<C-g>u"
 endfunction
 function! succinct#surround_repeat(type) abort
   if exists('b:surround_indent')  " record default

@@ -48,10 +48,10 @@ endif
 " key resolve ambiguity (<Plug>Name is parsed by vim as successive keystrokes).
 " Note: Ysuccinct manually processes the delimiter then sends '\1' to vim-surround
 " that directs to a b:surround_1 variable that we've assigned the processed result.
-inoremap <Plug>Issetup <Cmd>let b:insert_undo = col('.') < col('$') - 1 ? 'i' : 'a'<CR><C-g>u
 vnoremap <Plug>Vsselect <Cmd>call succinct#surround_select('V')<CR>
 inoremap <Plug>Isselect <Cmd>call succinct#surround_select('I')<CR>
 inoremap <Plug>Ieselect <Cmd>call succinct#snippet_select()<CR>
+inoremap <expr> <Plug>Issetup succinct#setup_insert()
 inoremap <expr> <Plug>Isuccinct succinct#surround_insert()
 inoremap <expr> <Plug>Isnippet succinct#snippet_insert()
 inoremap <expr> <Plug>PrevDelim succinct#prev_delim()
@@ -81,7 +81,7 @@ nnoremap <Plug>Csuccinct <Cmd>call succinct#change_delims(v:prevcount, 0)<CR>
 nnoremap <Plug>CSuccinct <Cmd>call succinct#change_delims(v:prevcount, 1)<CR>
 nnoremap <Plug>Dsuccinct <Cmd>call succinct#delete_delims(v:prevcount, 0)<CR>
 nnoremap <Plug>DSuccinct <Cmd>call succinct#delete_delims(v:prevcount, 1)<CR>
-nnoremap <expr> <Plug>Yssetup succinct#surround_setup()
+nnoremap <expr> <Plug>Yssetup succinct#setup_motion()
 nnoremap <expr> <Plug>Ysuccinct succinct#surround_motion(0)
 nnoremap <expr> <Plug>YSuccinct succinct#surround_motion(1)
 nnoremap <expr> <Plug>Yssuccinct '^' . v:count1 . succinct#surround_motion(0) . 'g_'
