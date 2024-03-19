@@ -70,9 +70,9 @@ Options
 
 | Option | Description |
 | ---- | ---- |
-| `g:succinct_nomap` | Whether to disable the default mappings. Default is `0`. If `1` you must add all maps manually (see `plugin/succinct.vim`). |
-| `g:succinct_nomap_actions` | Whether to disable the default action mappings. Default is `g:succinct_nomap`. If `1` you can add actions by pointing to the `<Plug>` mappings. |
-| `g:succinct_nomap_objects` | Whether to disable the default (global) delimiter mappings. Default is `g:succinct_nomap`. If `1` you can add delimiters using e.g. `succinct#add_delims({'b': "(\r)"})`. |
+| `g:succinct_nomap` | Whether to disable the default maps. Default is `0`. If `1` you must add all maps manually (see `plugin/succinct.vim`). |
+| `g:succinct_nomap_actions` | Whether to disable the maps that insert or modify delimiters and snippets (e.g. `ys`, `cs`, etc.). Default is `g:succinct_nomap`. |
+| `g:succinct_nomap_objects` | Whether to disable the default (global) delimiter definition maps (e.g. the `b` used for parentheses `(\r)`). Default is `g:succinct_nomap`. |
 | `g:succinct_snippet_map` | Insert mode snippet mapping prefix. Default is `<C-e>` (simple mnemonic is the "e" in snippets). |
 | `g:succinct_surround_map` | Insert and visual mode surround mapping prefix. Default is `<C-s>` (requires adding `bind -r '"\C-s"'` to `~/.bashrc` or `~/.bash_profile`). |
 | `g:succinct_prevdelim_map` | Normal and insert mode mapping for jumping to the previous quote or delimiter. Default is `<C-h>`. |
