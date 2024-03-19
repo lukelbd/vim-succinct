@@ -48,7 +48,7 @@ endif
 " key resolve ambiguity (<Plug>Name is parsed by vim as successive keystrokes).
 " Note: Ysuccinct manually processes the delimiter then sends '\1' to vim-surround
 " that directs to a b:surround_1 variable that we've assigned the processed result.
-inoremap <Plug>Issetup <C-g>u
+inoremap <Plug>Issetup <Cmd>let b:insert_undo = col('.') < col('$') - 1 ? 'i' : 'a'<CR><C-g>u
 vnoremap <Plug>Vsselect <Cmd>call succinct#surround_select('V')<CR>
 inoremap <Plug>Isselect <Cmd>call succinct#surround_select('I')<CR>
 inoremap <Plug>Ieselect <Cmd>call succinct#snippet_select()<CR>
