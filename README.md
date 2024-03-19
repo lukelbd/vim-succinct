@@ -70,6 +70,8 @@ Options
 
 | Option | Description |
 | ---- | ---- |
+| `g:succinct_nomap` | Whether to disable the default mappings. Default is `0`. If `1` you can add maps by pointing to the `<Plug>` maps (see `plugin/succinct.vim`). |
+| `g:succinct_nodelims` | Whether to disable the default delimiter definitions. Default is `g:succinct_nomap`. If `1` you can add delimiters with `succinct#add_delims()`. |
 | `g:succinct_snippet_map` | Insert mode snippet mapping prefix. Default is `<C-e>` (simple mnemonic is the "e" in snippets). |
 | `g:succinct_surround_map` | Insert and visual mode surround mapping prefix. Default is `<C-s>` (requires adding `bind -r '"\C-s"'` to `~/.bashrc` or `~/.bash_profile`). |
 | `g:succinct_prevdelim_map` | Insert mode mapping for jumping to the previous quote or delimiter. Default is `<C-h>`. |
