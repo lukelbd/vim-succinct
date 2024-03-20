@@ -163,11 +163,12 @@ function! succinct#get_delims(left, right, ...) abort
   let atom = '\(\\_\)\?\(\\(.\+\\)\|\[.\+\]\|\\\?.\)'  " \(\), [], \x, or characters
   let opts = '\(\\[?=]\|\\\@<!\*\)'  " optional-length \? or * indicators
   let [pats, reqs, lens] = [[], [], []]
-  for pat in [a:left, a:right]
+  for [idx, pat] in [[0, a:left], [1, a:right]]
     let req = substitute(pat, atom . opts, '', 'g')  " required part
     let len = len((substitute(req, atom, '.', 'g')))  " atom count
     if empty(req)  " e.g. 'e' delimiter translated to '\_s*\r\_s*'
-      let pat = substitute(pat, '\\_s\*$', '\\s*\\n\\s*', 'g')  " avoid search_value() \_s*
+      let pad = idx == 0 ? '^\\s*\\n' : '\\n\\s*$'  " backward \(\n\s*\)\+ gets one line
+      let pat = substitute(pat, '^\\_s\*$', pad, 'g')
     endif
     call add(pats, pat) | call add(reqs, req) | call add(lens, len)
   endfor
@@ -640,38 +641,44 @@ endfunction
 " Note the backwards search when on a delimiter will fail so loop should move
 " outwards. Apply delimiters using succinct but processing input here
 function! s:modify_adjust(line, col, del) abort
-  if a:line == line('$') || a:col < col([a:line, '$'])
+  let eol = col([a:line, '$'])  " end-of-line character position
+  let newline1 = a:col <= 1 && a:line > line('.')
+  let newline2 = a:col >= eol && a:line >= line('.') && a:line < line('$')
+  if newline1 || newline2  " adjustment for end-of-line expression
+    return [a:line + 1, 0, a:del ==# "\<Delete>" ? a:del : 'gJ']
+  else  " standard delete-until-character adjustment
     return [a:line, a:col, a:del]
-  else  " adjustment for end-of-line expression
-    return [a:line + 1, 1, a:del ==# "\<Delete>" ? a:del : 'gJ']
   endif
 endfunction
+function! s:modify_replace(line1, col1, line2, col2, ...) abort
+  let text1 = getline(a:line1) . "\n"
+  let text2 = getline(a:line2) . "\n"
+  let head = strpart(text1, 0, a:col1 - 1)  " line before start of delimiter
+  let tail = strpart(text2, a:col2)  " line after end of delimiter
+  let text = head . (a:0 ? a:1 : '') . tail  " e.g. 'abc\n' col2 == 4 returns empty
+  let text .= empty(tail) ? "\n" . getline(a:line2 + 1) : ''  " replace end-of-line
+  let [del1, del2] = [a:line1 + 1, a:line2 + empty(tail)]
+  call deletebufline('.', del1, del2)
+  let lines = split(text, "\n")
+  call setline(a:line1, lines)
+  return [a:line1, a:line1 + len(lines) - 1]
+endfunction
 function! s:modify_delims(left, right, ...) abort
-  if a:0 > 1
+  if a:0 > 1  " change delimiters
     let [repl1, repl2; rest] = a:000
-    let [dexpr, xexpr] = ['"_c`z', "\<Delete>"]
-  else
+  else  " delete delimiters
     let [repl1, repl2, rest] = ['', '', a:000]
-    let [dexpr, xexpr] = ['"_d`z', '"_x']
   endif
   let args = [a:left, a:right, empty(rest) ? 1 : rest[0]]
-  let [line1, col11, line2, col21] = call('succinct#get_delims', args)
-  if line1 == 0 || line2 == 0 | return | endif
-  call cursor(line2, col21)  " modify left delimiter
-  exe col21 == col('$') ? "normal! a\<Space>" : ''
-  let [line2, col22] = succinct#search(a:right, 'cen')
-  let [line2, col22, adjust] = s:modify_adjust(line2, col22, xexpr)
-  call setpos("'z", [0, line2, col22, 0])
-  exe 'keepjumps normal! ' . dexpr . adjust . repl2
-  let line2 = line("']")  " after editing
-  call cursor(line1, col11)  " modify right delimiter
-  exe col11 == col('$') ? "normal! a\<Space>" : ''
-  let [line1, col12] = succinct#search(a:left, 'cen')
-  let [line1, col12, adjust] = s:modify_adjust(line1, col12, xexpr)
-  call setpos("'z", [0, line1, col12, 0])
-  exe 'keepjumps normal! ' . dexpr . adjust . repl1
-  let line1 = line("'[")
-  let line2 += count(repl1, "\n")
+  let [pat1, pat2, line11, col11, line21, col21] = call('succinct#get_delims', args)
+  if line11 == 0 || line21 == 0 | return | endif
+  call cursor(line21, col21)
+  let [line22, col22] = succinct#search(pat2, 'cen')
+  let [_, line2] = s:modify_replace(line21, col21, line22, col22, repl2)
+  call cursor(line11, col11)
+  let [line12, col12] = succinct#search(pat1, 'cen')
+  let [line1, iline12] = s:modify_replace(line11, col11, line12, col12, repl1)
+  let line2 += (iline12 - line12)  " in case newlines added
   call s:post_process(line1, line2)
 endfunction
 
@@ -683,7 +690,7 @@ endfunction
 function! succinct#delete_delims(count, break) abort
   let [text1, text2, cnt] = s:get_replace(1, a:break)  " disable user input
   if empty(text1) || empty(text2) | return | endif
-  let [dexpr, xexpr] = [ '"_d`z', '"_x']
+  let [dexpr, xexpr] = ['"_d`z', '"_x']
   for _ in range(a:count ? a:count : 1)
     call s:modify_delims(text1, text2, cnt)
   endfor
@@ -692,7 +699,7 @@ endfunction
 function! succinct#change_delims(count, break) abort
   let [prev1, prev2, cnt] = s:get_replace(1, a:break)  " disable user input
   if empty(prev1) || empty(prev2) | return | endif
-  let [repl1, repl2, rep] = s:get_replace(0, a:break)  " request user input
+  let [repl1, repl2, rep] = s:get_replace(0)  " request user input
   if empty(repl1) || empty(repl2) | return | endif
   for _ in range(a:count ? a:count : 1)
     call s:modify_delims(prev1, prev2, repeat(repl1, rep), repeat(repl2, rep), cnt)
