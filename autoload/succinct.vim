@@ -542,7 +542,6 @@ function! succinct#setup_motion() abort  " reset buffer variables
 endfunction
 function! succinct#setup_operator(...) abort
   if v:operator !~? '^[cdy]$' | return '' | endif
-  echom "\<Plug>" . toupper(v:operator) . (a:0 && a:1 ? 'S' : 's') . 'uccinct'
   return "\<Plug>" . toupper(v:operator) . (a:0 && a:1 ? 'S' : 's') . 'uccinct'
 endfunction
 function! succinct#surround_repeat(type) abort
