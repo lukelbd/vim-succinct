@@ -68,12 +68,14 @@ function! s:get_pos(...) abort
   let cmd = a:0 > 3 ? 'searchpairpos' : 'searchpos'
   let mods = get(s:keyword_mods, &l:filetype, '')
   let mods = empty(mods) ? '' : ',' . join(split(mods, '\zs'), ',')
-  let keys = &l:iskeyword
-  let &l:iskeyword = keys . mods
+  let [keys, ignore] = [&l:iskeyword, &l:ignorecase]
   try
+    let &l:ignorecase = 0
+    let &l:iskeyword = keys . mods
     let [lnum, cnum] = call(cmd, a:000)
   finally
     let &l:iskeyword = keys
+    let &l:ignorecase = ignore
   endtry
   return [lnum, cnum]
 endfunction
