@@ -51,7 +51,11 @@ endif
 " key resolve ambiguity (<Plug>Name is parsed by vim as successive keystrokes).
 " Note: Ysuccinct manually processes the delimiter then sends '\1' to vim-surround
 " that directs to a b:surround_1 variable that we've assigned the processed result.
-vnoremap <Plug>Vsselect <Cmd>call succinct#surround_select('V')<CR>
+noremap <expr> <Plug>PrevDelim succinct#prev_delim()
+noremap <expr> <Plug>NextDelim succinct#next_delim()
+noremap <expr> <Plug>Vssetup '<Esc>' . succinct#setup_motion() . 'gv' . v:count1
+noremap <expr> <Plug>Vsuccinct succinct#surround_motion(visualmode())
+noremap <Plug>Vsselect <Cmd>call succinct#surround_select('V')<CR>
 inoremap <Plug>Isselect <Cmd>call succinct#surround_select('I')<CR>
 inoremap <Plug>Ieselect <Cmd>call succinct#snippet_select()<CR>
 inoremap <expr> <Plug>Issetup succinct#setup_insert()
@@ -59,56 +63,48 @@ inoremap <expr> <Plug>Isuccinct succinct#surround_insert()
 inoremap <expr> <Plug>Isnippet succinct#snippet_insert()
 inoremap <expr> <Plug>PrevDelim succinct#prev_delim()
 inoremap <expr> <Plug>NextDelim succinct#next_delim()
-noremap <expr> <Plug>PrevDelim succinct#prev_delim()
-noremap <expr> <Plug>NextDelim succinct#next_delim()
 if !g:succinct_nomap_actions  " add mappings
-  exe 'imap ' . repeat(g:succinct_surround_map, 2) . ' <Plug>Isselect'
-  exe 'imap ' . repeat(g:succinct_snippet_map, 2) . ' <Plug>Ieselect'
+  exe 'vmap ' . g:succinct_surround_map . ' <Plug>Vssetup<Plug>Vsuccinct'
   exe 'imap ' . g:succinct_surround_map . ' <Plug>Issetup<Plug>Isuccinct'
   exe 'imap ' . g:succinct_snippet_map . ' <Plug>Issetup<Plug>Isnippet'
-  exe 'imap ' . g:succinct_prevdelim_map . ' <Plug>PrevDelim'
-  exe 'imap ' . g:succinct_nextdelim_map . ' <Plug>NextDelim'
-  exe 'map ' . g:succinct_prevdelim_map . ' <Plug>PrevDelim'
-  exe 'map ' . g:succinct_nextdelim_map . ' <Plug>NextDelim'
+  exe 'vmap ' . repeat(g:succinct_surround_map, 2) . ' <Plug>Vsselect'
+  exe 'imap ' . repeat(g:succinct_surround_map, 2) . ' <Plug>Isselect'
+  exe 'imap ' . repeat(g:succinct_snippet_map, 2) . ' <Plug>Ieselect'
+  for s:mode in ['', 'i']
+    exe s:mode . 'map ' . g:succinct_prevdelim_map . ' <Plug>PrevDelim'
+    exe s:mode . 'map ' . g:succinct_nextdelim_map . ' <Plug>NextDelim'
+  endfor
 endif
 
 " Selecting, using, changing, and deleting normal and visual-mode delimiters
+" Note: Add operator maps so e.g. 'd2s' count style is captured, but still need
+" explicit e.g. 'ds' maps so they override vim-surround versions.
 " Note: This supports fancy count/indent behavior e.g. ysiw<CR>b to surround current
 " word by parentheses and put on a new indented line, and supports repeating \1...\1
 " style user-input delimiters with '.'. Also 'yss<Key>' gives result identical to
 " vim-text-obj-line 'ys<Key>il' See: https://github.com/tpope/vim-surround/issues/140.
-nnoremap <Plug>Ysselect <Cmd>call succinct#surround_select('y')<CR>
-nnoremap <Plug>Csselect <Cmd>call succinct#surround_select('c')<CR>
-nnoremap <Plug>Dsselect <Cmd>call succinct#surround_select('d')<CR>
-nnoremap <Plug>Csuccinct <Cmd>call succinct#change_delims(v:prevcount, 0)<CR>
-nnoremap <Plug>CSuccinct <Cmd>call succinct#change_delims(v:prevcount, 1)<CR>
-nnoremap <Plug>Dsuccinct <Cmd>call succinct#delete_delims(v:prevcount, 0)<CR>
-nnoremap <Plug>DSuccinct <Cmd>call succinct#delete_delims(v:prevcount, 1)<CR>
-nnoremap <expr> <Plug>Yssetup succinct#setup_motion()
-nnoremap <expr> <Plug>Ysuccinct succinct#surround_motion(0)
-nnoremap <expr> <Plug>YSuccinct succinct#surround_motion(1)
-nnoremap <expr> <Plug>Yssuccinct '^' . v:count1 . succinct#surround_motion(0) . 'g_'
-nnoremap <expr> <Plug>YSsuccinct '^' . v:count1 . succinct#surround_motion(1) . 'g_'
-vnoremap <expr> <Plug>Vsuccinct succinct#surround_motion(visualmode())
+noremap <expr> <Plug>Yssetup succinct#setup_motion() . v:count1
+noremap <expr> <Plug>Ysuccinct succinct#surround_motion(0)
+noremap <expr> <Plug>YSuccinct succinct#surround_motion(1)
+noremap <expr> <Plug>Yssuccinct '^' . v:count1 . succinct#surround_motion(0) . 'g_'
+noremap <expr> <Plug>YSsuccinct '^' . v:count1 . succinct#surround_motion(1) . 'g_'
+noremap <Plug>Ysselect <Cmd>call succinct#surround_select(v:operator)<CR>
+noremap <Plug>Csuccinct <Cmd>call succinct#change_delims(v:prevcount, 0)<CR>
+noremap <Plug>CSuccinct <Cmd>call succinct#change_delims(v:prevcount, 1)<CR>
+noremap <Plug>Dsuccinct <Cmd>call succinct#delete_delims(v:prevcount, 0)<CR>
+noremap <Plug>DSuccinct <Cmd>call succinct#delete_delims(v:prevcount, 1)<CR>
 if !g:succinct_nomap_actions
-  nmap cs <Plug>Yssetup<Plug>Csuccinct
-  nmap cS <Plug>Yssetup<Plug>CSuccinct
-  nmap ds <Plug>Yssetup<Plug>Dsuccinct
-  nmap dS <Plug>Yssetup<Plug>DSuccinct
-  nmap ys <Plug>Yssetup<Plug>Ysuccinct
-  nmap YS <Plug>Yssetup<Plug>YSuccinct
-  nmap yss <Plug>Yssetup<Plug>Yssuccinct
-  nmap ySs <Plug>Yssetup<Plug>YSsuccinct
-  nmap ysS <Plug>Yssetup<Plug>YSsuccinct
-  nmap ySS <Plug>Yssetup<Plug>YSsuccinct
-  exe 'vmap <expr> ' . g:succinct_surround_map . " '<Esc><Plug>Yssetup' . 'gv' . v:count1 . '<Plug>Vsuccinct'"
-  exe 'vmap ' . repeat(g:succinct_surround_map, 2) . ' <Plug>Vsselect'
-  exe 'nmap y' . g:succinct_surround_map . ' <Plug>Ysselect'
-  exe 'nmap c' . g:succinct_surround_map . ' <Plug>Csselect'
-  exe 'nmap d' . g:succinct_surround_map . ' <Plug>Dsselect'
-  exe 'nmap ys' . g:succinct_surround_map . ' <Plug>Ysselect'
-  exe 'nmap cs' . g:succinct_surround_map . ' <Plug>Csselect'
-  exe 'nmap ds' . g:succinct_surround_map . ' <Plug>Dsselect'
+  omap <expr> s '<Esc>' . v:count1 . '<Plug>Yssetup' . succinct#setup_operator(0)
+  omap <expr> S '<Esc>' . v:count1 . '<Plug>Yssetup' . succinct#setup_operator(1)
+  for s:map in ['c', 'd', 'y'] | for s:key in ['s', 'S']
+    exe 'nmap ' . s:map . s:key . ' <Plug>Yssetup<Plug>' . toupper(s:map) . s:key . 'uccinct'
+  endfor | endfor
+  for s:map in ['ss', 'sS', 'Ss', 'SS']
+    exe 'nmap y' . s:map . ' <Plug>Yssetup<Plug>Y' . (s:map =~# 'S' ? 'S' : 's') . 'succinct'
+  endfor
+  for s:key in ['', 's']
+    exe 'omap ' . s:key . g:succinct_surround_map . ' <Plug>Ysselect'
+  endfor
 endif
 
 " Add global delimiters and text objects

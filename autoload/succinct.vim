@@ -322,7 +322,17 @@ endfunction
 
 " Find and use delimiters and snippets
 " Note: See below for more on fzf limitations.
-function! s:variable_source(prefix) abort
+function! s:select_sink(mode, item) abort
+  let key = split(a:item, ':')[0]
+  if !type(a:mode)  " snippet sink
+    call feedkeys("\<Plug>Isnippet" . key, 'ti')
+  elseif a:mode =~? '^[iv]$'  " e.g. <Plug>Isurround and <Plug>Vsurround
+    call feedkeys("\<Plug>" . a:mode . 'surround' . key, 'ti')
+  elseif a:mode =~? '^[ydc]$'  " e.g. ys, ds, cs maps with more complex destinations
+    call feedkeys(a:mode . 's' . key, 't')
+  endif
+endfunction
+function! s:select_source(prefix) abort
   let opts = {}
   for scope in ['g:', 'b:']
     let vars = getcompletion(scope . a:prefix . '_', 'var')
@@ -332,18 +342,6 @@ function! s:variable_source(prefix) abort
     endfor
   endfor
   return map(items(opts), 'v:val[0] . '': '' . string(v:val[1])')
-endfunction
-function! s:snippet_sink(item) abort
-  let key = split(a:item, ':')[0]
-  call feedkeys("\<Plug>Isnippet" . key, 'ti')
-endfunction
-function! s:surround_sink(mode, item) abort
-  let key = split(a:item, ':')[0]
-  if a:mode =~# '^[ydc]$'  " e.g. ys, ds, cs maps which do not use operator pending
-    call feedkeys(a:mode . 's' . key, 't')
-  else  " e.g. <Plug>Isurround and <Plug>Vsurround
-    call feedkeys("\<Plug>" . a:mode . 'surround' . key, 'ti')
-  endif
 endfunction
 
 " Show templates, snippets, and delimiters in fzf menu
@@ -376,18 +374,18 @@ endfunction
 function! succinct#snippet_select() abort
   if !s:fzf_check() | return | endif
   noautocmd call fzf#run({
-    \ 'sink': function('s:snippet_sink'),
-    \ 'source': s:variable_source('snippet'),
+    \ 'sink': function('s:select_sink', [1]),
+    \ 'source': s:select_source('snippet'),
     \ 'options': '--no-sort --height=100% --prompt="Snippet> "',
-    \ })
+  \ })
 endfunction
 function! succinct#surround_select(mode) abort
   if !s:fzf_check() | return | endif
   noautocmd call fzf#run({
-    \ 'sink': function('s:surround_sink', [a:mode]),
-    \ 'source': s:variable_source('surround'),
+    \ 'sink': function('s:select_sink', [a:mode]),
+    \ 'source': s:select_source('surround'),
     \ 'options': '--no-sort --height=100% --prompt="Surround> "',
-    \ })
+  \ })
 endfunction
 
 "-----------------------------------------------------------------------------"
@@ -534,13 +532,18 @@ function! s:feed_repeat(keys, ...) abort
   let cmd = 'call repeat#set("\' . a:keys . '", ' . (a:0 ? a:1 : v:count) . ')'
   call feedkeys(exists('*repeat#set') ? "\<Cmd>" . cmd . "\<CR>" : '', 'n')
 endfunction
-function! succinct#setup_motion() abort  " reset buffer variables
-  let [b:surround_1, b:succinct_target, b:succinct_replace] = ['', [], []]
-  return "\<Plug>Ysurround\<Esc>" . v:count1
-endfunction
 function! succinct#setup_insert() abort  " reset insert-mode undo
   if exists('*edit#insert_undo') | return edit#insert_undo() | endif
   return "\<C-g>u"
+endfunction
+function! succinct#setup_motion() abort  " reset buffer variables
+  let [b:surround_1, b:succinct_target, b:succinct_replace] = ['', [], []]
+  return "\<Plug>Ysurround\<Esc>"
+endfunction
+function! succinct#setup_operator(...) abort
+  if v:operator !~? '^[cdy]$' | return '' | endif
+  echom "\<Plug>" . toupper(v:operator) . (a:0 && a:1 ? 'S' : 's') . 'uccinct'
+  return "\<Plug>" . toupper(v:operator) . (a:0 && a:1 ? 'S' : 's') . 'uccinct'
 endfunction
 function! succinct#surround_repeat(type) abort
   if exists('b:surround_indent')  " record default
