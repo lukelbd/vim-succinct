@@ -38,9 +38,9 @@ Includes the following features:
   newlines from surrounding parentheses, while `csb<CR>b` adds newlines).
 * Moving to the right of the previous or next "bracket" or "quote" delimiter defined
   by [delimitMate](https://github.com/Raimondi/delimitMate) with default insert/normal mappings `<C-h>` and `<C-l>`, selecting from
-  available [vim-surround](https://github.com/tpope/vim-surround) delimiters using [fzf.vim](https://github.com/junegunn/fzf.vim) fuzzy-search windows with the default
-  insert/visual mode mappings `<C-s><C-s>` or operator-pending mappings `[ycd]<C-s>`,
-  and selecting from snippets with the default insert mode mapping `<C-e><C-e>`.
+  available [vim-surround](https://github.com/tpope/vim-surround) delimiters via [fzf.vim](https://github.com/junegunn/fzf.vim) with the default insert/visual mode
+  mappings `<C-s><C-s>` or operator-pending mappings `[ycd]<C-s>`, and selecting from
+  snippets with the default insert mode mapping `<C-e><C-e>`.
 
 Note this plugin defines several global delimiters and text objects by default (see
 `plugin/succinct.vim` for details). Also note that if any of the above operations
