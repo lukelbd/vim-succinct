@@ -478,7 +478,7 @@ endfunction
 function! succinct#process_value(value, ...) abort
   " Acquire user-input for placeholders \1, \2, \3, ...
   let search = a:0 ? a:1 : 0  " whether to perform search
-  let input = type(a:value) == 2 ? a:value() : a:value  " string or funcref
+  let input = type(a:value) == 2 ? s:pre_process(a:value()) : a:value  " func or str
   if empty(input) | return '' | endif  " e.g. funcref that starts asynchronous fzf
   for nr in range(7)
     let idx = matchstr(input, nr2char(nr) . '.\{-\}\ze' . nr2char(nr))
