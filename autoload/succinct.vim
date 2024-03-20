@@ -445,7 +445,7 @@ function! s:get_value(snippet, search, ...) abort
   if a:snippet
     let [head, default] = ['snippet', key]
   else
-    let [head, default] = ['surround', empty(key) || key =~# '\a' ? key : key . "\r" . key]
+    let [head, default] = ['surround', empty(key) || key =~# '\a' ? '' : key . "\r" . key]
   endif
   let name = head . '_' . char2nr(key)  " note char2nr('') == 0
   let text = succinct#process_value(get(b:, name, get(g:, name, default)), a:search)
