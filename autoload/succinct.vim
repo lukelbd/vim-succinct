@@ -665,7 +665,7 @@ function! s:modify_replace(line1, col1, line2, col2, ...) abort
   call setline(a:line1, lines)
   return [a:line1, a:line1 + len(lines) - 1]
 endfunction
-function! s:modify_delims(left, right, ...) abort
+function! succinct#modify_delims(left, right, ...) abort
   if a:0 > 1  " change delimiters
     let [repl1, repl2; rest] = a:000
   else  " delete delimiters
@@ -694,7 +694,7 @@ function! succinct#delete_delims(count, break) abort
   if empty(text1) || empty(text2) | return | endif
   let [dexpr, xexpr] = ['"_d`z', '"_x']
   for _ in range(a:count ? a:count : 1)
-    call s:modify_delims(text1, text2, cnt)
+    call succinct#modify_delims(text1, text2, cnt)
   endfor
   call s:feed_repeat('<Plug>Dsuccinct', a:count)  " capital-S not needed
 endfunction
@@ -704,7 +704,7 @@ function! succinct#change_delims(count, break) abort
   let [repl1, repl2, rep] = s:get_replace(0)  " request user input
   if empty(repl1) || empty(repl2) | return | endif
   for _ in range(a:count ? a:count : 1)
-    call s:modify_delims(prev1, prev2, repeat(repl1, rep), repeat(repl2, rep), cnt)
+    call succinct#modify_delims(prev1, prev2, repeat(repl1, rep), repeat(repl2, rep), cnt)
   endfor
   call s:feed_repeat('<Plug>Csuccinct', a:count)  " capital-S not needed
 endfunction
