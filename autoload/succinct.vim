@@ -661,7 +661,7 @@ function! s:modify_replace(line1, col1, line2, col2, ...) abort
   let text = head . (a:0 ? a:1 : '') . tail  " e.g. 'abc\n' col2 == 4 returns empty
   let text .= empty(tail) ? "\n" . getline(a:line2 + 1) : ''  " replace end-of-line
   let [del1, del2] = [a:line1 + 1, a:line2 + empty(tail)]
-  call deletebufline('.', del1, del2)
+  call deletebufline(bufnr(), del1, del2)
   let lines = split(text, "\n")
   call setline(a:line1, lines)
   return [a:line1, a:line1 + len(lines) - 1]
