@@ -1,6 +1,25 @@
 "-----------------------------------------------------------------------------"
-" Navigate delimiters
+" General search and replace functions
 "-----------------------------------------------------------------------------"
+" Regular expressions for parsing regular expressions
+" Note: This is needed to dynamically assign either search() or searchpair() for input
+" delimiters and configure the text object and delimiter modifying utilities. Without
+" special handling selection of complex or multi-length delimiters can fail, e.g. cannot
+" capture lading python [rfub]' string or zero-length \< object 'boundary'.
+let s:regex_keys = {'python': '.', 'tex': '*', 'vim': ':'}  " temporary keyword additions
+let s:regex_parts = '\\%\?(\(\%(.\%(\\%\?(\)\@!\)\{-}\)\\)'  " \(\) and \%(\) (inner before outer)
+let s:regex_space = '\(\_s\|\\_s\|\\[snt]\)'  " space indicators e.g. \n \_s
+let s:regex_spec = '\\@\d*<\?[>=!]'  " always zero-length (e.g. \@<!)
+let s:regex_star = '\\{-\?\d\?,\?\d\?}\|\%(\\\|\[[^\]]*\)\@<!\*'  " star expansions
+let s:regex_mod = '\(\\[?=+]\|' . s:regex_star . '\|' . s:regex_spec . '\)\?'  " e.g. *, \+, \?, \{n,}
+let s:regex_opt = '\(\\[?=]\|' . s:regex_star . '\|' . s:regex_spec . '\)'  " optional-missing modifiers
+let s:regex_null = '\(\\z[^se]\|\\[<>cCZ]\|\%(\\_\)\?[$^]\|\\%\[[^\]]*\]'  " e.g. %, $, \<, \>, \c
+let s:regex_null .= '\\%[V#$^]\|\\%[<>]\?\%([.'']\|\d\+\)[lcm]\)'  " e.g. \%#, \%>123l
+let s:regex_atom = '\(\%(\\_\)\?\\\@<!\[[^\]]\+\]\|\\%\?(.\+\\)\|\%(\\_\?\)\?.\)'  " check brackets first
+let s:regex_oatom = s:regex_atom . s:regex_opt  " atom with optionally zero-length modifier
+let s:regex_matom = s:regex_atom . s:regex_mod  " atom with any arbitrary modifier or none
+let s:regex_mparts = s:regex_parts . s:regex_mod  " parts grouping with any arbitray modifier
+
 " Navigate delimeters  ( [ [ ( ' ' foo) bar] baz] xyz)
 " Todo: Consider using this insert-mode navigation algorithm elsewhere
 " Warning: Cannot use search() because it fails to detect current column. Could
@@ -48,17 +67,45 @@ function! succinct#next_delim() abort
 endfunction
 
 " Helper search functions
-" Note: Use succinct#syntax() to filter succinct#get_pairs() to items with identical
+" Note: Use succinct#syntax() to filter succinct#search_items() to items with identical
 " syntax groups. Use succinct#search() to temporarily modify iskeyword and enable case
 " sensitivity (e.g. include python method chains foo.bar() for \k\+() search and
 " tex asterisks \command*{} for \\\k\+{} search). Use succinct#regex() to improve
 " textobj selection and auto-select either search() or searchpair() for get_delims().
-let s:regex_atom = '\(\(\\_\)\?\\\@<!\[[^\]]\+\]\|\\%\?(.\+\\)\|\(\\_\?\)\?.\)'  " check brackets
-let s:regex_null = '\(\\[?=]\|\(\\\|\[[^\]]*\)\@<![*]\|\\@<\?[>=!]\)'  " null expansions
-let s:regex_zero = '\(\\z.\|\\[<>cCZ]\|\(\\_\)\?[$^]\|\\%\[[^\]]*\]\)'  " null atoms
-let s:regex_range = '\(\\%[V#$^]\|\\%[<>]\?\([.'']\|\d\+\)[lcm]\)'  " range indicators
-let s:regex_trail = '\(\\[?=+]\|\\\@<!\*\|\\@<\?[>=!]\|\\{-\?\d\?,\?\d\?}\)\?'
-let s:regex_space = '\(\_s\|\\_s\|\\[snt]\)'  " space indicators
+function! succinct#chars(regex)  " convert individual atoms to one-character strings
+  let isub = 'strcharpart(submatch(%d), strchars(submatch(%d)) - 1)'
+  let [spec, star] = ['\(' . s:regex_spec . '\)', '\(\\+\|' . s:regex_star . '\)']
+  let [sub1, sub2] = [printf(isub, 1, 1), printf(isub, 2, 2)]  " capture final character
+  let reg = substitute(a:regex, s:regex_null, '\=' . sub1, 'g')  " e.g. \> -> '>' (for comparing)
+  let reg = substitute(reg, s:regex_atom . spec, '', 'g')  " e.g. \x\@<= -> empty
+  let reg = substitute(reg, s:regex_atom . star, '\=' . sub1 . '.' . sub1, 'g')
+  let reg = substitute(reg, s:regex_atom . '\(\\[?=]\)\?', '\=' . sub1, 'g')
+  return reg  " e.g. \<\W\?\w*\W\@= -> <\W\?\w*\W\@= -> <\W\?\w* -> <\W\?ww -> <Www
+endfunction
+function! succinct#group(reg, ...)  " convert \(\) group to maximum size \| option
+  let items = matchlist(a:reg, s:regex_mparts)  " gets inner groups first
+  let parts = [] | for part in split(get(items, 1, ''), '\\|')  " recursive invocation
+    let part = split(succinct#chars(part), '\zs')  " e.g. \(\x\x\x\) -> ['x', 'x', 'x']
+    call map(part, {idx, val -> succinct#chars(v:val . items[2])})  " e.g. \(\x\)* -> x* -> xx
+    call add(parts, join(part, ''))  " append modifier e.g. \(\x\)* -> x* -> xx
+  endfor
+  let sizes = map(copy(parts), 'strchars(v:val)')  " note max([]) returns 0
+  let part = get(parts, index(sizes, max(sizes)), '')  " get() handles e.g. \(\)
+  return substitute(a:reg, s:regex_mparts, part, '')  " replace string
+endfunction
+function! succinct#regex(regex, flags) abort
+  let [reg, pats] = [a:regex, []]  " various substitutions
+  if a:flags =~# 'a' | for _ in range(3) | call add(pats, ['\(.*\\zs\|\\ze.*\)', '']) | endfor | endif
+  if a:flags =~# 'o' | for _ in range(3) | call add(pats, [s:regex_oatom, '']) | endfor | endif  " remove optional-length mods
+  if a:flags =~# 'm' | for _ in range(3) | call add(pats, [s:regex_matom, '\1']) | endfor | endif  " remove modifier itself
+  if a:flags =~# 'n' | call add(pats, [s:regex_null, '']) | endif  " remove null characters
+  if a:flags =~# 's' | call add(pats, [s:regex_space, '']) | endif  " remove space characters
+  for [pat1, pat2] in pats | let reg = substitute(reg, pat1, pat2, 'g') | endfor
+  if a:flags =~# 'a'  " convert atoms e.g. \(\), [], \_a, \a, a to '.', or \a* to '..'
+    for _ in range(3) | let reg = succinct#group(reg) | endfor
+    for _ in range(3) | let reg = succinct#chars(reg) | endfor
+  endif | return reg
+endfunction
 function! succinct#syntax(...) abort  " verify inside regex group
   if a:0 >= 2  " input line column
     let [lnum, cnum] = a:000
@@ -72,39 +119,16 @@ function! succinct#syntax(...) abort  " verify inside regex group
   return empty(stack) ? ['Unknown'] : [stack[0]]
 endfunction
 function! succinct#search(...) abort
-  let keywords = {'python': '.', 'tex': '*', 'vim': ':'}
-  let cmd = a:0 > 3 ? 'searchpairpos' : 'searchpos'
-  let mods = get(keywords, &l:filetype, '')
+  let mods = get(s:regex_keys, &l:filetype, '')
   let mods = empty(mods) ? '' : ',' . join(split(mods, '\zs'), ',')
   let [keys, ignore] = [&l:iskeyword, &l:ignorecase]
-  let &l:ignorecase = 0
-  let &l:iskeyword = keys . mods
+  let [&l:iskeyword, &l:ignorecase] = [keys . mods, 0]
   try
-    let [lnum, cnum] = call(cmd, a:000)
+    let [lnum, cnum] = call(a:0 > 3 ? 'searchpairpos' : 'searchpos', a:000)
   finally
-    let &l:iskeyword = keys  " restore keywords
-    let &l:ignorecase = ignore  " restore case
+    let [&l:iskeyword, &l:ignorecase] = [keys, ignore]
   endtry
   return [lnum, cnum]
-endfunction
-function! succinct#regex(regex, flags) abort
-  let reg = a:regex
-  let reg = substitute(reg, '.*\\zs', '', 'g')
-  let reg = substitute(reg, '\\ze.*', '', 'g')
-  if a:flags =~# 'n'  " remove atoms with possible zero-length modifiers e.g. *, \?, \@=
-    let reg = substitute(reg, s:regex_atom . s:regex_null, '', 'g')
-    let reg = substitute(reg, s:regex_zero, '', 'g')  " e.g. ^, $, \<, \>
-    let reg = substitute(reg, s:regex_range, '', 'g')  " e.g. \%123l
-  endif
-  if a:flags =~# 't'  " remove trailing modifiers from atoms e.g. *, \+, \?, \@=, \{n,}
-    let reg = substitute(reg, s:regex_atom . s:regex_trail, '\1', 'g')
-  endif
-  if a:flags =~# 's'  " remove special options e.g. ^, $, \<, \c, \s, whitespace
-    let reg = substitute(reg, s:regex_space, '', 'g')
-  endif
-  if a:flags =~# 'a'  " translate atoms e.g. \(\), [], \_a, \a, a to '.'
-    let reg = substitute(reg, s:regex_atom, '.', 'g')
-  endif | return reg
 endfunction
 
 " Search for identical items and distinct item pairs
@@ -147,9 +171,8 @@ function! succinct#search_items(left, right, ...) abort
     let flags = idx == 0 ? 'bcW' : 'bW'  " include object under cursor *first*
     let [line1, col11] = succinct#search(a:left, flags)
   endfor
-  let check = succinct#regex(a:left, 'ntsa')
   call cursor(line1, col11)
-  if len(check) > 1  " select delimiter end
+  if strchars(succinct#regex(a:left, 'an')) > 1  " number ignoring nulls e.g. \<
     call succinct#search(a:left, 'ecW')
   endif
   for idx in range(cnt)  " select outer items
@@ -180,12 +203,12 @@ function! succinct#get_delims(left, right, ...) abort
   let winview = winsaveview()
   let regex1 = substitute(a:left, '^\\_s\*$', '\^\\s*\\n', 'g')  " 'e' translation
   let regex2 = substitute(a:right, '^\\_s\*$', '\\n\\s*\$', 'g')  " 'e' translation
-  let compare1 = succinct#regex(regex1, 'nst')  " remove zero-length atoms, modifiers
-  let compare2 = succinct#regex(regex2, 'nst')
-  let atoms1 = succinct#regex(regex1, 'anst')  " remove above and convert atoms
-  let atoms2 = succinct#regex(regex1, 'anst')
-  let safe = len(atoms1) < len(regex1) || len(atoms2) < len(regex2)
-  let safe = safe && len(atoms1) <= 1 && len(atoms2) <= 1  " possibly distinct but single-atom
+  let compare1 = succinct#regex(regex1, 'onms')  " remove optional-length atoms, modifiers, null atoms
+  let compare2 = succinct#regex(regex2, 'onms')
+  let atoms1 = succinct#regex(regex1, 'aonms')  " character count ignoring optional-length atoms
+  let atoms2 = succinct#regex(regex1, 'aonms')
+  let safe = strchars(atoms1) < strchars(regex1) || strchars(atoms2) < strchars(regex2)
+  let safe = safe && strchars(atoms1) <= 1 && strchars(atoms2) <= 1  " possibly distinct but single-atom
   let safe = safe || compare1 ==# compare2  " e.g. quotes, whitespace (filtered to '')
   let func = safe ? 'succinct#search_items' : 'succinct#search_pairs'
   let [line1, col11, line2, col21] = call(func, [regex1, regex2] + a:000)
@@ -202,8 +225,8 @@ function! succinct#get_object(mode, name) abort
   let [left, right] = count(value, "\r") == 1 ? split(value, "\r", 1) : ['', '']
   let [regex1, regex2, line1, col1, line2, col2] = succinct#get_delims(left, right, v:count1)
   if !line1 || !line2 || !col1 || !col2 | return | endif
-  let space1 = len(succinct#regex(regex1, 'anst')) ? '\_s*' : ''
-  let space2 = len(succinct#regex(regex2, 'anst')) ? '\_s*' : ''
+  let space1 = strchars(succinct#regex(regex1, 'aonms')) ? '\_s*' : ''
+  let space2 = strchars(succinct#regex(regex2, 'aonms')) ? '\_s*' : ''
   let iregex = substitute(regex2, '\\n', '\\n\\zs', 'g')  " ensure jump (see above)
   call cursor(line1, col1)  " start of left delim or after zero-length match
   if a:mode ==# 'i'  " inner selection only
@@ -211,7 +234,7 @@ function! succinct#get_object(mode, name) abort
   endif
   let pos1 = getpos('.')  " left delimiter position
   call cursor(line2, col2)
-  if len(succinct#regex(regex2, 'ant'))  " skip empty atoms
+  if strchars(succinct#regex(regex2, 'aonm'))  " skip empty atoms but keep space
     call succinct#search(iregex, 'ceW')
     if a:mode ==# 'i'  " inner selection only
       call succinct#search('\S' . space2 . regex2, 'cbW')
@@ -630,16 +653,17 @@ endfunction
 " easier to combine and maintain consistency with change/delete algorithms and
 " visual-mode <C-s><CR> style of adding newlines.
 function! succinct#post_process(...) abort
+  let [line1, line2] = a:0 ? a:000 : [line("'['"), line("']'")]
+  if line1 == line2 | return | endif
   let winview = winsaveview()
   let auto = &lisp || &cindent || &smartindent  " auto indent properties
   let avail = !empty(&equalprg) || !empty(&indentexpr)  " normal mode equal
   let indent = get(s:, 'surround_indent', get(g:, 'surround_indent', 1))
-  let [line1, line2] = a:0 ? a:000 : [line("'['"), line("']'")]
   try
-    if line1 != line2  " remove whitespace
+    if indent  " remove trailing
       keepjumps silent! exe line1 . ',' . line2 . 's/\s*$//g'
     endif
-    if line1 != line2 && indent && (auto || avail)  " repair indentation
+    if indent && (auto || avail)  " repair indentation
       keepjumps silent! exe 'normal! ' . line1 . 'gg=' . line2 . 'gg'
     endif
   finally
