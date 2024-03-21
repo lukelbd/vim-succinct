@@ -613,26 +613,6 @@ function! succinct#setup_operator(...) abort
   if v:operator !~? '^[cdy]$' | return '' | endif
   return "\<Plug>" . toupper(v:operator) . (a:0 && a:1 ? 'S' : 's') . 'uccinct'
 endfunction
-function! succinct#surround_repeat(type) abort
-  if exists('b:surround_indent')  " record default
-    let s:surround_indent = b:surround_indent
-  endif
-  let b:surround_indent = 0  " override with manual approach
-  let opfunc = s:surround_args[0]
-  let texts = split(get(b:, 'surround_1', "\r"), "\r", 1)
-  let empty = !empty(texts) && texts[0] ==# texts[1] && texts[0] =~# '^\n\+$'
-  let multi = type(a:type) && a:type ==# 'line' && line("'[") != line("']")
-  let [ibuf, lnum, cnum, ioff] = getpos("']")
-  if multi && empty  " append newline
-    let b:surround_1 = b:surround_1 . "\n"
-  endif
-  if multi && lnum && cnum == col([lnum, '$'])  " adjust bounds
-    let [lnum, cnum] = cnum > 1 ? [lnum, cnum] : [lnum - 1, col([lnum, '$'])]
-    call setpos("']", [ibuf, lnum, cnum - 1, ioff])
-  endif
-  call call(opfunc, [a:type])  " native vim-surround function
-  call succinct#post_process()
-endfunction
 function! succinct#surround_start(type) range abort
   let [opfunc, opcount, oparg] = s:surround_args
   if type(oparg)  " visual-mode argument passed manually
@@ -653,6 +633,33 @@ function! succinct#surround_start(type) range abort
   call feedkeys(cmd, 'n')  " runs vim-surround operator function
   call feedkeys("\1", 't')  " force vim-surround to read b:surround_1
   call s:feed_repeat('<Plug>SurroundRepeat' . "\1", 1)  " count already applied
+endfunction
+function! succinct#surround_repeat(type) abort
+  if exists('b:surround_indent')  " record default
+    let s:surround_indent = b:surround_indent
+  endif
+  let b:surround_indent = 0  " override with manual approach
+  let opfunc = s:surround_args[0]
+  let texts = split(get(b:, 'surround_1', "\r"), "\r", 1)
+  let empty = !empty(texts) && texts[0] ==# texts[1] && texts[0] =~# '^\n\+$'
+  let multi = type(a:type) && a:type ==# 'line' && line("'[") != line("']")
+  let [ibuf, line1, col1, ioff] = getpos("'[")
+  let [ibuf, line2, col2, ioff] = getpos("']")
+  if line2 < line1 || line2 == line1 && col2 < col1
+    let [line1, col1, line2, col2] = [line2, col2, line1, col1]
+  endif
+  if a:type ==# 'line'  " e.g. 'vip' puts cursor on first column of last line
+    let [line1, col1, line2, col2] = [line1, 1, line2, col([line2, '$'])]
+  endif
+  if line2 && col2 == col([line2, '$'])  " adjust bounds
+    let line2 = col2 > 1 ? line2 : line2 - 1  " must come before
+    let col2 = col2 > 1 ? col2 - 1 : col([line2, '$']) - 1  " must come after
+    let b:surround_1 .= empty ? "\n" : ''
+  endif
+  call setpos("'[", [ibuf, line1, col1, ioff])
+  call setpos("']", [ibuf, line2, col2, ioff])
+  call call(opfunc, [a:type])  " native vim-surround function
+  call succinct#post_process()
 endfunction
 
 "-----------------------------------------------------------------------------"
