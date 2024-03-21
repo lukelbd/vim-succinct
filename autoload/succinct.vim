@@ -619,6 +619,17 @@ function! succinct#surround_repeat(type) abort
   endif
   let b:surround_indent = 0  " override with manual approach
   let opfunc = s:surround_args[0]
+  let texts = split(get(b:, 'surround_1', "\r"), "\r", 1)
+  let empty = !empty(texts) && texts[0] ==# texts[1] && texts[0] =~# '^\n\+$'
+  let multi = type(a:type) && a:type ==# 'line' && line("'[") != line("']")
+  let [ibuf, lnum, cnum, ioff] = getpos("']")
+  if multi && empty  " append newline
+    let b:surround_1 = b:surround_1 . "\n"
+  endif
+  if multi && lnum && cnum == col([lnum, '$'])  " adjust bounds
+    let [lnum, cnum] = cnum > 1 ? [lnum, cnum] : [lnum - 1, col([lnum, '$'])]
+    call setpos("']", [ibuf, lnum, cnum - 1, ioff])
+  endif
   call call(opfunc, [a:type])  " native vim-surround function
   call succinct#post_process()
 endfunction
@@ -638,7 +649,7 @@ function! succinct#surround_start(type) range abort
   let [text1, text2] = [repeat(text1, cnt), repeat(text2, cnt)]
   let b:surround_1 = text1 . "\r" . text2  " final processed delimiters
   setlocal operatorfunc=succinct#surround_repeat
-  let cmd = "\<Cmd>call succinct#surround_repeat(" . string(a:type) . ")\<CR>"
+  let cmd = "\<Cmd>call succinct#surround_repeat(" . string(type) . ")\<CR>"
   call feedkeys(cmd, 'n')  " runs vim-surround operator function
   call feedkeys("\1", 't')  " force vim-surround to read b:surround_1
   call s:feed_repeat('<Plug>SurroundRepeat' . "\1", 1)  " count already applied
