@@ -208,14 +208,15 @@ function! s:pre_process(arg) abort
 endfunction
 function! succinct#translate_delims(plugin, key, arg, ...) abort
   let head = a:0 && a:1 ? '<buffer> ' : ''
-  let name = 'textobj_' . a:plugin . '_' . char2nr(a:key)
-  let s:[name] = [s:pre_process(a:arg), 1] + copy(a:000[1:])
+  let ikey = char2nr(a:key)  " textobj uses this for [ia]<Key> <Plug> maps
+  let iname = 'textobj_' . a:plugin . '_' . char2nr(a:key)
+  let s:[iname] = [s:pre_process(a:arg), 1] + copy(a:000[1:])
   let code = [
-    \ 'function! s:' . name . '_i() abort',
-    \ '  return succinct#get_object("i", ' . string(name) . ')',
+    \ 'function! s:' . iname . '_i() abort',
+    \ '  return succinct#get_object("i", ' . string(iname) . ')',
     \ 'endfunction',
-    \ 'function! s:' . name . '_a() abort',
-    \ '  return succinct#get_object("a", ' . string(name) . ')',
+    \ 'function! s:' . iname . '_a() abort',
+    \ '  return succinct#get_object("a", ' . string(iname) . ')',
     \ 'endfunction'
   \ ]
   exe join(code, "\n")
@@ -223,11 +224,11 @@ function! succinct#translate_delims(plugin, key, arg, ...) abort
     \ 'sfile': expand('<script>:p'),
     \ 'select-i': head . 'i' . escape(a:key, '|'),
     \ 'select-a': head . 'a' . escape(a:key, '|'),
-    \ 'select-i-function': 's:' . name . '_i',
-    \ 'select-a-function': 's:' . name . '_a',
+    \ 'select-i-function': 's:' . iname . '_i',
+    \ 'select-a-function': 's:' . iname . '_a',
   \ }
   let objs = {}
-  let objs[name] = obj
+  let objs[ikey] = obj
   return objs
 endfunction
 
