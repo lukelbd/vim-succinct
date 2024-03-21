@@ -91,7 +91,7 @@ endfunction
 " an opening delimiter or after the first character of a closing delimiter.
 function! succinct#search_pairs(left, right, ...) abort
   let cnt = max([1, a:0 ? a:1 : 1])
-  let lnum = line('.')  " prefer matches on current line
+  let [lnum, cnum] = [line('.'), col('.')]  " prefer matches on current line
   let [line1, col11] = succinct#search(a:left, '', a:right, 'nbcW')
   let [line2, col21] = succinct#search(a:left, '', a:right, 'ncW')
   if line1 && !line2 || line1 == lnum && line2 != lnum  " could be on head of open or tail of close
@@ -108,7 +108,6 @@ function! succinct#search_pairs(left, right, ...) abort
     let [line2, col21] = succinct#search(a:left, '', a:right, 'ncW')
     call cursor(line1, col11)  " then searches will go beyond cursor
   endfor
-  return [line1, col11, line2, col21]
 endfunction
 function! succinct#search_items(left, right, ...) abort
   let cnt = max([1, a:0 ? a:1 : 1])
@@ -148,12 +147,10 @@ let s:regex_opts = '\(\\[?=]\|\\\@<!\*\|\\@<\?[>=!]\)'  " zero-length e.g. \?, *
 function! succinct#get_delims(left, right, ...) abort
   let [pats, reqs, lens] = [[], [], []]
   for [idx, pat] in [[0, a:left], [1, a:right]]
+    let pad = idx == 0 ? '^\\s*\\n' : '\\n\\s*$'  " backward \(\n\s*\)\+ gets one line
     let req = substitute(pat, s:regex_atom . s:regex_opts, '', 'g')  " required part
     let len = len((substitute(req, s:regex_atom, '.', 'g')))  " atom count
-    if empty(req)  " e.g. 'e' delimiter translated to '\_s*\r\_s*'
-      let pad = idx == 0 ? '^\\s*\\n' : '\\n\\s*$'  " backward \(\n\s*\)\+ gets one line
-      let pat = substitute(pat, '^\\_s\*$', pad, 'g')
-    endif
+    let pat = (empty(req) ? substitute(pat, '^\\_s\*$', pad, 'g') : pat)  " e.g. 'e' delimiter
     call add(pats, pat) | call add(reqs, req) | call add(lens, len)
   endfor
   let winview = winsaveview()
@@ -169,6 +166,7 @@ function! succinct#get_delims(left, right, ...) abort
   endif
 endfunction
 function! succinct#get_object(mode, name) abort
+  let [lnum, cnum] = [line('.'), col('.')]  " initial position
   let args = get(s:, a:name, [])  " script-local arguments
   let value = empty(args) ? '' : call('succinct#process_value', args)
   let [left, right] = count(value, "\r") == 1 ? split(value, "\r", 1) : ['', '']
@@ -178,18 +176,18 @@ function! succinct#get_object(mode, name) abort
   let regex1 = pat1 . '\_s*\(' . pat1 . '\)\@!\S'  " inner match
   let regex2 = '\(' . pat2 . '\)\@!\S\_s*' . pat2  " inner match
   call cursor(line1, col1)  " start of left delim or one char after zero-length match
-  if len1 > 0 && a:mode ==# 'i'
-    call succinct#search(regex1, 'ceW')
-  endif
+  let [iline, icol] = [line('.'), col('.')]
+  if lnum < iline || lnum == iline && cnum < icol | return | endif
+  if len1 && a:mode ==# 'i' | call succinct#search(regex1, 'ceW') | endif
   let pos1 = getpos('.')
   if len2 > 0  " go to end of right delimiter
     call cursor(line2, col2) | call succinct#search(pat2, 'ceW')
   else  " zero-length match positions cursor after match
     call cursor(line2, max([col2 - 1, 1]))
   endif
-  if len2 > 0 && a:mode ==# 'i'
-    call succinct#search(regex2, 'cbW')
-  endif
+  let [iline, icol] = [line('.'), col('.')]
+  if lnum > iline || lnum == iline && cnum > icol | return | endif
+  if len2 && a:mode ==# 'i' | call succinct#search(regex2, 'cbW') | endif
   let pos2 = getpos('.')
   let s:textobj_process = [bufnr(), pos1[1], pos2[1]]
   exe 'augroup succinct_process_' . bufnr() |
@@ -675,12 +673,12 @@ function! s:modify_replace(line1, col1, line2, col2, ...) abort
   let head = strpart(text1, 0, a:col1 - 1)  " line before start of delimiter
   let tail = strpart(text2, a:col2)  " line after end of delimiter
   let text = head . (a:0 ? a:1 : '') . tail  " e.g. line 'abc\n' col2 '4' empty
-  let text .= empty(tail) ? "\n" . getline(a:line2 + 1) . "\n" : ''  " extra line
+  let text .= empty(tail) ? getline(a:line2 + 1) . "\n" : ''  " extra line
   let [del1, del2] = [a:line1 + 1, a:line2 + empty(tail)]
-  call deletebufline(bufnr(), del1, del2)
+  silent call deletebufline(bufnr(), del1, del2)
   let text = substitute(text, '\n$', '', 'g')  " ignore trailing newline
   let lines = split(text, "\n", 1)  " inserted lines
-  call setline(a:line1, lines)
+  silent call setline(a:line1, lines)
   return [a:line1, a:line1 + len(lines) - 1]
 endfunction
 function! succinct#modify_delims(left, right, ...) abort
@@ -689,15 +687,18 @@ function! succinct#modify_delims(left, right, ...) abort
   else  " delete delimiters
     let [repl1, repl2, rest] = ['', '', a:000]
   endif
+  let [lnum, cnum] = [line('.'), col('.')]
   let args = [a:left, a:right, empty(rest) ? 1 : rest[0]]
   let props = call('succinct#get_delims', args)
   let [pat1, pat2, len1, len2, line11, col11, line21, col21] = props
   if line11 == 0 || line21 == 0 | return | endif
-  call cursor(line21, col21)
-  let [line22, col22] = succinct#search(pat2, 'cen')
-  let [_, line2] = s:modify_replace(line21, col21, line22, col22, repl2)
   call cursor(line11, col11)
   let [line12, col12] = succinct#search(pat1, 'cen')
+  call cursor(line21, col21)
+  let [line22, col22] = succinct#search(pat2, 'cen')
+  if lnum > line22 || lnum == line22 && cnum > col22 | return | endif
+  if lnum < line11 || lnum == line11 && cnum < col11 | return | endif
+  let [_, line2] = s:modify_replace(line21, col21, line22, col22, repl2)
   let [line1, iline12] = s:modify_replace(line11, col11, line12, col12, repl1)
   let line2 += (iline12 - line12)  " in case newlines added
   call succinct#post_process(line1, line2)
