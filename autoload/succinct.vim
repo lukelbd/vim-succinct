@@ -81,11 +81,14 @@ function! succinct#search(...) abort
 endfunction
 
 " Search for identical items and distinct item pairs
+" Note: This additionally filters to ensure we are capturing e.g. multi-line string
+" instead of content between strings. Note e.g. bash $variables and python {format}
+" indicators have the lowest-level syntax group 'Constant' so this still works.
 " Note: Here searchpairpos(..., 'b') goes to the start of the first delimiter and
-" searchpairpos(..., '') goes to the start of the second delimiter.
-" Warning: Here searchpairpos(..., 'bc') fails if the cursor is anywhere on a closing
-" delimiter and searchpairpos(..., 'c') fails if the cursor is on the first character
-" of an opening delimiter or after the first character of a closing delimiter.
+" searchpairpos(..., '') goes to the start of the second delimiter. Also note
+" searchpairpos(..., 'bc') fails if the cursor is anywhere on a closing delimiter
+" and searchpairpos(..., 'c') fails if the cursor is on the first character of
+" an opening delimiter or after the first character of a closing delimiter.
 function! succinct#search_pairs(left, right, ...) abort
   let cnt = max([1, a:0 ? a:1 : 1])
   let lnum = line('.')  " prefer matches on current line
@@ -135,37 +138,18 @@ endfunction
 " Register snippets, delimiters, and objects
 "-----------------------------------------------------------------------------
 " Get surround delimiters and associated text object
-" Note: Support defining vim-surround delimiters with unescaped \r \n \1
-" etc. for convenience (e.g. working with heavily backslashed delimiters).
-" Note: This additionally filters to ensure we are capturing e.g. multi-line string
-" instead of content between strings. Note e.g. bash $variables and python {format}
-" indicators have the lowest-level syntax group 'Constant' so this still works.
-function! succinct#get_object(mode, name) abort
-  let args = get(s:, a:name, [])  " script-local arguments
-  let value = empty(args) ? '' : call('succinct#process_value', args)
-  if count(value, "\r") != 1 | return | endif
-  let [left, right] = split(value, "\r", 1)
-  let [pat1, pat2, line1, col1, line2, col2] = succinct#get_delims(left, right, v:count1)
-  if line1 == 0 || line2 == 0 | return | endif
-  call cursor(line1, col1)
-  if a:mode ==# 'i'
-    call succinct#search(pat1 . '\_s*\(' . pat1 . '\)\@!\S', 'ceW')
-  endif
-  let pos1 = getpos('.')
-  call cursor(line2, col2) | call succinct#search(pat2, 'ceW')
-  if a:mode ==# 'i'
-    call succinct#search('\(' . pat2 . '\)\@!\S\_s*' . pat2, 'cbW')
-  endif
-  let pos2 = getpos('.')
-  return ['v', pos1, pos2]
-endfunction
+" Note: These are driver functions behind every operator-pending textobj mapping and
+" vim-surround delimiter change/delection. Supports funcrefs and filetype-specific
+" modifications via process_value (e.g. python docstrings, tex %-prefixed newlines)
+" Note: These defer to searchpairpos() for non-identical delimiters more than one atom
+" in legth, searchpos() otherwise (e.g. quotes, word boundaries, optional length bounds)
+let s:regex_atom = '\(\\_\)\?\(\\(.\+\\)\|\[.\+\]\|\\\?.\)'  " \(\), [], \x, or characters
+let s:regex_opts = '\(\\[?=]\|\\\@<!\*\|\\@<\?[>=!]\)'  " zero-length e.g. \?, *, \@=
 function! succinct#get_delims(left, right, ...) abort
-  let atom = '\(\\_\)\?\(\\(.\+\\)\|\[.\+\]\|\\\?.\)'  " \(\), [], \x, or characters
-  let opts = '\(\\[?=]\|\\\@<!\*\)'  " optional-length \? or * indicators
   let [pats, reqs, lens] = [[], [], []]
   for [idx, pat] in [[0, a:left], [1, a:right]]
-    let req = substitute(pat, atom . opts, '', 'g')  " required part
-    let len = len((substitute(req, atom, '.', 'g')))  " atom count
+    let req = substitute(pat, s:regex_atom . s:regex_opts, '', 'g')  " required part
+    let len = len((substitute(req, s:regex_atom, '.', 'g')))  " atom count
     if empty(req)  " e.g. 'e' delimiter translated to '\_s*\r\_s*'
       let pad = idx == 0 ? '^\\s*\\n' : '\\n\\s*$'  " backward \(\n\s*\)\+ gets one line
       let pat = substitute(pat, '^\\_s\*$', pad, 'g')
@@ -174,15 +158,47 @@ function! succinct#get_delims(left, right, ...) abort
   endfor
   let winview = winsaveview()
   let safe = lens[0] < len(pats[0]) || lens[1] < len(pats[1])
-  let safe = safe && lens[0] == 1 && lens[1] == 1  " standard search for single-atom regexes
+  let safe = safe && lens[0] <= 1 && lens[1] <= 1  " standard search for single-atom regexes
   let safe = safe || reqs[0] ==# reqs[1]  " standard search for e.g. quotes, docstrings
   let func = safe ? 'succinct#search_items' : 'succinct#search_pairs'
   let [line1, col11, line2, col21] = call(func, pats + a:000)
   if line1 == 0 || line2 == 0  " search failed
-    call winrestview(winview) | return ['', '', 0, 0, 0, 0]
+    call winrestview(winview) | return ['', '', 0, 0, 0, 0, 0, 0]
   else  " search succeeded
-    return pats + [line1, col11, line2, col21]
+    return pats + lens + [line1, col11, line2, col21]
   endif
+endfunction
+function! succinct#get_object(mode, name) abort
+  let args = get(s:, a:name, [])  " script-local arguments
+  let value = empty(args) ? '' : call('succinct#process_value', args)
+  let [left, right] = count(value, "\r") == 1 ? split(value, "\r", 1) : ['', '']
+  let props = succinct#get_delims(left, right, v:count1)
+  let [pat1, pat2, len1, len2, line1, col1, line2, col2] = props
+  if !line1 || !line2 | return | endif
+  let regex1 = pat1 . '\_s*\(' . pat1 . '\)\@!\S'  " inner match
+  let regex2 = '\(' . pat2 . '\)\@!\S\_s*' . pat2  " inner match
+  call cursor(line1, col1)  " start of left delim or one char after zero-length match
+  if len1 > 0 && a:mode ==# 'i'
+    call succinct#search(regex1, 'ceW')
+  endif
+  let pos1 = getpos('.')
+  if len2 > 0  " go to end of right delimiter
+    call cursor(line2, col2) | call succinct#search(pat2, 'ceW')
+  else  " zero-length match positions cursor after match
+    call cursor(line2, max([col2 - 1, 1]))
+  endif
+  if len2 > 0 && a:mode ==# 'i'
+    call succinct#search(regex2, 'cbW')
+  endif
+  let pos2 = getpos('.')
+  let s:textobj_process = [bufnr(), pos1[1], pos2[1]]
+  exe 'augroup succinct_process_' . bufnr() |
+  exe 'au!' | exe 'autocmd TextChanged,InsertLeave,CursorHold <buffer> '
+    \ . 'call succinct#post_process(' . pos1[1] . ', ' . pos2[1] . ')'
+    \ . ' | autocmd! succinct_process_' . bufnr()
+  exe 'augroup END'
+  augroup END
+  return ['v', pos1, pos2]
 endfunction
 
 " Translate delimiters to text object declarations
@@ -193,12 +209,10 @@ endfunction
 " 'select' points to textobj#user#select and searchpos(..., 'c'). This fails for 'a'
 " objects that overlap with others on line (e.g. ya' -> '.\{-}' may go outside the
 " closest quotes, but '\zs.\{-}\ze' will not). So now use function definition instead.
-let s:literals = {
-  \ '1': "\1", '2': "\2", '3': "\3", '4': "\4", '5': "\5",
-  \ '6': "\6", '7': "\7", 'r': "\r", 'n': "\n", '\t': "\t",
-\ }
+let s:regex_subs = {'1': "\1", '2': "\2", '3': "\3", '4': "\4", '5': "\5", '6': "\6", '7': "\7"}
+call extend(s:regex_subs, {'r': "\r", 'n': "\n", '\t': "\t"})
 function! s:pre_process(arg) abort
-  let opts = type(a:arg) == 1 ? s:literals : {}
+  let opts = type(a:arg) == 1 ? s:regex_subs : {}
   let output = type(a:arg) == 1 ? a:arg : ''
   for [char, repl] in items(opts)
     let check = char2nr(repl) > 7 ? '\a\@!' : ''
@@ -395,7 +409,7 @@ endfunction
 " Get and parse user-input delimiter key and spaces
 " Note: This permits typing arbitrary numbers to select outer delimiters, e.g. 2b
 " for the second ensted parentheses, and aribtrary spaces for padding the end of
-" the first delimiter and start of the second delimiter (see s:post_process)
+" the first delimiter and start of the second delimiter (see succinct#post_process)
 function! s:get_char() abort
   let char = getchar()  " returns number only if successful translation
   let char = string(char) =~# '^\d\+$' ? nr2char(char) : char
@@ -552,7 +566,7 @@ function! succinct#surround_repeat(type) abort
   let b:surround_indent = 0  " override with manual approach
   let opfunc = s:surround_args[0]
   call call(opfunc, [a:type])  " native vim-surround function
-  call s:post_process()
+  call succinct#post_process()
 endfunction
 function! succinct#surround_start(type) range abort
   let [opfunc, opcount, oparg] = s:surround_args
@@ -584,7 +598,8 @@ endfunction
 " indentation explicitly (see try-finally group). This is more extensible and
 " easier to combine and maintain consistency with change/delete algorithms and
 " visual-mode <C-s><CR> style of adding newlines.
-function! s:post_process(...) abort
+function! succinct#post_process(...) abort
+  let winview = winsaveview()
   let auto = &lisp || &cindent || &smartindent  " auto indent properties
   let avail = !empty(&equalprg) || !empty(&indentexpr)  " normal mode equal
   let indent = get(s:, 'surround_indent', get(g:, 'surround_indent', 1))
@@ -602,6 +617,7 @@ function! s:post_process(...) abort
     elseif exists('b:surround_indent')  " restore absence of value
       exe 'unlet b:surround_indent'
     endif
+    call winrestview(winview)
   endtry
 endfunction
 
@@ -674,7 +690,8 @@ function! succinct#modify_delims(left, right, ...) abort
     let [repl1, repl2, rest] = ['', '', a:000]
   endif
   let args = [a:left, a:right, empty(rest) ? 1 : rest[0]]
-  let [pat1, pat2, line11, col11, line21, col21] = call('succinct#get_delims', args)
+  let props = call('succinct#get_delims', args)
+  let [pat1, pat2, len1, len2, line11, col11, line21, col21] = props
   if line11 == 0 || line21 == 0 | return | endif
   call cursor(line21, col21)
   let [line22, col22] = succinct#search(pat2, 'cen')
@@ -683,7 +700,7 @@ function! succinct#modify_delims(left, right, ...) abort
   let [line12, col12] = succinct#search(pat1, 'cen')
   let [line1, iline12] = s:modify_replace(line11, col11, line12, col12, repl1)
   let line2 += (iline12 - line12)  " in case newlines added
-  call s:post_process(line1, line2)
+  call succinct#post_process(line1, line2)
 endfunction
 
 " Change and delete arbitrary surrounding delimiters ( ( ( ( [ [ ] ] ) ) ) )
