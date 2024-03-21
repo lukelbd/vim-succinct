@@ -657,11 +657,12 @@ function! s:modify_replace(line1, col1, line2, col2, ...) abort
   let text2 = getline(a:line2) . "\n"
   let head = strpart(text1, 0, a:col1 - 1)  " line before start of delimiter
   let tail = strpart(text2, a:col2)  " line after end of delimiter
-  let text = head . (a:0 ? a:1 : '') . tail  " e.g. 'abc\n' col2 == 4 returns empty
-  let text .= empty(tail) ? "\n" . getline(a:line2 + 1) : ''  " replace end-of-line
+  let text = head . (a:0 ? a:1 : '') . tail  " e.g. line 'abc\n' col2 '4' empty
+  let text .= empty(tail) ? "\n" . getline(a:line2 + 1) . "\n" : ''  " extra line
   let [del1, del2] = [a:line1 + 1, a:line2 + empty(tail)]
   call deletebufline(bufnr(), del1, del2)
-  let lines = split(text, "\n")
+  let text = substitute(text, '\n$', '', 'g')  " ignore trailing newline
+  let lines = split(text, "\n", 1)  " inserted lines
   call setline(a:line1, lines)
   return [a:line1, a:line1 + len(lines) - 1]
 endfunction
