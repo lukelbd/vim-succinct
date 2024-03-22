@@ -643,10 +643,10 @@ function! succinct#surround_repeat(type) abort
   let texts = split(get(b:, 'surround_1', "\r"), "\r", 1)
   let empty = !empty(texts) && texts[0] ==# texts[1] && texts[0] =~# '^\n\+$'
   let multi = type(a:type) && a:type ==# 'line' && line("'[") != line("']")
-  let [ibuf, line1, col1, ioff] = getpos("'[")
-  let [ibuf, line2, col2, ioff] = getpos("']")
+  let [ibuf, line1, col1, off1] = getpos("'[")
+  let [ibuf, line2, col2, off2] = getpos("']")
   if line2 < line1 || line2 == line1 && col2 < col1
-    let [line1, col1, line2, col2] = [line2, col2, line1, col1]
+    let [line1, col1, off1, line2, col2, off2] = [line2, col2, off2, line1, col1, off1]
   endif
   if a:type ==# 'line'  " e.g. 'vip' puts cursor on first column of last line
     let [line1, col1, line2, col2] = [line1, 1, line2, col([line2, '$'])]
@@ -656,8 +656,8 @@ function! succinct#surround_repeat(type) abort
     let col2 = col2 > 1 ? col2 - 1 : col([line2, '$']) - 1  " must come after
     let b:surround_1 .= empty ? "\n" : ''
   endif
-  call setpos("'[", [ibuf, line1, col1, ioff])
-  call setpos("']", [ibuf, line2, col2, ioff])
+  call setpos("'[", [ibuf, line1, col1, off1])
+  call setpos("']", [ibuf, line2, col2, off2])
   call call(opfunc, [a:type])  " native vim-surround function
   call succinct#post_process()
 endfunction
