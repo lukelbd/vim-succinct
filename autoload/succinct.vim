@@ -13,7 +13,7 @@ let s:regex_spec = '\\@\d*<\?[>=!]'  " always zero-length (e.g. \@<!)
 let s:regex_star = '\\{-\?\d\?,\?\d\?}\|\%(\\\|\[[^\]]*\)\@<!\*'  " star expansions
 let s:regex_mod = '\(\\[?=+]\|' . s:regex_star . '\|' . s:regex_spec . '\)\?'  " e.g. *, \+, \?, \{n,}
 let s:regex_opt = '\(\\[?=]\|' . s:regex_star . '\|' . s:regex_spec . '\)'  " optional-missing modifiers
-let s:regex_null = '\(\\z[^se]\|\\[<>cCZ]\|\%(\\_\)\?[$^]\|\\%\[[^\]]*\]'  " e.g. %, $, \<, \>, \c
+let s:regex_null = '\(\\z[^se]\|\\[<>cCZ]\|\%(\\_\)\?[$^]\|\\%\[[^\]]*\]'  " e.g. ^, $, \<, \>, \c
 let s:regex_null .= '\\%[V#$^]\|\\%[<>]\?\%([.'']\|\d\+\)[lcm]\)'  " e.g. \%#, \%>123l
 let s:regex_atom = '\(\%(\\_\)\?\\\@<!\[[^\]]\+\]\|\\%\?(.\+\\)\|\%(\\_\?\)\?.\)'  " check brackets first
 let s:regex_oatom = s:regex_atom . s:regex_opt  " atom with optionally zero-length modifier
@@ -203,10 +203,10 @@ function! succinct#get_delims(left, right, ...) abort
   let winview = winsaveview()
   let regex1 = substitute(a:left, '^\\_s\*$', '\^\\s*\\n', 'g')  " 'e' translation
   let regex2 = substitute(a:right, '^\\_s\*$', '\\n\\s*\$', 'g')  " 'e' translation
-  let compare1 = succinct#regex(regex1, 'onms')  " remove optional-length atoms, modifiers, null atoms
-  let compare2 = succinct#regex(regex2, 'onms')
-  let atoms1 = succinct#regex(regex1, 'aonms')  " character count ignoring optional-length atoms
-  let atoms2 = succinct#regex(regex1, 'aonms')
+  let compare1 = succinct#regex(regex1, 'mons')  " remove optional-length atoms, modifiers, null atoms
+  let compare2 = succinct#regex(regex2, 'mons')
+  let atoms1 = succinct#regex(regex1, 'aons')  " character count ignoring optional-length atoms
+  let atoms2 = succinct#regex(regex1, 'aons')
   let safe = strchars(atoms1) < strchars(regex1) || strchars(atoms2) < strchars(regex2)
   let safe = safe && strchars(atoms1) <= 1 && strchars(atoms2) <= 1  " possibly distinct but single-atom
   let safe = safe || compare1 ==# compare2  " e.g. quotes, whitespace (filtered to '')
@@ -225,20 +225,21 @@ function! succinct#get_object(mode, name) abort
   let [left, right] = count(value, "\r") == 1 ? split(value, "\r", 1) : ['', '']
   let [regex1, regex2, line1, col1, line2, col2] = succinct#get_delims(left, right, v:count1)
   if !line1 || !line2 || !col1 || !col2 | return | endif
-  let space1 = strchars(succinct#regex(regex1, 'aonms')) ? '\_s*' : ''
-  let space2 = strchars(succinct#regex(regex2, 'aonms')) ? '\_s*' : ''
+  let space1 = strchars(succinct#regex(regex1, 'aons')) ? '\_s*' : ''
+  let space2 = strchars(succinct#regex(regex2, 'aons')) ? '\_s*' : ''
   let iregex = substitute(regex2, '\\n', '\\n\\zs', 'g')  " ensure jump (see above)
   call cursor(line1, col1)  " start of left delim or after zero-length match
   if a:mode ==# 'i'  " inner selection only
     call succinct#search(regex1 . space1 . '\S', 'ceW')
   endif
-  let pos1 = getpos('.')  " left delimiter position
-  call cursor(line2, col2)
-  if strchars(succinct#regex(regex2, 'aonm'))  " skip empty atoms but keep space
+  let pos1 = getpos('.')
+  call cursor(line2, col2)  " start of right delim or after zero length match
+  let chars = succinct#regex(regex2, 'an')
+  if strchars(chars)  " jump to end of right delim
     call succinct#search(iregex, 'ceW')
-    if a:mode ==# 'i'  " inner selection only
-      call succinct#search('\S' . space2 . regex2, 'cbW')
-    endif
+  endif
+  if !strchars(chars) || a:mode ==# 'i'  " start of right delim or before zero length match
+    call succinct#search('\S' . space2 . regex2, 'cbW')
   endif
   let pos2 = getpos('.')
   if lnum < pos1[1] || lnum == pos1[1] && cnum < pos1[2]
