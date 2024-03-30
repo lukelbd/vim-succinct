@@ -277,9 +277,10 @@ function! s:pre_process(arg) abort
 endfunction
 function! succinct#translate_delims(plugin, key, arg, ...) abort
   let head = a:0 && a:1 ? '<buffer> ' : ''
+  let args = copy(a:000[1:])  " e.g. 'noesc' passed for manual plugins
   let ikey = char2nr(a:key)  " textobj uses this for [ia]<Key> <Plug> maps
   let iname = 'textobj_' . a:plugin . '_' . char2nr(a:key)
-  let s:[iname] = [s:pre_process(a:arg), 1] + copy(a:000[1:])
+  let s:[iname] = extend([s:pre_process(a:arg), 1], args)
   let code = [
     \ 'function! s:' . iname . '_i() abort',
     \ '  return succinct#get_object("i", ' . string(iname) . ')',
@@ -327,10 +328,10 @@ function! succinct#add_delims(source, ...) abort
   let plugin = a:0 && a:1 ? &l:filetype : 'global'  " plugin name
   let plugin = substitute(plugin, '\A', '', 'g')  " alpahbetic required
   let plugin = substitute(plugin, '\(\u\)', '\l', 'g')  " lower-case required
-  call call('succinct#add_objects', [plugin, a:source] + a:000)
+  call call('succinct#add_objects', [plugin, a:source, 0] + a:000)
   return delims
 endfunction
-function! succinct#add_objects(plugin, source, ...) abort
+function! succinct#add_objects(plugin, source, noesc, ...) abort
   let name = substitute(a:plugin, '^\(\l\)', '\u\1', 0)
   let cmd = 'Textobj' . name . 'DefaultKeyMappings'
   if !exists('*textobj#user#plugin')  " see: https://vi.stackexchange.com/a/14911/8084
@@ -341,23 +342,15 @@ function! succinct#add_objects(plugin, source, ...) abort
       echohl None | return {}
     endif
   endif
-  if exists(':' . cmd) | return {} | endif
-  let defaults = a:0 > 1 ? a:2 : 0
   let objects = {}
   for key in keys(a:source)
-    if defaults  " check existing maps
-      let outer = maparg('a' . key, 'o')
-      let inner = maparg('i' . key, 'o')
-      if !empty(outer) || !empty(inner) | continue | endif
-    endif
     if type(a:source[key]) != 1
       echohl WarningMsg
       echom "Warning: Cannot add key '" . key . "' as text object (non-string type)."
       echohl None | continue
     endif
-    let args = [a:plugin, key, a:source[key], a:0 ? a:1 : 0]
-    call extend(args, a:000[2:])
-    let objs = call('succinct#translate_delims', args)
+    let args = [a:plugin, key, a:source[key]]
+    let objs = call('succinct#translate_delims', args + a:000)
     call extend(objects, objs)
   endfor
   call textobj#user#plugin(a:plugin, objects)  " enforces lowercase alphabet
@@ -497,13 +490,14 @@ endfunction
 " leading/trailing whitespace while 'cs<Key><CR>' adds newlines. This also supports
 " passing spaces and/or counts to pad and/or repeat delimiters e.g. ysiw2<Space>b.
 function! s:get_padding(pad, ...) abort
-  let brk = a:0 > 1 && a:2 ? "\n" : ''  " e.g. 'yS' instead of 'ys'
+  let search = a:0 > 0 ? a:1 : 0  " whether to search
+  let inner = a:0 > 1 && a:2 ? "\n" : ''  " e.g. 'yS' instead of 'ys'
   if a:0 && a:1  " convert e.g. literal '\n  ' to regex '\_s*'
-    let pad = succinct#search_value(a:pad . brk)
+    let pad = succinct#search_value(a:pad . inner)
     return [pad, pad]
   else  " e.g. <Space><CR><Cursor><CR><Space>
     let rpad = join(reverse(split(a:pad, '\zs')), '')
-    return [a:pad . brk, brk . rpad]
+    return [a:pad . inner, inner . rpad]
   endif
 endfunction
 function! s:get_replace(...) abort  " cached replacement
@@ -547,7 +541,8 @@ function! succinct#search_value(value, ...) abort
 endfunction
 function! succinct#process_value(value, ...) abort
   " Acquire user-input for placeholders \1, \2, \3, ...
-  let search = a:0 ? a:1 : 0  " whether to perform search
+  let search = a:0 > 0 ? a:1 : 0  " whether to perform search
+  let noesc = a:0 > 1 ? a:2 : 0  " whether to bypass escape
   let input = type(a:value) == 2 ? s:pre_process(a:value()) : a:value  " func or str
   if empty(input) | return '' | endif  " e.g. funcref that starts asynchronous fzf
   for nr in range(7)
@@ -569,16 +564,15 @@ function! succinct#process_value(value, ...) abort
     let char = strpart(input, idx, 1)
     let jdx = char2nr(char) > 7 ? -1 : stridx(input, char, idx + 1)
     if jdx == -1  " match individual character
-      let args = [char] + a:000[1:]  " additional configuration
-      let part = !search ? char : call('succinct#search_value', args)
+      let part = !search ? char : succinct#search_value(char, noesc)
     else  " replace \1, \2, \3, ... with user input using inner text as prompt
       let part = repl_{char2nr(char)}  " defined above
       let query = strpart(input, idx + 1, jdx - idx - 1)  " query between \1...\1
       let query = matchstr(query, '\r.*')  " substitute initiation indication
       while query =~# '^\r.*\r'
         let group = matchstr(query, "^\r\\zs[^\r]*\r[^\r]*")  " match replace group
-        let sub = strpart(group, 0, stridx(group, "\r"))  " the substitute
-        let repl = strpart(group, stridx(group, "\r") + 1)  " the replacement
+        let sub = strpart(group, 0, stridx(group, "\r"))  " prompt delimiters
+        let repl = strpart(group, stridx(group, "\r") + 1)  " user-input
         let repl = !search ? repl : succinct#search_value(repl)
         let part = substitute(part, sub, repl, '')  " apply substitution as requested
         let query = strpart(query, strlen(group) + 1)  " skip over the group
