@@ -218,10 +218,10 @@ function! succinct#get_delims(left, right, ...) abort
     return [regex1, regex2, line1, col11, line2, col21]
   endif
 endfunction
-function! succinct#get_object(mode, name) abort
-  let args = get(s:, a:name, [])  " script-local arguments
+function! succinct#get_object(mode, name, ...) abort
   let [winview, lnum, cnum] = [winsaveview(), line('.'), col('.')]
-  let value = empty(args) ? '' : call('succinct#process_value', args)
+  let noesc = a:0 ? a:1 : 0  " whether to skip escaping patterns
+  let value = succinct#process_value(get(s:, a:name, ''), 1, noesc)
   let [left, right] = count(value, "\r") == 1 ? split(value, "\r", 1) : ['', '']
   let [regex1, regex2, line1, col1, line2, col2] = succinct#get_delims(left, right, v:count1)
   if !line1 || !line2 || !col1 || !col2 | return | endif
@@ -276,17 +276,17 @@ function! s:pre_process(arg) abort
   return empty(output) ? a:arg : output
 endfunction
 function! succinct#translate_delims(plugin, key, arg, ...) abort
+  let noesc = a:0 > 0 ? a:2 : 0  " possibly skip escaping patterns
   let head = a:0 && a:1 ? '<buffer> ' : ''
-  let args = copy(a:000[1:])  " e.g. 'noesc' passed for manual plugins
   let ikey = char2nr(a:key)  " textobj uses this for [ia]<Key> <Plug> maps
   let iname = 'textobj_' . a:plugin . '_' . char2nr(a:key)
-  let s:[iname] = extend([s:pre_process(a:arg), 1], args)
+  let s:[iname] = s:pre_process(a:arg)
   let code = [
     \ 'function! s:' . iname . '_i() abort',
-    \ '  return succinct#get_object("i", ' . string(iname) . ')',
+    \ '  return succinct#get_object("i", ' . string(iname) . ', ' . noesc . ')',
     \ 'endfunction',
     \ 'function! s:' . iname . '_a() abort',
-    \ '  return succinct#get_object("a", ' . string(iname) . ')',
+    \ '  return succinct#get_object("a", ' . string(iname) . ', ' . noesc . ')',
     \ 'endfunction'
   \ ]
   exe join(code, "\n")
@@ -331,7 +331,7 @@ function! succinct#add_delims(source, ...) abort
   call call('succinct#add_objects', [plugin, a:source, 0] + a:000)
   return delims
 endfunction
-function! succinct#add_objects(plugin, source, noesc, ...) abort
+function! succinct#add_objects(plugin, source, ...) abort
   let name = substitute(a:plugin, '^\(\l\)', '\u\1', 0)
   let cmd = 'Textobj' . name . 'DefaultKeyMappings'
   if !exists('*textobj#user#plugin')  " see: https://vi.stackexchange.com/a/14911/8084
