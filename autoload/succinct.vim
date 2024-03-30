@@ -276,30 +276,27 @@ function! s:pre_process(arg) abort
   return empty(output) ? a:arg : output
 endfunction
 function! succinct#translate_delims(plugin, key, arg, ...) abort
-  let noesc = a:0 > 0 ? a:2 : 0  " possibly skip escaping patterns
-  let head = a:0 && a:1 ? '<buffer> ' : ''
-  let ikey = char2nr(a:key)  " textobj uses this for [ia]<Key> <Plug> maps
-  let iname = 'textobj_' . a:plugin . '_' . char2nr(a:key)
-  let s:[iname] = s:pre_process(a:arg)
+  let flags = a:0 && a:1 ? '<buffer> ' : ''
+  let noesc = a:0 > 1 ? a:2 : 0  " possibly skip escaping patterns
+  let name = 'textobj_' . a:plugin . '_' . char2nr(a:key)
+  let s:[name] = s:pre_process(a:arg)
   let code = [
-    \ 'function! s:' . iname . '_i() abort',
-    \ '  return succinct#get_object("i", ' . string(iname) . ', ' . noesc . ')',
+    \ 'function! s:' . name . '_i() abort',
+    \ '  return succinct#get_object("i", ' . string(name) . ', ' . noesc . ')',
     \ 'endfunction',
-    \ 'function! s:' . iname . '_a() abort',
-    \ '  return succinct#get_object("a", ' . string(iname) . ', ' . noesc . ')',
+    \ 'function! s:' . name . '_a() abort',
+    \ '  return succinct#get_object("a", ' . string(name) . ', ' . noesc . ')',
     \ 'endfunction'
   \ ]
   exe join(code, "\n")
   let obj = {
     \ 'sfile': expand('<script>:p'),
-    \ 'select-i': head . 'i' . escape(a:key, '|'),
-    \ 'select-a': head . 'a' . escape(a:key, '|'),
-    \ 'select-i-function': 's:' . iname . '_i',
-    \ 'select-a-function': 's:' . iname . '_a',
+    \ 'select-i': flags . 'i' . escape(a:key, '|'),
+    \ 'select-a': flags . 'a' . escape(a:key, '|'),
+    \ 'select-i-function': 's:' . name . '_i',
+    \ 'select-a-function': 's:' . name . '_a',
   \ }
-  let objs = {}
-  let objs[ikey] = obj
-  return objs
+  return {char2nr(a:key): obj}  " textobj uses this for [ia]<Key> <Plug> maps
 endfunction
 
 " Register text object plugins and define surround and snippet variables
@@ -328,7 +325,7 @@ function! succinct#add_delims(source, ...) abort
   let plugin = a:0 && a:1 ? &l:filetype : 'global'  " plugin name
   let plugin = substitute(plugin, '\A', '', 'g')  " alpahbetic required
   let plugin = substitute(plugin, '\(\u\)', '\l', 'g')  " lower-case required
-  call call('succinct#add_objects', [plugin, a:source, 0] + a:000)
+  call call('succinct#add_objects', [plugin, a:source] + a:000)
   return delims
 endfunction
 function! succinct#add_objects(plugin, source, ...) abort
