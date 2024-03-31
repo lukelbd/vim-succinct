@@ -724,16 +724,6 @@ endfunction
 " Note: Here use count as in vim-surround to identify nested exterior delimiters.
 " Note the backwards search when on a delimiter will fail so loop should move
 " outwards. Apply delimiters using succinct but processing input here
-function! s:modify_adjust(line, col, del) abort
-  let eol = col([a:line, '$'])  " end-of-line character position
-  let newline1 = a:col <= 1 && a:line > line('.')
-  let newline2 = a:col >= eol && a:line >= line('.') && a:line < line('$')
-  if newline1 || newline2  " adjustment for end-of-line expression
-    return [a:line + 1, 0, a:del ==# "\<Delete>" ? a:del : 'gJ']
-  else  " standard delete-until-character adjustment
-    return [a:line, a:col, a:del]
-  endif
-endfunction
 function! s:modify_replace(line1, col1, line2, col2, ...) abort
   let text1 = getline(a:line1) . "\n"
   let text2 = getline(a:line2) . "\n"
