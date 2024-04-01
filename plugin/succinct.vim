@@ -138,5 +138,5 @@ let s:delims = {
   \ 'A': '\1array: \1[\r]',
 \ }
 if !g:succinct_nomap_objects
-  call succinct#add_delims(s:delims, 0, 1)
+  call succinct#add_delims(s:delims, 0)
 endif
