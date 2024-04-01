@@ -205,10 +205,12 @@ function! succinct#get_delims(left, right, ...) abort
   let regex2 = substitute(a:right, '^\\_s\*$', '\\n\\s*\$', 'g')  " 'e' translation
   let compare1 = succinct#regex(regex1, 'mons')  " remove optional-length atoms, modifiers, null atoms
   let compare2 = succinct#regex(regex2, 'mons')
-  let atoms1 = succinct#regex(regex1, 'aons')  " character count ignoring optional-length atoms
-  let atoms2 = succinct#regex(regex1, 'aons')
-  let safe = strchars(atoms1) < strchars(regex1) || strchars(atoms2) < strchars(regex2)
-  let safe = safe && strchars(atoms1) <= 1 && strchars(atoms2) <= 1  " possibly distinct but single-atom
+  let atoms11 = succinct#regex(regex1, 'aons')  " ignoring optional length
+  let atoms12 = succinct#regex(regex1, 'as')  " single character atoms
+  let atoms21 = succinct#regex(regex2, 'aons')
+  let atoms22 = succinct#regex(regex2, 'as')
+  let safe = strchars(atoms11) < strchars(atoms12) || strchars(atoms21) < strchars(atoms22)
+  let safe = safe && strchars(atoms11) <= 1 && strchars(atoms21) <= 1  " only if singleton
   let safe = safe || compare1 ==# compare2  " e.g. quotes, whitespace (filtered to '')
   let func = safe ? 'succinct#search_items' : 'succinct#search_pairs'
   let [line1, col11, line2, col21] = call(func, [regex1, regex2] + a:000)
