@@ -71,8 +71,10 @@ if !g:succinct_nomap_actions  " add mappings
   exe 'imap ' . repeat(g:succinct_surround_map, 2) . ' <Plug>Isselect'
   exe 'imap ' . repeat(g:succinct_snippet_map, 2) . ' <Plug>Ieselect'
   for s:mode in ['', 'i']
-    exe s:mode . 'map ' . g:succinct_prevdelim_map . ' <Plug>PrevDelim'
-    exe s:mode . 'map ' . g:succinct_nextdelim_map . ' <Plug>NextDelim'
+    if !hasmapto('<Plug>PrevDelim', s:mode) || !hasmapto('<Plug>NextDelim', s:mode)
+      exe s:mode . 'map ' . g:succinct_prevdelim_map . ' <Plug>PrevDelim'
+      exe s:mode . 'map ' . g:succinct_nextdelim_map . ' <Plug>NextDelim'
+    endif
   endfor
 endif
 
