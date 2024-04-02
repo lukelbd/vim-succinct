@@ -758,10 +758,11 @@ function! succinct#modify_delims(left, right, ...) abort
   let outside = lnum > line22 || lnum == line22 && cnum > col22
   let outside = outside || lnum < line11 || lnum == line11 && cnum < col11
   if outside | call winrestview(winview) | return | endif
-  let [_, line2] = s:modify_replace(line21, col21, line22, col22, repl2)
-  let [line1, iline12] = s:modify_replace(line11, col11, line12, col12, repl1)
-  let line2 += (iline12 - line12)  " in case newlines added
-  call succinct#post_process(line1, line2)
+  let [line21, line22] = s:modify_replace(line21, col21, line22, col22, repl2)
+  let [line11, line12] = s:modify_replace(line11, col11, line12, col12, repl1)
+  let line22 += (line12 - line12)  " in case newlines added
+  call cursor(line11, col11)  " restore cursor position
+  call succinct#post_process(line11, line22)
 endfunction
 
 " Change and delete arbitrary surrounding delimiters ( ( ( ( [ [ ] ] ) ) ) )
