@@ -6,7 +6,8 @@
 "-----------------------------------------------------------------------------
 " Template select autocommand
 scriptencoding utf-8
-augroup succinct
+silent! au! succinct
+augroup vim_succinct
   au!
   au BufNewFile * call succinct#template_select()
 augroup END
