@@ -417,12 +417,10 @@ endfunction
 " with no window options and letting it fill the screen (use --height=100% to ensure
 " all entries shown). In future may have to make this work but for now this is fine.
 function! s:fzf_check() abort
-  if !exists('*fzf#run')
-    echohl WarningMsg
-    echom 'Warning: FZF plugin not found.'
-    echohl None
-  endif
-  return exists('*fzf#run')
+  if exists('*fzf#run') | return 1 | endif
+  redraw | echohl ErrorMsg
+  echom 'Error: fzf.vim plugin not available.'
+  echohl None | return 0
 endfunction
 function! succinct#template_select() abort
   let templates = s:template_source(expand('%:e'))
