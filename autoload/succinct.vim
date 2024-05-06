@@ -728,8 +728,8 @@ endfunction
 function! s:modify_replace(line1, col1, line2, col2, ...) abort
   let text1 = getline(a:line1) . "\n"
   let text2 = getline(a:line2) . "\n"
-  let head = strpart(text1, 0, a:col1 - 1)  " line before start of delimiter
-  let tail = strpart(text2, a:col2)  " line after end of delimiter
+  let head = strcharpart(text1, 0, charidx(text1, a:col1 - 1))  " before open
+  let tail = strcharpart(text2, charidx(text2, a:col2 - 1) + 1)  " after close
   let text = head . (a:0 ? a:1 : '') . tail  " e.g. line 'abc\n' col2 '4' empty
   let text .= empty(tail) ? getline(a:line2 + 1) . "\n" : ''  " extra line
   let [del1, del2] = [a:line1 + 1, a:line2 + empty(tail)]
