@@ -181,11 +181,11 @@ function! succinct#search_items(left, right, ...) abort
   endfor
   if a:left =~# '[''"]' && a:right =~# '[''"]'  " additional syntax check
     let inner = line2 > line1 ? range(line1 + 1, line2 - 1) : []
-    let skips = succinct#syntax(lnum, cnum)
-    call extend(skips, succinct#syntax(line1, col11))
-    call extend(skips, succinct#syntax(line2, col21))
-    for inum in inner | call extend(skips, succinct#syntax(inum)) | endfor
-    if len(uniq(sort(skips))) > 1 | return [0, 0, 0, 0] | endif
+    let groups = succinct#syntax(lnum, cnum)
+    call extend(groups, succinct#syntax(line1, col11))
+    call extend(groups, succinct#syntax(line2, col21))
+    for inum in inner | call extend(groups, succinct#syntax(inum)) | endfor
+    if len(uniq(sort(groups))) > 1 | return [0, 0, 0, 0] | endif
   endif
   return [line1, col11, line2, col21]
 endfunction
