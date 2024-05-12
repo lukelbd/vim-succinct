@@ -1,10 +1,9 @@
-"-----------------------------------------------------------------------------
-" Author:  Luke Davis (lukelbd@gmail.com)
-" Tools for working with snippets, delimiters, and text objects in vim. Includes
-" utilities for defining text objects and vim-surround delimiters in one go and
-" defining snippet and delimiter mappings under a standardized prefix.
-"-----------------------------------------------------------------------------
-" Template select autocommand
+"-----------------------------------------------------------------------------"
+" Tools for working with snippets, delimiters, and text objects {{{1
+"-----------------------------------------------------------------------------"
+" Initial stuff {{{2
+" This plugin includes utilities for defining text objects and vim-surround delimiters
+" in one go and defining snippet and delimiter mappings under a standardized prefix.
 scriptencoding utf-8
 silent! au! succinct
 augroup vim_succinct
@@ -12,12 +11,7 @@ augroup vim_succinct
   au BufNewFile * call succinct#template_select()
 augroup END
 
-" Template location
-if !exists('g:succinct_templates_path')
-  let g:succinct_templates_path = '~/templates'
-endif
-
-" Disable mappings
+" Disable mappings {{{2
 if !exists('g:succinct_nomap')
   let g:succinct_nomap = 0
 endif
@@ -28,7 +22,10 @@ if !exists('g:succinct_nomap_objects')
   let g:succinct_nomap_objects = g:succinct_nomap
 endif
 
-" Surround and snippet maps
+" General settings {{{2
+if !exists('g:succinct_templates_path')
+  let g:succinct_templates_path = '~/templates'
+endif
 if !exists('g:succinct_snippet_map')  " backwards compatibility
   let g:succinct_snippet_map = get(g:, 'succinct_snippet_prefix', '<C-e>')
 endif
@@ -36,7 +33,7 @@ if !exists('g:succinct_surround_map')  " backwards compatibility
   let g:succinct_surround_map = get(g:, 'succinct_surround_prefix', '<C-s>')
 endif
 
-" Next and previous delimiter maps
+" Delimiter settings {{{2
 if !exists('g:succinct_prevdelim_map')
   let g:succinct_prevdelim_map = '<C-h>'
 endif
@@ -44,10 +41,10 @@ if !exists('g:succinct_nextdelim_map')
   let g:succinct_nextdelim_map = '<C-l>'
 endif
 
-"-----------------------------------------------------------------------------
-" Default commands, mappings, delims, and text objects
-"-----------------------------------------------------------------------------
-" Selecting and inserting insert-mode delimiters and snippets
+"-----------------------------------------------------------------------------"
+" Default commands, mappings, delims, and text objects {{{1
+"-----------------------------------------------------------------------------"
+" Selecting and inserting insert-mode delimiters and snippets {{{2
 " Note: <Plug> names cannot begin with same letters or vim will hang until next
 " key resolve ambiguity (<Plug>Name is parsed by vim as successive keystrokes).
 " Note: Ysuccinct manually processes the delimiter then sends '\1' to vim-surround
@@ -79,7 +76,7 @@ if !g:succinct_nomap_actions  " add mappings
   endfor
 endif
 
-" Selecting, using, changing, and deleting normal and visual-mode delimiters
+" Selecting, using, changing, and deleting normal and visual-mode delimiters {{{2
 " Note: Add operator maps so e.g. 'd2s' count style is captured, but still need
 " explicit e.g. 'ds' maps so they override vim-surround versions.
 " Note: This supports fancy count/indent behavior e.g. ysiw<CR>b to surround current
@@ -110,7 +107,7 @@ if !g:succinct_nomap_actions
   endfor
 endif
 
-" Add global delimiters and text objects
+" Add global delimiters and text objects {{{2
 " Note: For surrounding with spaces can hit space twice, and for surrounding
 " with enter can use e.g. 'yS' intead of 'ys', so '^M' regex works here.
 let s:delims = {

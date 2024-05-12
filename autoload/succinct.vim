@@ -1,5 +1,5 @@
 "-----------------------------------------------------------------------------"
-" General search and replace functions
+" General search and replace functions {{{1
 "-----------------------------------------------------------------------------"
 " Patterns for parsing regular expressions
 " Note: This is needed to dynamically assign either search() or searchpair() for input
@@ -190,9 +190,9 @@ function! succinct#search_items(left, right, ...) abort
   return [line1, col11, line2, col21]
 endfunction
 
-"-----------------------------------------------------------------------------
-" Register snippets, delimiters, and objects
-"-----------------------------------------------------------------------------
+"-----------------------------------------------------------------------------"
+" Register snippets, delimiters, and objects {{{1
+"-----------------------------------------------------------------------------"
 " Get surround delimiters and associated text object
 " Warning: For some reason search('\n\s*$', 'e') fails to jump to next line if it
 " is empty. Have to force the jump by adding '\zs' after every '\n' in match.
@@ -358,7 +358,7 @@ function! succinct#add_objects(plugin, source, ...) abort
 endfunction
 
 "-----------------------------------------------------------------------------
-" Select templates, snippets, and delimiters
+" Select templates, snippets, and delimiters {{{1
 "-----------------------------------------------------------------------------
 " Find and read from template files
 " Note: See below for more on fzf limitations.
@@ -450,7 +450,7 @@ function! succinct#surround_select(mode) abort
 endfunction
 
 "-----------------------------------------------------------------------------"
-" Helper functions for processing snippets and delimiters
+" Helper functions for processing snippets and delimiters {{{1
 "-----------------------------------------------------------------------------"
 " Get and parse user-input delimiter key and spaces
 " Note: This permits typing arbitrary numbers to select outer delimiters, e.g. 2b
@@ -656,7 +656,7 @@ function! succinct#surround_repeat(type) abort
 endfunction
 
 "-----------------------------------------------------------------------------"
-" Insert and change snippets and delimiters
+" Insert and change snippets and delimiters {{{1
 "-----------------------------------------------------------------------------"
 " Restore indentation and remove trailing whitespace for multi-line results
 " Note: Previously inserted indentations manually but now override vim-surround
