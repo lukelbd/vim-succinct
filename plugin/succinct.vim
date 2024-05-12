@@ -2,6 +2,7 @@
 " Tools for working with snippets, delimiters, and text objects {{{1
 "-----------------------------------------------------------------------------"
 " Initial stuff {{{2
+" Author: Luke Davis (lukelbd@gmail.com)
 " This plugin includes utilities for defining text objects and vim-surround delimiters
 " in one go and defining snippet and delimiter mappings under a standardized prefix.
 scriptencoding utf-8
