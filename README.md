@@ -16,7 +16,7 @@ Includes the following features:
   add filetype-specific definitions, add a `'python'` key to the dictionary variable
   `g:succinct_filetype_delims`, or use the global variable `g:succinct_python_delims`
   or the buffer-local variable `b:succinct_delims` (see below).
-* Adding snippet mappings with `succinct#add_snippets()` and using them in insert
+* Adding snippet mappings with e.g. `let g:succinct_snippets = {}` and using them in insert
   mode with the default prefix `<C-e><Key>` (selected because the `e` key is relatively
   close to the `s` used for delimiters). Implementation is similar to [vim-surround](https://github.com/tpope/vim-surround),
   and definitions can be strings with optional `\1...\1` style prompt indicators (see
