@@ -193,9 +193,37 @@ endfunction
 "-----------------------------------------------------------------------------"
 " Register snippets, delimiters, and objects {{{1
 "-----------------------------------------------------------------------------"
-" Get surround delimiters and associated text object
+" Register delimiters from settings
 " Warning: For some reason search('\n\s*$', 'e') fails to jump to next line if it
 " is empty. Have to force the jump by adding '\zs' after every '\n' in match.
+" Note: This is alternative to vim-surround style of using manual FileType
+" autocommands and managing 'ftplugin' files. Triggered with general augroup.
+function! s:get_definitions(...) abort
+  let suffix = a:0 && a:1 ? 'snippets' : 'delims'
+  let ftype = substitute(&l:filetype, '\..*$', '', 'g')  " ignore composites
+  let name1 = 'succinct_' . suffix
+  let name2 = 'succinct_' . ftype . '_' . suffix
+  let types = get(g:, 'succinct_filetype_' . suffix, {})
+  if exists('b:' . name1)
+    return get(b:, name1, {})
+  elseif exists('g:' . name2)
+    return get(g:, name2, {})
+  elseif has_key(types, ftype)
+    return types[ftype]
+  else  " fallback
+    return {}
+  endif
+endfunction
+function! succinct#filetype_delims(...) abort
+  let maps = s:get_definitions(0)
+  return call('succinct#add_delims', [maps, 1] + a:000)
+endfunction
+function! succinct#filetype_snippets(...) abort
+  let maps = s:get_definitions(1)
+  return call('succinct#add_snippets', [maps, 1] + a:000)
+endfunction
+
+" Get surround delimiters and associated text object
 " Note: These drive all operator-pending textobj mappings and vim-surround delimiter
 " modifications. Supports process_value mods (e.g. python [frub] prefix, tex %-suffix)
 " Note: These defer to searchpairpos() for non-identical delimiters more than one atom
@@ -325,15 +353,14 @@ function! succinct#add_delims(source, ...) abort
     let scope[name] = s:pre_process(a:source[key])
     let delims[key] = scope[name]
   endfor
-  let plugin = a:0 && a:1 ? &l:filetype : 'global'  " plugin name
+  let plugin = a:0 && a:1 ? &l:filetype : a:0 ? 'global' : 'default'  " plugin name
   let plugin = substitute(plugin, '\A', '', 'g')  " alpahbetic required
   let plugin = substitute(plugin, '\(\u\)', '\l', 'g')  " lower-case required
   call call('succinct#add_objects', [plugin, a:source] + a:000)
   return delims
 endfunction
 function! succinct#add_objects(plugin, source, ...) abort
-  let name = substitute(a:plugin, '^\(\l\)', '\u\1', 0)
-  let cmd = 'Textobj' . name . 'DefaultKeyMappings'
+  let objects = {}
   if !exists('*textobj#user#plugin')  " see: https://vi.stackexchange.com/a/14911/8084
     runtime autoload/textobj/user.vim
     if !exists('*textobj#user#plugin')  " plugin not available
@@ -342,7 +369,6 @@ function! succinct#add_objects(plugin, source, ...) abort
       echohl None | return {}
     endif
   endif
-  let objects = {}
   for key in keys(a:source)
     if type(a:source[key]) != 1
       echohl WarningMsg
@@ -353,8 +379,12 @@ function! succinct#add_objects(plugin, source, ...) abort
     let objs = call('succinct#translate_delims', args + a:000)
     call extend(objects, objs)
   endfor
-  call textobj#user#plugin(a:plugin, objects)  " enforces lowercase alphabet
-  exe cmd . '!' | return objects
+  if !empty(objects)  " enforces lowercase alphabet
+    let name = substitute(a:plugin, '^\(\l\)', '\u\1', 0)
+    call textobj#user#plugin(a:plugin, objects)
+    exe 'Textobj' . name . 'DefaultKeyMappings!'
+  endif
+  return objects
 endfunction
 
 "-----------------------------------------------------------------------------

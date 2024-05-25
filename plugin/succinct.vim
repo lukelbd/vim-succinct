@@ -10,6 +10,8 @@ silent! au! succinct
 augroup vim_succinct
   au!
   au BufNewFile * call succinct#template_select()
+  au FileType * call succinct#filetype_delims()
+  au FileType * call succinct#filetype_snippets()
 augroup END
 
 " Disable mappings {{{2
@@ -110,8 +112,8 @@ endif
 
 " Add global delimiters and text objects {{{2
 " Note: For surrounding with spaces can hit space twice, and for surrounding
-" with enter can use e.g. 'yS' intead of 'ys', so '^M' regex works here.
-let s:delims = {
+" with enter can use e.g. 'yS' intead of 'ys'.
+let s:defaults = {
   \ "'": '''\r''',
   \ '"': '"\r"',
   \ ';': ';\r;',
@@ -133,10 +135,11 @@ let s:delims = {
   \ '[': '[\r]',
   \ 'a': '<\r>',
   \ '<': '<\r>',
-  \ 'e': '\n\r\n',
-  \ 'f': '\1function: \1(\r)',
-  \ 'A': '\1array: \1[\r]',
-\ }
+  \ }
 if !g:succinct_nomap_objects
-  call succinct#add_delims(s:delims, 0)
+  let delims = get(g:, 'succinct_delims', {})
+  let snippets = get(g:, 'succinct_snippets', {})
+  call succinct#add_delims(s:defaults)  " missing arg uses textobj plugin name 'default' 
+  call succinct#add_delims(delims, 0)  " uses textobj plugin name 'global'
+  call succinct#add_snippets(snippets, 0)
 endif

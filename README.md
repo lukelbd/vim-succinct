@@ -11,11 +11,11 @@ Includes the following features:
   fuzzy-search windows on new buffers and allowing users to select from template files
   whose extension matches the buffer extension. The window will not open if no matching
   templates are found. Use e.g. `:edit` from any empty buffer to trigger manually.
-* Adding [vim-surround](https://github.com/tpope/vim-surround) delimiter mappings with e.g. `succinct#add_delims({'b': "(\r)", 'r': "[\r]"})`
+* Adding [vim-surround](https://github.com/tpope/vim-surround) mappings with e.g. `let g:succinct_delims = {'b': "(\r)", 'r': "[\r]"}`
   and using them from insert or visual mode with the default prefix `<C-s><Key>`. To
-  add filetype-specific definitions, pass `1` as the second argument with e.g.
-  `succinct#add_delims({...}, 1)` and call from either `ftplugin/type.vim` or
-  `autocmd FileType type` (see `:help surround-customizing`).
+  add filetype-specific definitions, add a `'python'` key to the dictionary variable
+  `g:succinct_filetype_delims`, or use the global variable `g:succinct_python_delims`
+  or the buffer-local variable `b:succinct_delims` (see below).
 * Adding snippet mappings with `succinct#add_snippets()` and using them in insert
   mode with the default prefix `<C-e><Key>` (selected because the `e` key is relatively
   close to the `s` used for delimiters). Implementation is similar to [vim-surround](https://github.com/tpope/vim-surround),
@@ -78,6 +78,12 @@ Options
 | `g:succinct_prevdelim_map` | Normal and insert mode mapping for jumping to the previous quote or delimiter. Default is `<C-h>`. |
 | `g:succinct_nextdelim_map` | Normal and insert mode mapping for jumping to the next quote or delimiter. Default is `<C-l>`. |
 | `g:succinct_templates_path` | The folder where templates are stored. These are optionally loaded when creating new files. Default is `~/templates`. |
+| `g:succinct_delims` | Optional global delimiter and text object mappings. Delimiter pairs should be separated by `'\r'` or `"\r"` (see `:help surround-customizing`). |
+| `b:succinct_delims` | Optional buffer-local delimiter and text object mappings. These can be set with `au FileType type` autocommands or `ftplugin/type.vim` files. |
+| `g:succinct_filetype_delims` | Optional filetype-specific delimiter and text object mappings. Each key should be a file type and each value a dictionary of mappings. |
+| `g:succinct_snippets` | Optional global snippet mappings. Snippets are parsed the same as delimiters (e.g. can include `vim-surround` `\1..\1` prompts). |
+| `b:succinct_snippets` | Optional buffer-local snippet mappings. These can be set with `au FileType type` autocommands or `ftplugin/type.vim` files. |
+| `g:succinct_filetype_snippets` | Optional filetype-specific snippet mappings. Each key should be a file type and each value a dictionary of mappings. |
 
 Installation
 ============
