@@ -390,41 +390,30 @@ endfunction
 "-----------------------------------------------------------------------------
 " Select templates, snippets, and delimiters {{{1
 "-----------------------------------------------------------------------------
-" Find and read from template files
+" Helper functions for template file search
 " Note: See below for more on fzf limitations.
-function! s:template_sink(file) abort
-  if exists('g:succinct_templates_path') && !empty(a:file)
-    let templates = expand(g:succinct_templates_path)
-    let path = templates . '/' . a:file
-    execute '0r ' . path | doautocmd BufRead
-  endif
-endfunction
 function! s:template_source(ext) abort
-  let paths = []
-  if exists('g:succinct_templates_path')
-    let templates = expand(g:succinct_templates_path)
-    let paths = globpath(templates, '*.' . a:ext, 0, 1)
-    let paths = filter(paths, '!isdirectory(v:val)')
-    let paths = map(paths, 'fnamemodify(v:val, ":t")')
+  if !exists('g:succinct_templates_path')
+    return []
   endif
-  if !empty(paths)
-    let paths = [''] + paths  " add stand-in for 'load nothing'
-  endif
+  let base = expand(g:succinct_templates_path)
+  let paths = globpath(base, '*.' . a:ext, 0, 1)
+  let paths = filter(paths, '!isdirectory(v:val)')
+  let paths = map(paths, 'fnamemodify(v:val, ":t")')
+  if !empty(paths) | call insert(paths, '') | endif  " stand-in for 'load nothing'
   return paths
 endfunction
-
-" Find and use delimiters and snippets
-" Note: See below for more on fzf limitations.
-function! s:select_sink(mode, item) abort
-  let key = split(a:item, ':')[0]
-  if !type(a:mode)  " snippet sink
-    call feedkeys("\<Plug>Isnippet" . key, 'ti')
-  elseif a:mode =~? '^[iv]$'  " e.g. <Plug>Isurround and <Plug>Vsurround
-    call feedkeys("\<Plug>" . a:mode . 'surround' . key, 'ti')
-  elseif a:mode =~? '^[ydc]$'  " e.g. ys, ds, cs maps with more complex destinations
-    call feedkeys(a:mode . 's' . key, 't')
+function! s:template_sink(file) abort
+  if !exists('g:succinct_templates_path') || empty(a:file)
+    return
   endif
+  let base = expand(g:succinct_templates_path)
+  let path = base . '/' . a:file
+  execute '0r ' . path | doautocmd BufRead
 endfunction
+
+" Helper functions for delimiter and snippet search
+" Note: See below for more on fzf limitations.
 function! s:select_source(prefix) abort
   let opts = {}
   for scope in ['g:', 'b:']
@@ -435,6 +424,26 @@ function! s:select_source(prefix) abort
     endfor
   endfor
   return map(items(opts), 'v:val[0] . '': '' . string(v:val[1])')
+endfunction
+function! s:select_sink(mode, args, item) abort
+  let key = split(a:item, ':')[0]
+  if !type(a:mode) && !a:mode  " snippet sink
+    call feedkeys("\<Plug>Isnippet" . key, 'ti')
+  elseif !type(a:mode) || a:mode ==? 'v'  " e.g. ys<Motion> map arguments
+    let args = [a:args[0], key] + a:args[1:]
+    call call('succinct#surround_run', args)
+  elseif a:mode ==? 'i'  " e.g. <Plug>Isuccinct and <Plug>Vsuccinct
+    let feed = "\<Plug>" . toupper(a:mode) . 'succinct'
+    call feedkeys(feed . key, 'm')
+  else  " e.g. ds, cs maps with more complex destinations
+    let search = a:mode =~# '\l'  " whether to search or replace
+    let name = search ? 'succinct_delete' : 'succinct_change'
+    let break = len(a:args) > 2 ? a:args[3] : 0
+    let [text1, text2] = s:get_surround(key, a:args[1], search, break)
+    let b:[name] = [text1, text2, a:args[2]]  " delimiters with count
+    let feed = "\<Plug>" . toupper(a:mode) . 'succinct'
+    call feedkeys(feed, 'm')  " skips 'setup' and uses cache
+  endif
 endfunction
 
 " Show templates, snippets, and delimiters in fzf menu
@@ -452,30 +461,24 @@ function! s:fzf_check() abort
   echom 'Error: fzf.vim plugin not available.'
   echohl None | return 0
 endfunction
-function! succinct#template_select() abort
+function! succinct#fzf_template() abort
   let templates = s:template_source(expand('%:e'))
   if empty(templates) | return | endif
   if !s:fzf_check() | return | endif
   call fzf#run(fzf#wrap({
     \ 'sink': function('s:template_sink'),
     \ 'source': templates,
-    \ 'options': '--no-sort --height=100% --prompt="Template> "',
+    \ 'options': "--no-sort --height=100% --prompt='Template> '",
     \ }))
 endfunction
-function! succinct#snippet_select() abort
+function! succinct#fzf_select(mode, ...) abort
   if !s:fzf_check() | return | endif
+  let name = !type(a:mode) && !a:mode ? 'snippet' : 'surround'
+  let prompt = string(toupper(name[0]) . name[1:] . '> ')
   noautocmd call fzf#run({
-    \ 'sink': function('s:select_sink', [1]),
-    \ 'source': s:select_source('snippet'),
-    \ 'options': '--no-sort --height=100% --prompt="Snippet> "',
-  \ })
-endfunction
-function! succinct#surround_select(mode) abort
-  if !s:fzf_check() | return | endif
-  noautocmd call fzf#run({
-    \ 'sink': function('s:select_sink', [a:mode]),
-    \ 'source': s:select_source('surround'),
-    \ 'options': '--no-sort --height=100% --prompt="Surround> "',
+    \ 'sink': function('s:select_sink', [a:mode] + a:000),
+    \ 'source': s:select_source(name),
+    \ 'options': '--no-sort --height=100% --prompt=' . prompt,
   \ })
 endfunction
 
@@ -491,11 +494,11 @@ function! s:get_char() abort
   let char = string(char) =~# '^\d\+$' ? nr2char(char) : char
   return char
 endfunction
-function! s:get_target(snippet) abort
+function! s:get_target(mode, ...) abort
   let [cnt, pad] = ['', '']
   let key = s:get_char()
-  let head = a:snippet ? 'snippet_' : 'surround_'
-  let name = head . char2nr(key)
+  let head = !type(a:mode) && !a:mode ? 'snippet' : 'surround'
+  let name = head . '_' . char2nr(key)
   if !has_key(b:, name) && !has_key(g:, name)  " allow e.g. '1' delimiters
     while key ==# "\<CursorHold>"  " iterm 3.5+ bug
       let key = s:get_char()
@@ -509,9 +512,19 @@ function! s:get_target(snippet) abort
       let key = s:get_char()
     endwhile
   endif
-  let key = key =~# '\p' ? key : ''
   let cnt = empty(cnt) || cnt ==# '0' ? 1 : str2nr(cnt)
-  return [key, pad, cnt]
+  let cnt *= !type(a:mode) ? max([a:mode, 1]) : 1  " e.g. 'ys' user input count
+  let map = get(g:, 'succinct_' . head . '_map', '<Ignore>')
+  let arg = maparg(map, 'i', 0, 1)  " surround or snippet mapping
+  let lhs1 = get(arg, 'lhsraw', "\<Ignore>")  " literal byte sequences
+  let lhs2 = get(arg, 'lhsrawalt', "\<Ignore>")
+  if key ==# lhs1 || key ==# lhs2  " interactive select
+    let args = [a:0 ? a:1 : 'char', pad, cnt] + a:000[1:]
+    call succinct#fzf_select(a:mode, args) | return ['', '', 0]
+  else  " continue with operation
+    let key = key =~# '\p' ? key : ''
+    return [key, pad, cnt]
+  endif
 endfunction
 
 " Get and process user-input delimiter, combining spaces and counts
@@ -523,7 +536,7 @@ endfunction
 function! s:get_padding(pad, ...) abort
   let search = a:0 > 0 ? a:1 : 0  " whether to search
   let inner = a:0 > 1 && a:2 ? "\n" : ''  " e.g. 'yS' instead of 'ys'
-  if a:0 && a:1  " convert e.g. literal '\n  ' to regex '\_s*'
+  if search  " convert e.g. literal '\n  ' to regex '\_s*'
     let pad = succinct#search_value(a:pad . inner)
     return [pad, pad]
   else  " e.g. <Space><CR><Cursor><CR><Space>
@@ -531,27 +544,20 @@ function! s:get_padding(pad, ...) abort
     return [a:pad . inner, inner . rpad]
   endif
 endfunction
-function! s:get_replace(...) abort  " cached replacement
-  let name = 'succinct_' . (a:0 && a:1 ? 'target' : 'replace')
-  if empty(get(b:, name, []))  " request user input
-    let [key, pad, cnt] = s:get_target(0)
-    let [text1, text2] = call('s:get_surround', [key, pad] + a:000)
-    let b:[name] = [text1, text2, cnt]
-  endif
-  return b:[name]
-endfunction
 function! s:get_snippet(key, pad, ...) abort
   let default = a:key  " default 'snippet' is the input key
+  let search = a:0 > 0 ? a:1 : 0  " whether to search for the value
   let name = 'snippet_' . char2nr(a:key)  " note char2nr('') == 0
-  let text = succinct#process_value(get(b:, name, get(g:, name, default)), a:0 && a:1)
+  let text = succinct#process_value(get(b:, name, get(g:, name, default)), search)
   if empty(text) | return '' | endif  " e.g. empty key or missing value
   let [pad1, pad2] = call('s:get_padding', [a:pad] + a:000)
   return pad1 . text . pad2
 endfunction
 function! s:get_surround(key, pad, ...) abort
   let default = empty(a:key) || a:key =~# '\a' ? '' : a:key . "\r" . a:key  " default
+  let search = a:0 > 0 ? a:1 : 0  " whether to search for the value
   let name = 'surround_' . char2nr(a:key)  " note char2nr('') == 0
-  let text = succinct#process_value(get(b:, name, get(g:, name, default)), a:0 && a:1)
+  let text = succinct#process_value(get(b:, name, get(g:, name, default)), search)
   if empty(text) || count(text, "\r") != 1 | return ['', ''] | endif
   let [text1, text2] = split(text, "\r", 1)
   let [pad1, pad2] = call('s:get_padding', [a:pad] + a:000)
@@ -618,11 +624,11 @@ function! succinct#process_value(value, ...) abort
   return head . output
 endfunction
 
-" Helper functions for normal-mode mappings
-" Note: Use two operator functions here, one setup function for queueing and sending
-" to vim-surround and another as a thin wrapper tha simply calls vim-surround opfunc()
-" then post-processes the result. Get the script-local name of opfunc() by sending
-" <Plug>Ysurround<Esc> which consumes v:count, so send count as input argument.
+" Helper functions for initiating delimiter surround
+" Note: Get the script-local name of opfunc() by sending <Plug>Ysurround<Esc>
+" which consumes v:count, so have to send count as input argument.
+" Note: Isolate surround-insertion function here so we can allow user to select
+" from fzf menu then continue operator-mode insertion without losing range.
 function! s:feed_repeat(keys, ...) abort
   let cmd = 'call repeat#set("\' . a:keys . '", ' . (a:0 ? a:1 : v:count) . ')'
   call feedkeys(exists('*repeat#set') ? "\<Cmd>" . cmd . "\<CR>" : '', 'n')
@@ -632,60 +638,38 @@ function! succinct#setup_insert() abort  " reset insert-mode undo
   return "\<C-g>u"
 endfunction
 function! succinct#setup_motion() abort  " reset buffer variables
-  let [b:surround_1, b:succinct_target, b:succinct_replace] = ['', [], []]
+  let [b:surround_1, b:succinct_change, b:succinct_delete] = ['', [], []]
   return "\<Plug>Ysurround\<Esc>"
 endfunction
 function! succinct#setup_operator(...) abort
   if v:operator !~? '^[cdy]$' | return '' | endif
   return "\<Plug>" . toupper(v:operator) . (a:0 && a:1 ? 'S' : 's') . 'uccinct'
 endfunction
-function! succinct#surround_start(type) range abort
+function! succinct#surround_init(type) range abort
   let [opfunc, opcount, oparg] = s:surround_args
   if type(oparg)  " visual-mode argument passed manually
-    let [break, type] = [oparg =~# '^[A-Z]', oparg]  " e.g. V not v
+    let [mode, type, break] = ['v', oparg, oparg =~# '^[A-Z]']  " e.g. V not v
   else  " automatic opfunc argument provided by vim
-    let [break, type] = [oparg, a:type]
+    let [mode, type, break] = [max([opcount, 1]), a:type, oparg]
   endif
-  let [key, pad, cnt] = s:get_target(0)  " user input target
-  let [text1, text2] = s:get_surround(key, pad, 0, break)
+  let args = s:get_target(mode, type, break)  " user input target
+  call call('succinct#surround_run', [type] + args + [break])
+endfunction
+function! succinct#surround_run(type, key, ...)
+  let pad = a:0 > 0 ? a:1 : ''
+  let cnt = a:0 > 1 ? a:2 : 1
+  let break = a:0 > 2 ? a:3 : 0
+  let [text1, text2] = s:get_surround(a:key, pad, 0, break)
   if empty(text1) && empty(text2)  " padding not applied if delimiter not passed
     let &l:operatorfunc = '' | return
   endif
-  let cnt *= max([opcount, 1])  " after motion or before 'ys'
   let [text1, text2] = [repeat(text1, cnt), repeat(text2, cnt)]
   let b:surround_1 = text1 . "\r" . text2  " final processed delimiters
   setlocal operatorfunc=succinct#surround_repeat
-  let cmd = "\<Cmd>call succinct#surround_repeat(" . string(type) . ")\<CR>"
+  let cmd = "\<Cmd>call succinct#surround_repeat(" . string(a:type) . ")\<CR>"
   call feedkeys(cmd, 'n')  " runs vim-surround operator function
   call feedkeys("\1", 't')  " force vim-surround to read b:surround_1
   call s:feed_repeat('<Plug>SurroundRepeat' . "\1", 1)  " count already applied
-endfunction
-function! succinct#surround_repeat(type) abort
-  if exists('b:surround_indent')  " record default
-    let s:surround_indent = b:surround_indent
-  endif
-  let b:surround_indent = 0  " override with manual approach
-  let opfunc = s:surround_args[0]
-  let texts = split(get(b:, 'surround_1', "\r"), "\r", 1)
-  let empty = !empty(texts) && texts[0] ==# texts[1] && texts[0] =~# '^\n\+$'
-  let multi = type(a:type) && a:type ==# 'line' && line("'[") != line("']")
-  let [ibuf, line1, col1, off1] = getpos("'[")
-  let [ibuf, line2, col2, off2] = getpos("']")
-  if line2 < line1 || line2 == line1 && col2 < col1
-    let [line1, col1, off1, line2, col2, off2] = [line2, col2, off2, line1, col1, off1]
-  endif
-  if a:type ==# 'line'  " e.g. 'vip' puts cursor on first column of last line
-    let [line1, col1, line2, col2] = [line1, 1, line2, col([line2, '$'])]
-  endif
-  if line2 && col2 == col([line2, '$'])  " adjust bounds
-    let line2 = col2 > 1 ? line2 : line2 - 1  " must come before
-    let col2 = col2 > 1 ? col2 - 1 : col([line2, '$']) - 1  " must come after
-    let b:surround_1 .= empty ? "\n" : ''
-  endif
-  call setpos("'[", [ibuf, line1, col1, off1])
-  call setpos("']", [ibuf, line2, col2, off2])
-  call call(opfunc, [a:type])  " native vim-surround function
-  call succinct#post_process()
 endfunction
 
 "-----------------------------------------------------------------------------"
@@ -720,6 +704,38 @@ function! succinct#post_process(...) abort
   endtry
 endfunction
 
+" Surround text with delimiter using input opfunc type
+" Note: Use two operator functions here, one setup function for queueing and sending
+" to vim-surround and another as a thin wrapper tha simply calls vim-surround opfunc()
+" then post-processes the result below.
+function! succinct#surround_repeat(type) abort
+  if exists('b:surround_indent')  " record default
+    let s:surround_indent = b:surround_indent
+  endif
+  let b:surround_indent = 0  " override with manual approach
+  let opfunc = s:surround_args[0]
+  let texts = split(get(b:, 'surround_1', "\r"), "\r", 1)
+  let empty = !empty(texts) && texts[0] ==# texts[1] && texts[0] =~# '^\n\+$'
+  let multi = type(a:type) && a:type ==# 'line' && line("'[") != line("']")
+  let [ibuf, line1, col1, off1] = getpos("'[")
+  let [ibuf, line2, col2, off2] = getpos("']")
+  if line2 < line1 || line2 == line1 && col2 < col1
+    let [line1, col1, off1, line2, col2, off2] = [line2, col2, off2, line1, col1, off1]
+  endif
+  if a:type ==# 'line'  " e.g. 'vip' puts cursor on first column of last line
+    let [line1, col1, line2, col2] = [line1, 1, line2, col([line2, '$'])]
+  endif
+  if line2 && col2 == col([line2, '$'])  " adjust bounds
+    let line2 = col2 > 1 ? line2 : line2 - 1  " must come before
+    let col2 = col2 > 1 ? col2 - 1 : col([line2, '$']) - 1  " must come after
+    let b:surround_1 .= empty ? "\n" : ''
+  endif
+  call setpos("'[", [ibuf, line1, col1, off1])
+  call setpos("']", [ibuf, line2, col2, off2])
+  call call(opfunc, [a:type])  " native vim-surround function
+  call succinct#post_process()
+endfunction
+
 " Generate insert, visual, and normal-mode delimiters
 " Note: This permits e.g. <C-e><Space><Snippet> to surround with spaces or
 " <C-e><CR><Snippet> to surround with newlines, similar to vim-surround.
@@ -727,18 +743,19 @@ endfunction
 " trailing whitespace, or e.g. ysib<CR><Key> or ysibm to convert a single-line
 " parenthetical to indented multi-line block. Input counts will repeat the delimiter.
 function! succinct#surround_motion(...) abort
-  let iargs = [&l:opfunc, v:count, a:0 ? a:1 : 0]  " capture surround.vim function
-  setlocal operatorfunc=succinct#surround_start  " wrap surround.vim method
-  let s:surround_args = iargs | return 'g@'
+  let s:surround_args = [&l:opfunc, v:count, a:0 ? a:1 : 0]  " capture surround.vim function
+  setlocal operatorfunc=succinct#surround_init  " wrap surround.vim method
+  let [init, motion] = a:0 > 2 ? a:000[1:] : ['', '']  " optional manual motion
+  call feedkeys(init . 'g@' . motion, 'ni')
 endfunction
 function! succinct#snippet_insert() abort
-  let [key, pad, cnt] = s:get_target(1)  " user input target
+  let [key, pad, cnt] = s:get_target(0)  " user input target
   let text = s:get_snippet(key, pad, 0)
-  let snippet = empty(text) ? '' : repeat(text, cnt)
-  return snippet  " permit repeating with count
+  let snippet = repeat(text, cnt)  " permit repeating with count
+  call feedkeys(snippet, 'ti')
 endfunction
 function! succinct#surround_insert() abort
-  let [key, pad, cnt] = s:get_target(0)  " user input target
+  let [key, pad, cnt] = s:get_target('i')  " user input target
   let [text1, text2] = s:get_surround(key, pad, 0)
   if empty(text1) && empty(text2) | return '' | endif
   let [text1, text2] = [repeat(text1, cnt), repeat(text2, cnt)]
@@ -749,8 +766,8 @@ function! succinct#surround_insert() abort
   endif
   let text1 = substitute(text1, '\n\s*$', '', 'g')
   let text2 = substitute(text2, '^\s*\n', '', 'g')
-  let b:surround_1 = text1 . "\r" . text2  " see succinct#surround_start
-  call feedkeys(plug, 'm') | call feedkeys("\1", 't') | return ''
+  let b:surround_1 = text1 . "\r" . text2  " see succinct#surround_init
+  call feedkeys(plug, 'm') | call feedkeys("\1", 't')
 endfunction
 
 " Capture and manipulate arbitrary left and right delimiters. This sets
@@ -798,12 +815,25 @@ function! succinct#modify_delims(left, right, ...) abort
 endfunction
 
 " Change and delete arbitrary surrounding delimiters ( ( ( ( [ [ ] ] ) ) ) )
+" Warning: Here fzf-selection invocation indicated by count of zero. Critical
+" to return early or else cache applied by fzf sink function is overwritten
 " Note: Native succinct does not record results of input delimiters so cannot
 " repeat user-input results. This lets us hit '.' and keep the results.
 " Note: Typing e.g. ds2b deletes the second bracket outside from cursor while
 " typing e.g. 2dsb repeats the delete bracket command twice.
+function! s:get_cached(mode, ...) abort  " cached replacement
+  let search = a:0 ? a:1 : 0  " whether to search input
+  let break = a:0 > 1 ? a:2 : 0  " whether to add line break
+  let name = search ? 'succinct_delete' : 'succinct_change'
+  if empty(get(b:, name, []))
+    let [key, pad, cnt] = s:get_target(a:mode, '', break)
+    if cnt <= 0 | return ['', '', 0] | endif
+    let [text1, text2] = s:get_surround(key, pad, search, break)
+    let b:[name] = [text1, text2, cnt]
+  endif | return b:[name]
+endfunction
 function! succinct#delete_delims(count, break) abort
-  let [text1, text2, cnt] = s:get_replace(1, a:break)  " disable user input
+  let [text1, text2, cnt] = s:get_cached('d', 1, a:break)  " disable user input
   if empty(text1) || empty(text2) | return | endif
   let [dexpr, xexpr] = ['"_d`z', '"_x']
   for _ in range(a:count ? a:count : 1)
@@ -812,9 +842,9 @@ function! succinct#delete_delims(count, break) abort
   call s:feed_repeat('<Plug>Dsuccinct', a:count)  " capital-S not needed
 endfunction
 function! succinct#change_delims(count, break) abort
-  let [prev1, prev2, cnt] = s:get_replace(1, a:break)  " disable user input
+  let [prev1, prev2, cnt] = s:get_cached('c', 1, a:break)  " disable user input
   if empty(prev1) || empty(prev2) | return | endif
-  let [repl1, repl2, rep] = s:get_replace(0)  " request user input
+  let [repl1, repl2, rep] = s:get_cached('C', 0)  " request user input
   if empty(repl1) || empty(repl2) | return | endif
   for _ in range(a:count ? a:count : 1)
     call succinct#modify_delims(prev1, prev2, repeat(repl1, rep), repeat(repl2, rep), cnt)

@@ -9,7 +9,7 @@ scriptencoding utf-8
 silent! au! succinct
 augroup vim_succinct
   au!
-  au BufNewFile * call succinct#template_select()
+  au BufNewFile * call succinct#fzf_template()
   au FileType * call succinct#filetype_delims()
   au FileType * call succinct#filetype_snippets()
 augroup END
@@ -55,28 +55,22 @@ endif
 noremap <expr> <Plug>PrevDelim succinct#prev_delim()
 noremap <expr> <Plug>NextDelim succinct#next_delim()
 noremap <expr> <Plug>Vssetup '<Esc>' . succinct#setup_motion() . 'gv' . v:count1
-noremap <expr> <Plug>Vsuccinct succinct#surround_motion(visualmode())
-noremap <Plug>Vsselect <Cmd>call succinct#surround_select('V')<CR>
-inoremap <Plug>Isselect <Cmd>call succinct#surround_select('I')<CR>
-inoremap <Plug>Ieselect <Cmd>call succinct#snippet_select()<CR>
-inoremap <expr> <Plug>Issetup succinct#setup_insert()
-inoremap <expr> <Plug>Isuccinct succinct#surround_insert()
-inoremap <expr> <Plug>Isnippet succinct#snippet_insert()
+noremap <Plug>Vsuccinct <Cmd>call succinct#surround_motion(visualmode())<CR>
 inoremap <expr> <Plug>PrevDelim succinct#prev_delim()
 inoremap <expr> <Plug>NextDelim succinct#next_delim()
+inoremap <expr> <Plug>Issetup succinct#setup_insert()
+inoremap <silent> <Plug>Isuccinct <Cmd>call succinct#surround_insert()<CR>
+inoremap <silent> <Plug>Isnippet <Cmd>call succinct#snippet_insert()<CR>
 if !g:succinct_nomap_actions  " add mappings
   exe 'vmap ' . g:succinct_surround_map . ' <Plug>Vssetup<Plug>Vsuccinct'
   exe 'imap ' . g:succinct_surround_map . ' <Plug>Issetup<Plug>Isuccinct'
   exe 'imap ' . g:succinct_snippet_map . ' <Plug>Issetup<Plug>Isnippet'
-  exe 'vmap ' . repeat(g:succinct_surround_map, 2) . ' <Plug>Vsselect'
-  exe 'imap ' . repeat(g:succinct_surround_map, 2) . ' <Plug>Isselect'
-  exe 'imap ' . repeat(g:succinct_snippet_map, 2) . ' <Plug>Ieselect'
-  for s:mode in ['', 'i']
-    if !hasmapto('<Plug>PrevDelim', s:mode) || !hasmapto('<Plug>NextDelim', s:mode)
-      exe s:mode . 'map ' . g:succinct_prevdelim_map . ' <Plug>PrevDelim'
-      exe s:mode . 'map ' . g:succinct_nextdelim_map . ' <Plug>NextDelim'
-    endif
-  endfor
+  for s:mode in ['', 'i'] | if !hasmapto('<Plug>PrevDelim', s:mode)
+    exe s:mode . 'map ' . g:succinct_prevdelim_map . ' <Plug>PrevDelim'
+  endif | endfor
+  for s:mode in ['', 'i'] | if !hasmapto('<Plug>NextDelim', s:mode)
+    exe s:mode . 'map ' . g:succinct_nextdelim_map . ' <Plug>NextDelim'
+  endif | endfor
 endif
 
 " Selecting, using, changing, and deleting normal and visual-mode delimiters {{{2
@@ -87,11 +81,10 @@ endif
 " style user-input delimiters with '.'. Also 'yss<Key>' gives result identical to
 " vim-text-obj-line 'ys<Key>il' See: https://github.com/tpope/vim-surround/issues/140.
 noremap <expr> <Plug>Yssetup succinct#setup_motion() . v:count1
-noremap <expr> <Plug>Ysuccinct succinct#surround_motion(0)
-noremap <expr> <Plug>YSuccinct succinct#surround_motion(1)
-noremap <expr> <Plug>Yssuccinct '^' . v:count1 . succinct#surround_motion(0) . 'g_'
-noremap <expr> <Plug>YSsuccinct '^' . v:count1 . succinct#surround_motion(1) . 'g_'
-noremap <Plug>Ysselect <Cmd>call succinct#surround_select(v:operator)<CR>
+noremap <Plug>Ysuccinct <Cmd>call succinct#surround_motion(0)<CR>
+noremap <Plug>YSuccinct <Cmd>call succinct#surround_motion(1)<CR>
+noremap <Plug>Yssuccinct <Cmd>call succinct#surround_motion(0, '^', 'g_')<CR>
+noremap <Plug>YSsuccinct <Cmd>call succinct#surround_motion(1, '^', 'g_')<CR>
 noremap <Plug>Csuccinct <Cmd>call succinct#change_delims(v:prevcount, 0)<CR>
 noremap <Plug>CSuccinct <Cmd>call succinct#change_delims(v:prevcount, 1)<CR>
 noremap <Plug>Dsuccinct <Cmd>call succinct#delete_delims(v:prevcount, 0)<CR>
@@ -104,9 +97,6 @@ if !g:succinct_nomap_actions
   endfor | endfor
   for s:map in ['ss', 'sS', 'Ss', 'SS']
     exe 'nmap y' . s:map . ' <Plug>Yssetup<Plug>Y' . (s:map =~# 'S' ? 'S' : 's') . 'succinct'
-  endfor
-  for s:key in ['', 's']
-    exe 'omap ' . s:key . g:succinct_surround_map . ' <Plug>Ysselect'
   endfor
 endif
 
