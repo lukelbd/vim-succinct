@@ -497,6 +497,9 @@ function! s:get_target(snippet) abort
   let head = a:snippet ? 'snippet_' : 'surround_'
   let name = head . char2nr(key)
   if !has_key(b:, name) && !has_key(g:, name)  " allow e.g. '1' delimiters
+    while key ==# "\<CursorHold>"  " iterm 3.5+ bug
+      let key = s:get_char()
+    endwhile
     while key =~# '^\d\+$'
       let cnt .= key  " user is providing count
       let key = s:get_char()
