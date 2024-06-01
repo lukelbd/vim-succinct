@@ -514,10 +514,10 @@ function! s:get_target(mode, ...) abort
   endif
   let cnt = empty(cnt) || cnt ==# '0' ? 1 : str2nr(cnt)
   let cnt *= !type(a:mode) ? max([a:mode, 1]) : 1  " e.g. 'ys' user input count
-  let map = get(g:, 'succinct_' . head . '_map', '<Ignore>')
+  let map = get(g:, 'succinct_' . head . '_map', '<Nop>')
   let arg = maparg(map, 'i', 0, 1)  " surround or snippet mapping
-  let lhs1 = get(arg, 'lhsraw', "\<Ignore>")  " literal byte sequences
-  let lhs2 = get(arg, 'lhsrawalt', "\<Ignore>")
+  let lhs1 = get(arg, 'lhsraw', "\<Nop>")  " literal byte sequences
+  let lhs2 = get(arg, 'lhsrawalt', "\<Nop>")
   if key ==# lhs1 || key ==# lhs2  " interactive select
     let args = [a:0 ? a:1 : 'char', pad, cnt] + a:000[1:]
     call succinct#fzf_select(a:mode, args) | return ['', '', 0]
