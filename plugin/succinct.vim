@@ -5,14 +5,17 @@
 " Author: Luke Davis (lukelbd@gmail.com)
 " This plugin includes utilities for defining text objects and vim-surround delimiters
 " in one go and defining snippet and delimiter mappings under a standardized prefix.
-scriptencoding utf-8
-silent! au! succinct
+if exists('g:loaded_succinct')
+  finish
+endif
 augroup vim_succinct
   au!
   au BufNewFile * call succinct#fzf_template()
   au FileType * call succinct#filetype_delims()
   au FileType * call succinct#filetype_snippets()
 augroup END
+silent! au! succinct
+scriptencoding utf-8
 
 " Disable mappings {{{2
 if !exists('g:succinct_nomap')
@@ -133,3 +136,4 @@ if !g:succinct_nomap_objects
   call succinct#add_delims(delims, 0)  " uses textobj plugin name 'global'
   call succinct#add_snippets(snippets, 0)
 endif
+let g:loaded_succinct = 1
