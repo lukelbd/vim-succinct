@@ -429,7 +429,7 @@ function! s:select_source(name) abort
   let size1 = max(map(copy(items), 'len(v:val[0])'))
   let size2 = max(map(copy(items), 'len(v:val[1])'))
   for [name, key] in items
-    let label = repeat(' ', size1 - len(name)) . name . ': '
+    let label = repeat(' ', size1 - len(name)) . name . ' '
     let label .= repeat(' ', size2 - len(key)) . '(' . key . '): '
     call add(labels, label . eval(name))
   endfor | return labels
@@ -487,7 +487,7 @@ endfunction
 function! succinct#fzf_select(mode, ...) abort
   if !s:fzf_check() | return | endif
   let name = !type(a:mode) && !a:mode ? 'snippet' : 'surround'
-  let opts =  "-d': ' --nth 2.. --no-sort --height=100%"
+  let opts =  "-d'_' --nth 2.. --no-sort --height=100%"
   noautocmd call fzf#run({
     \ 'sink': function('s:select_sink', [a:mode] + a:000),
     \ 'source': s:select_source(name),
