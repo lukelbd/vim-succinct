@@ -423,16 +423,15 @@ function! s:select_source(name) abort
       if char =~# "\<CSI>" | continue | endif  " internal (see below)
       if char =~# '\d\|\s' | continue | endif  " impossible to use
       let key = char =~# '\p' ? char : strtrans(char)
-      call add(items, [name, key])
+      call add(items, [key, name])
     endfor
   endfor
-  let size1 = max(map(copy(items), 'len(v:val[0])'))
-  let size2 = max(map(copy(items), 'len(v:val[1])'))
-  for [name, key] in items
-    let label = repeat(' ', size1 - len(name)) . name . ' '
-    let label .= repeat(' ', size2 - len(key)) . '(' . key . '): '
-    call add(labels, label . eval(name))
-  endfor | return labels
+  let size = max(map(copy(items), 'len(v:val[0]) + len(v:val[1])'))
+  for [key, name] in items
+    let label = repeat(' ', size - len(key) - len(name))
+    let label .= name . ' ' . key . ': ' . eval(name)
+    call add(labels, label)
+  endfor | return reverse(labels)
 endfunction
 function! s:select_sink(mode, args, item) abort
   let regex = '^\s*[gb]:\%(snippet\|surround\)_\(\d\+\).*$'
@@ -487,7 +486,7 @@ endfunction
 function! succinct#fzf_select(mode, ...) abort
   if !s:fzf_check() | return | endif
   let name = !type(a:mode) && !a:mode ? 'snippet' : 'surround'
-  let opts =  "-d'_' --nth 2.. --no-sort --height=100%"
+  let opts =  '-d''_'' --nth 2.. --no-sort --height=100%'
   noautocmd call fzf#run({
     \ 'sink': function('s:select_sink', [a:mode] + a:000),
     \ 'source': s:select_source(name),
