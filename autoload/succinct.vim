@@ -609,6 +609,7 @@ function! succinct#process_value(value, ...) abort
         let regex = '\<\k\+'  " see succinct#search_item() for iskeyword modifications
         let repl_{nr} = regex
       endif
+      if empty(repl_{nr}) | return '' | endif
     endif
   endfor
   " Replace inner regions with user input result
