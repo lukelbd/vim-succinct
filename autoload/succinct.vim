@@ -87,13 +87,13 @@ function! succinct#group(reg, ...)  " convert \(\) group to maximum size \| opti
   return substitute(a:reg, s:regex_mparts, part, '')  " replace string
 endfunction
 function! succinct#regex(regex, flags) abort
-  let [reg, pats] = [a:regex, []]  " various substitutions
-  if a:flags =~# 'a' | for _ in range(3) | call add(pats, ['\(.*\\zs\|\\ze.*\)', '']) | endfor | endif
-  if a:flags =~# 'o' | for _ in range(3) | call add(pats, [s:regex_oatom, '']) | endfor | endif  " remove optional-length mods
-  if a:flags =~# 'm' | for _ in range(3) | call add(pats, [s:regex_matom, '\1']) | endfor | endif  " remove modifier itself
-  if a:flags =~# 'n' | call add(pats, [s:regex_null, '']) | endif  " remove null characters
-  if a:flags =~# 's' | call add(pats, [s:regex_space, '']) | endif  " remove space characters
-  for [pat1, pat2] in pats | let reg = substitute(reg, pat1, pat2, 'g') | endfor
+  let [reg, subs] = [a:regex, []]  " various substitutions
+  if a:flags =~# 'a' | for _ in range(3) | call add(subs, ['\(.*\\zs\|\\ze.*\)', '']) | endfor | endif
+  if a:flags =~# 'o' | for _ in range(3) | call add(subs, [s:regex_oatom, '']) | endfor | endif  " remove optional-length mods
+  if a:flags =~# 'm' | for _ in range(3) | call add(subs, [s:regex_matom, '\1']) | endfor | endif  " remove modifier itself
+  if a:flags =~# 'n' | call add(subs, [s:regex_null, '']) | endif  " remove null characters
+  if a:flags =~# 's' | call add(subs, [s:regex_space, '']) | endif  " remove space characters
+  for [sub1, sub2] in subs | let reg = substitute(reg, sub1, sub2, 'g') | endfor
   if a:flags =~# 'a'  " convert atoms e.g. \(\), [], \_a, \a, a to '.', or \a* to '..'
     for _ in range(3) | let reg = succinct#group(reg) | endfor
     for _ in range(3) | let reg = succinct#chars(reg) | endfor
