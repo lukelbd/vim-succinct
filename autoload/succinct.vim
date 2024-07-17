@@ -20,51 +20,10 @@ let s:regex_oatom = s:regex_atom . s:regex_opt  " atom with optionally zero-leng
 let s:regex_matom = s:regex_atom . s:regex_mod  " atom with any arbitrary modifier or none
 let s:regex_mparts = s:regex_parts . s:regex_mod  " parts grouping with any arbitray modifier
 
-" Navigate delimeters  ( [ [ ( ' ' foo) bar] baz] xyz)
-" Todo: Consider using this insert-mode navigation algorithm elsewhere
-" Warning: Cannot use search() because it fails to detect current column. Could
-" use setpos() but then if fail to find delim that moves cursor. Also note cursor()
-" fails in insert mode, even though 'current position' changes inside function.
-function! s:goto_delim(lnum, cnum, lorig, corig) abort
-  let scroll = get(b:, 'scroll_state', 0)  " internal .vimrc setting
-  let keys = !pumvisible() ? '' : scroll ? "\<C-y>\<C-]>" : "\<C-e>"
-  if a:lnum == a:lorig
-    let cnt = a:cnum - a:corig
-    let key = cnt > 0 ? "\<Right>" : "\<Left>"
-    return keys . repeat(key, abs(cnt))
-  else
-    let cnt = a:lnum - a:lorig
-    let key = cnt > 0 ? "\<Down>" : "\<Up>"
-    return keys . "\<Home>" . repeat(key, abs(cnt)) . repeat("\<Right>", a:cnum - 1)
-  endif
-endfunction
-function! s:search_delim(...) abort
-  let name = 'delimitMate_matchpairs'
-  let delims = get(b:, name, get(g:, name, &matchpairs))
-  let delims = substitute(delims, '[:,]', '', 'g')
-  let name = 'delimitMate_quotes'
-  let quotes = get(b:, name, get(g:, name, "\" ' `"))
-  let quotes = substitute(quotes, '\s\+', '', 'g')
-  let regex = '[' . escape(delims . quotes, ']^-\') . ']'
-  call search(regex, a:0 ? a:1 : 'e')
-endfunction
-function! succinct#prev_delim() abort
-  let [lorig, corig] = [line('.'), col('.')]
-  call s:search_delim('eb')
-  if col('.') > corig - 2 | call s:search_delim('eb') | endif
-  return s:goto_delim(line('.'), col('.') + 1, lorig, corig)
-endfunction
-function! succinct#next_delim() abort
-  let [lorig, corig, lfind, cfind] = [line('.'), col('.'), line('.'), col('.')]
-  if cfind == 1 | let lfind = max([1, lfind - 1]) | exe lfind | let cfind = col('$') | endif
-  call cursor(lfind, cfind - 1) | call s:search_delim('e')
-  return s:goto_delim(line('.'), col('.') + 1, lorig, corig)
-endfunction
-
-" Parse regular expressions
-" Note: Here succinct#regex() is used to improve textobj selection behavior and auto
-" dispatch either search() or searchpairpos() for succinct#get_delims() searching. Uses
-" above regex to figure out lengths and uniqueness of left and right delims.
+" Helper functions for regex parsing
+" Note: Here estimate size of given regex match by selecting \(\|\) group with minimum
+" size if 'o' flag was passed or maximum size if 'o' not passed. Idea is to avoid
+" succinct#search_items() search for end-of-right delimiter on zero-length delims
 function! succinct#chars(regex)  " convert individual atoms to one-character strings
   let isub = 'strcharpart(submatch(%d), strchars(submatch(%d)) - 1)'
   let [spec, star] = ['\(' . s:regex_spec . '\)', '\(\\+\|' . s:regex_star . '\)']
@@ -75,36 +34,65 @@ function! succinct#chars(regex)  " convert individual atoms to one-character str
   let reg = substitute(reg, s:regex_atom . '\(\\[?=]\)\?', '\=' . sub1, 'g')
   return reg  " e.g. \<\W\?\w*\W\@= -> <\W\?\w*\W\@= -> <\W\?\w* -> <\W\?ww -> <Www
 endfunction
-function! succinct#group(reg, ...)  " convert \(\) group to maximum size \| option
-  let items = matchlist(a:reg, s:regex_mparts)  " gets inner groups first
-  let parts = [] | for part in split(get(items, 1, ''), '\\|')  " recursive invocation
-    let part = split(succinct#chars(part), '\zs')  " e.g. \(\x\x\x\) -> ['x', 'x', 'x']
-    call map(part, {idx, val -> succinct#chars(v:val . items[2])})  " e.g. \(\x\)* -> x* -> xx
-    call add(parts, join(part, ''))  " append modifier e.g. \(\x\)* -> x* -> xx
-  endfor
-  let sizes = map(copy(parts), 'strchars(v:val)')  " note max([]) returns 0
-  let part = get(parts, index(sizes, max(sizes)), '')  " get() handles e.g. \(\)
-  return substitute(a:reg, s:regex_mparts, part, '')  " replace string
+function! succinct#group(regex, ...)  " convert \(\) group to maximum size \| option
+  let flags = substitute(a:0 ? a:1 : '', 'a', '', 'g')
+  let items = matchlist(a:regex, s:regex_mparts)  " inner groups come first
+  let regs = split(get(items, 1, ''), '\\|', 1)  " capture group components
+  let regs = len(regs) == 1 && empty(regs[0]) ? [] : regs  " require one non-empty
+  let sizes = map(copy(regs), 'strchars(succinct#regex(v:val, "aonm" . flags))')
+  let size = flags =~# 'o' ? min(sizes) : max(sizes)  " preferred object
+  let reg = get(regs, index(sizes, size), '')  " get() handles e.g. \(\)
+  let reg = substitute(a:regex, s:regex_mparts, escape(reg, '\'), '')  " replace
+  let reg = succinct#regex(reg, flags)
+  return reg  " e.g. \([abc]\|\>\)* with flag 'o' is \>, without flag 'o' is [abc]
 endfunction
+
+" Translate and modify regular expressions
+" Note: Here succinct#regex() is used to improve textobj selection behavior and auto
+" dispatch either search() or searchpairpos() for succinct#get_delims() searching. Uses
+" above regex to figure out lengths and uniqueness of left and right delims.
 function! succinct#regex(regex, flags) abort
-  let [reg, subs] = [a:regex, []]  " various substitutions
-  if a:flags =~# 'a' | for _ in range(3) | call add(subs, ['\(.*\\zs\|\\ze.*\)', '']) | endfor | endif
-  if a:flags =~# 'o' | for _ in range(3) | call add(subs, [s:regex_oatom, '']) | endfor | endif  " remove optional-length mods
-  if a:flags =~# 'm' | for _ in range(3) | call add(subs, [s:regex_matom, '\1']) | endfor | endif  " remove modifier itself
-  if a:flags =~# 'n' | call add(subs, [s:regex_null, '']) | endif  " remove null characters
-  if a:flags =~# 's' | call add(subs, [s:regex_space, '']) | endif  " remove space characters
-  for [sub1, sub2] in subs | let reg = substitute(reg, sub1, sub2, 'g') | endfor
+  let [cnt, reg, subs] = [3, a:regex, []]  " various substitutions
+  let acount = a:flags =~# 'a' ? cnt : 0  " convert regex atoms to single characters
+  let ocount = a:flags =~# 'o' ? cnt : 0  " remove optional-length modifiers
+  let mcount = a:flags =~# 'm' ? cnt : 0  " remove modifier expressions themselves
+  let ncount = a:flags =~# 'n' ? 1 : 0  " remove null-length modifiers
+  let scount = a:flags =~# 's' ? 1 : 0  " remove whitespace expressions
+  call extend(subs, repeat([['\(.*\\zs\|\\ze.*\)', '']], acount))
+  call extend(subs, repeat([[s:regex_oatom, '']], ocount))
+  call extend(subs, repeat([[s:regex_matom, '\1']], mcount))
+  call extend(subs, repeat([[s:regex_null, '']], ncount))
+  call extend(subs, repeat([[s:regex_space, '']], scount))
+  for [sub1, sub2] in subs  " carry out substitutions
+    let reg = substitute(reg, sub1, sub2, 'g')
+  endfor
   if a:flags =~# 'a'  " convert atoms e.g. \(\), [], \_a, \a, a to '.', or \a* to '..'
-    for _ in range(3) | let reg = succinct#group(reg) | endfor
-    for _ in range(3) | let reg = succinct#chars(reg) | endfor
+    for _ in range(3)
+      let reg = succinct#group(reg, a:flags)
+    endfor
+    for _ in range(3)
+      let reg = succinct#chars(reg)
+    endfor
   endif | return reg
 endfunction
 
-" Helper search functions
+" Helper functions for searching and navigating
 " Note: Here succinct#syntax() is used to filter succinct#search_items() to end-points
 " with identical syntax groups, and succinct#search() is used to temporarily modify
 " iskeyword and enable case sensitivity (e.g. include python method chains foo.bar()
 " for \k\+() search and tex asterisks \command*{} for \\\k\+{} search).
+function! succinct#goto(line, col, ...) abort
+  let [lnum, cnum] = a:0 ? a:000 : [line('.'), col('.')]
+  let state = get(b:, 'scroll_state', 0)  " internal .vimrc setting
+  let keys = !pumvisible() ? '' : state ? "\<C-y>\<C-]>" : "\<C-e>"
+  if a:line == lnum
+    let key = a:col > cnum ? "\<Right>" : "\<Left>"
+    let keys .= repeat(key, abs(a:col - cnum))
+  else  " delimiter on different line
+    let key = a:line > lnum ? "\<Down>" : "\<Up>"
+    let keys .= "\<Home>" . repeat(key, abs(a:line - lnum)) . repeat("\<Right>", a:col - 1)
+  endif | return keys
+endfunction
 function! succinct#syntax(...) abort  " verify inside regex group
   if a:0 >= 2  " input line column
     let [lnum, cnum] = a:000
@@ -120,8 +108,7 @@ endfunction
 function! succinct#search(...) abort
   let mods = get(s:regex_keys, &l:filetype, '')
   let mods = empty(mods) ? '' : ',' . join(split(mods, '\zs'), ',')
-  let keys = &l:iskeyword
-  let ignore = &l:ignorecase
+  let [keys, ignore] = [&l:iskeyword, &l:ignorecase]
   try
     let &l:iskeyword = keys . mods
     let &l:ignorecase = 0
@@ -130,6 +117,40 @@ function! succinct#search(...) abort
     let &l:iskeyword = keys
     let &l:ignorecase = ignore
   endtry
+endfunction
+
+" Navigate delimeters  ( [ [ ( ' ' foo) bar] baz] xyz)
+" Note: Cannot use search() because it fails to detect current column. Could
+" use setpos() but then if fail to find delim that moves cursor. Also note cursor()
+" fails in insert mode, even though 'current position' changes inside function.
+function! succinct#prev_delim() abort
+  let [lnum, cnum] = [line('.'), col('.')]
+  call succinct#search_delim('eb')
+  if col('.') > cnum - 2
+    call succinct#search_delim('eb')
+  endif
+  let keys = succinct#goto(line('.'), col('.') + 1, lnum, cnum)
+  return keys
+endfunction
+function! succinct#next_delim() abort
+  let [lnum, cnum] = [line('.'), col('.')]
+  if cnum > 1  " current line
+    call cursor(lnum, cnum - 1)
+  else  " previous line
+    call cursor(max([1, lnum - 1]), max([col([lnum - 1, '$']) - 1, 1]))
+  endif
+  call succinct#search_delim('e')
+  return succinct#goto(line('.'), col('.') + 1, lnum, cnum)
+endfunction
+function! succinct#search_delim(...) abort
+  let name = 'delimitMate_matchpairs'
+  let delims = get(b:, name, get(g:, name, &matchpairs))
+  let delims = substitute(delims, '[:,]', '', 'g')
+  let name = 'delimitMate_quotes'
+  let quotes = get(b:, name, get(g:, name, "\" ' `"))
+  let quotes = substitute(quotes, '\s\+', '', 'g')
+  let regex = '[' . escape(delims . quotes, ']^-\') . ']'
+  call search(regex, a:0 ? a:1 : 'e')
 endfunction
 
 " Search for identical items and distinct item pairs
@@ -168,11 +189,13 @@ endfunction
 function! succinct#search_items(left, right, ...) abort
   let cnt = max([1, a:0 ? a:1 : 1])
   let [lnum, cnum] = [line('.'), col('.')]
+  let [line0, col0] = [lnum, cnum]
   for idx in range(cnt)  " select outer items
     let flags = idx == 0 ? 'bcW' : 'bW'  " include object under cursor *first*
     let [line1, col11] = succinct#search(a:left, flags)
+    let [line0, col0] = idx == 0 ? [line1, col11] : [line0, col0]
   endfor
-  call cursor(line1, col11)
+  call cursor(line0, col0)  " start from rightmost left delimiter
   if strchars(succinct#regex(a:left, 'an')) > 1  " number ignoring nulls e.g. \<
     call succinct#search(a:left, 'ecW')
   endif
@@ -265,9 +288,9 @@ function! succinct#get_object(mode, name, ...) abort
   endif
   let pos1 = getpos('.')
   call cursor(line2, col2)  " start of right delim or after zero length match
-  let chars = succinct#regex(regex2, 'an')
-  if strchars(chars)  " jump to end of right delim
-    call succinct#search(iregex, 'ceW')
+  let chars = succinct#regex(regex2, 'aon')
+  if strchars(chars)  " jump to end if non-zero length is *required*
+    call succinct#search(iregex, 'ceW')  " WARNING: fails for unsuccessful optional modifiers
   endif
   if !strchars(chars) || a:mode ==# 'i'  " start of right delim or before zero length match
     call succinct#search('\S' . space2 . regex2, 'cbW')
