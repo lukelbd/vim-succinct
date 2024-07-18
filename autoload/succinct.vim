@@ -499,7 +499,7 @@ function! succinct#fzf_template() abort
   let templates = s:template_source(expand('%:e'))
   if empty(templates) | return | endif
   if !s:fzf_check() | return | endif
-  let opts = '--no-sort --height=100%'
+  let opts = '--tiebreak index --height=100%'
   call fzf#run(fzf#wrap({
     \ 'sink': function('s:template_sink'),
     \ 'source': templates,
@@ -509,7 +509,7 @@ endfunction
 function! succinct#fzf_select(mode, ...) abort
   if !s:fzf_check() | return | endif
   let name = !type(a:mode) && !a:mode ? 'snippet' : 'surround'
-  let opts =  '-d''_'' --nth 2.. --no-sort --height=100%'
+  let opts =  '-d''_'' --nth 2.. --tiebreak index --height=100%'
   noautocmd call fzf#run({
     \ 'sink': function('s:select_sink', [a:mode] + a:000),
     \ 'source': s:select_source(name),
