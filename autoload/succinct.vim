@@ -11,7 +11,7 @@ let s:regex_parts = '\\%\?(\(\%(.\%(\\%\?(\)\@!\)\{-}\)\\)'  " \(\) and \%(\) (i
 let s:regex_space = '\(\_s\|\\_s\|\\[snt]\)'  " space indicators e.g. \n \_s
 let s:regex_spec = '\\@\d*<\?[>=!]'  " always zero-length (e.g. \@<!)
 let s:regex_star = '\\{-\?\d\?,\?\d\?}\|\%(\\\|\[[^\]]*\)\@<!\*'  " star expansions
-let s:regex_mod = '\(\\[?=+]\|' . s:regex_star . '\|' . s:regex_spec . '\)\?'  " e.g. *, \+, \?, \{n,}
+let s:regex_mod = '\(\\[?=+]\|' . s:regex_star . '\|' . s:regex_spec . '\)\?'  " e.g. *, \+, \?, \{n,}, \@=
 let s:regex_opt = '\(\\[?=]\|' . s:regex_star . '\|' . s:regex_spec . '\)'  " optional-missing modifiers
 let s:regex_null = '\(\\z[^se]\|\\[<>cCZ]\|\%(\\_\)\?[$^]\|\\%\[[^\]]*\]'  " e.g. ^, $, \<, \>, \c
 let s:regex_null .= '\\%[V#$^]\|\\%[<>]\?\%([.'']\|\d\+\)[lcm]\)'  " e.g. \%#, \%>123l
@@ -42,7 +42,7 @@ function! succinct#group(regex, ...)  " convert \(\) group to maximum size \| op
   let sizes = map(copy(regs), 'strchars(succinct#regex(v:val, "aonm" . flags))')
   let size = flags =~# 'o' ? min(sizes) : max(sizes)  " preferred object
   let reg = get(regs, index(sizes, size), '')  " get() handles e.g. \(\)
-  let reg = substitute(a:regex, s:regex_mparts, escape(reg, '\'), '')  " replace
+  let reg = substitute(a:regex, s:regex_parts, escape(reg, '\'), '')  " replace
   let reg = succinct#regex(reg, flags)
   return reg  " e.g. \([abc]\|\>\)* with flag 'o' is \>, without flag 'o' is [abc]
 endfunction
@@ -54,9 +54,9 @@ endfunction
 function! succinct#regex(regex, flags) abort
   let [cnt, reg, subs] = [3, a:regex, []]  " various substitutions
   let acount = a:flags =~# 'a' ? cnt : 0  " convert regex atoms to single characters
-  let ocount = a:flags =~# 'o' ? cnt : 0  " remove optional-length modifiers
+  let ocount = a:flags =~# 'o' ? cnt : 0  " remove zero or optional-length modifiers
   let mcount = a:flags =~# 'm' ? cnt : 0  " remove modifier expressions themselves
-  let ncount = a:flags =~# 'n' ? 1 : 0  " remove null-length modifiers
+  let ncount = a:flags =~# 'n' ? 1 : 0  " remove null-length atoms e.g. \c or \zs
   let scount = a:flags =~# 's' ? 1 : 0  " remove whitespace expressions
   call extend(subs, repeat([['\(.*\\zs\|\\ze.*\)', '']], acount))
   call extend(subs, repeat([[s:regex_oatom, '']], ocount))
