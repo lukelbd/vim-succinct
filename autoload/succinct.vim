@@ -387,16 +387,14 @@ function! succinct#add_objects(plugin, source, ...) abort
   if !exists('*textobj#user#plugin')  " see: https://vi.stackexchange.com/a/14911/8084
     runtime autoload/textobj/user.vim
     if !exists('*textobj#user#plugin')  " plugin not available
-      echohl WarningMsg
-      echom 'Warning: Cannot define text objects (vim-textobj-user not found).'
-      echohl None | return {}
+      let msg = 'Warning: Cannot define text objects (vim-textobj-user not found).'
+      echohl WarningMsg | echom msg | echohl None | return {}
     endif
   endif
   for key in keys(a:source)
     if type(a:source[key]) != 1
-      echohl WarningMsg
-      echom "Warning: Cannot add key '" . key . "' as text object (non-string type)."
-      echohl None | continue
+      let msg = 'Warning: Cannot add key ' . string(key) . ' as text object (non-string type).'
+      echohl WarningMsg | echom msg | echohl None | continue
     endif
     let args = [a:plugin, key, a:source[key]]
     let objs = call('succinct#translate_delims', args + a:000)
