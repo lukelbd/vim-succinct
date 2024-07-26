@@ -300,14 +300,15 @@ function! succinct#get_object(mode, name, ...) abort
     call winrestview(winview) | return
   elseif lnum > pos2[1] || lnum == pos2[1] && cnum > pos2[2]
     call winrestview(winview) | return
-  else  " return positions and queue post-processing
-    exe 'augroup succinct_process_' . bufnr() |
-    exe 'au!' | exe 'autocmd TextChanged,InsertLeave,CursorHold <buffer> '
-      \ . ' call succinct#post_process(' . pos1[1] . ', ' . pos2[1] . ')'
-      \ . ' | autocmd! succinct_process_' . bufnr()
-    exe 'augroup END'
-    return ['v', pos1, pos2]
-  endif
+  endif  " return positions and queue post-processing
+  let cmd = 'call succinct#post_process(' . pos1[1] . ', ' . pos2[1] . ')'
+  exe 'augroup succinct_process_' . bufnr() | exe 'au!'
+  exe 'au TextChanged,InsertLeave,CursorHold <buffer> ' . cmd . ' | au! succinct_process_' . bufnr()
+  exe 'augroup END'
+  let reg1 = getline(pos1[1]) =~# '^\s*' . regex1 . '\s*$'
+  let reg2 = getline(pos2[1]) =~# '^\s*' . regex2 . '\s*$'
+  let char = a:mode !=# 'i' && reg1 && reg2 ? 'V' : 'v'
+  return [char, pos1, pos2]
 endfunction
 
 " Translate delimiters to text object declarations
@@ -731,7 +732,7 @@ function! succinct#surround_run(type) abort
     let s:surround_indent = b:surround_indent
   endif
   let b:surround_indent = 0  " override with manual approach
-  let name = 'surround_' . char2nr("\<CSI>")  " see above
+  let name = 'surround_' . char2nr("\<CSI>")  " see s:feed_surround()
   let text = split(get(b:, name, "\r"), "\r", 1)
   let [ibuf, line1, col1, off1] = getpos("'[")
   let [ibuf, line2, col2, off2] = getpos("']")
@@ -764,7 +765,7 @@ function! s:feed_motion(type, key, pad, cnt, ...)
   let cmd = 'call succinct#surround_run(' . string(a:type) . ')'
   call feedkeys("\<Cmd>" . cmd . "\<CR>", 'n')  " runs vim-surround operator function
   call s:feed_surround(text1 . "\r" . text2)
-  call s:feed_repeat('<Plug>SurroundRepeat\<CSI>', 1)  " count already applied
+  call s:feed_repeat('<Plug>SurroundRepeat\<CSI>', 1)  " see s:feed_surround()
 endfunction
 function! succinct#surround_motion(...) abort
   let s:surround_args = [&l:opfunc, v:count, a:0 ? a:1 : 0]  " capture surround.vim function
