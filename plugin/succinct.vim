@@ -108,9 +108,6 @@ endif
 let s:defaults = {
   \ "'": '''\r''',
   \ '"': '"\r"',
-  \ ';': ';\r;',
-  \ ',': ',\r,',
-  \ '.': '.\r.',
   \ '_': '_\r_',
   \ '-': '-\r-',
   \ '+': '+\r+',
@@ -131,7 +128,7 @@ let s:defaults = {
 if !g:succinct_nomap_objects
   let delims = get(g:, 'succinct_delims', {})
   let snippets = get(g:, 'succinct_snippets', {})
-  call succinct#add_delims(s:defaults)  " missing arg uses textobj plugin name 'default' 
+  call succinct#add_delims(s:defaults)  " missing arg uses textobj plugin name 'default'
   call succinct#add_delims(delims, 0)  " uses textobj plugin name 'global'
   call succinct#add_snippets(snippets, 0)
 endif
