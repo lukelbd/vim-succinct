@@ -221,7 +221,7 @@ endfunction
 " is empty. Have to force the jump by adding '\zs' after every '\n' in match.
 " Note: This is alternative to vim-surround style of using manual FileType
 " autocommands and managing 'ftplugin' files. Triggered with general augroup.
-function! s:get_definitions(...) abort
+function! s:get_source(...) abort
   let suffix = a:0 && a:1 ? 'snippets' : 'delims'
   let ftype = substitute(&l:filetype, '\..*$', '', 'g')  " ignore composites
   let name1 = 'succinct_' . suffix
@@ -238,12 +238,12 @@ function! s:get_definitions(...) abort
   endif
 endfunction
 function! succinct#filetype_delims(...) abort
-  let maps = s:get_definitions(0)
-  return call('succinct#add_delims', [maps, 1] + a:000)
+  let source = s:get_source(0)
+  return call('succinct#add_delims', [source, 1] + a:000)
 endfunction
 function! succinct#filetype_snippets(...) abort
-  let maps = s:get_definitions(1)
-  return call('succinct#add_snippets', [maps, 1] + a:000)
+  let source = s:get_source(1)
+  return call('succinct#add_snippets', [source, 1] + a:000)
 endfunction
 
 " Get surround delimiters and associated text object
@@ -311,7 +311,7 @@ function! succinct#get_object(mode, name, ...) abort
   return [char, pos1, pos2]
 endfunction
 
-" Translate delimiters to text object declarations
+" Translate and register text object plugins
 " Note: Have to use literals instead of e.g. assigning s:[name] = function() since
 " vim-textobj-user calls with function(a:name)() which fails unless defined literally,
 " and have to delay succinct#process_value() e.g. to support python string prefixes.
@@ -319,22 +319,11 @@ endfunction
 " 'select' points to textobj#user#select and searchpos(..., 'c'). This fails for 'a'
 " objects that overlap with others on line (e.g. ya' -> '.\{-}' may go outside the
 " closest quotes, but '\zs.\{-}\ze' will not). So now use function definition instead.
-let s:regex_subs = {'1': "\1", '2': "\2", '3': "\3", '4': "\4", '5': "\5", '6': "\6", '7': "\7"}
-call extend(s:regex_subs, {'r': "\r", 'n': "\n", '\t': "\t"})
-function! s:pre_process(arg) abort
-  let opts = type(a:arg) == 1 ? s:regex_subs : {}
-  let output = type(a:arg) == 1 ? a:arg : ''
-  for [char, repl] in items(opts)
-    let check = char2nr(repl) > 7 ? '\a\@!' : ''
-    let output = substitute(output, '\\' . char . check, repl, 'g')
-  endfor
-  return empty(output) ? a:arg : output
-endfunction
-function! succinct#translate_delims(plugin, key, arg, ...) abort
+function! s:get_object(plugin, key, arg, ...) abort
   let flags = a:0 && a:1 ? '<buffer> ' : ''
   let noesc = a:0 > 1 ? a:2 : 0  " possibly skip escaping patterns
   let name = 'textobj_' . a:plugin . '_' . char2nr(a:key)
-  let s:[name] = s:pre_process(a:arg)
+  let s:[name] = succinct#_pre_process(a:arg)
   let code = [
     \ 'function! s:' . name . '_i() abort',
     \ '  return succinct#get_object("i", ' . string(name) . ', ' . noesc . ')',
@@ -353,36 +342,6 @@ function! succinct#translate_delims(plugin, key, arg, ...) abort
   \ }
   return {char2nr(a:key): obj}  " textobj uses this for [ia]<Key> <Plug> maps
 endfunction
-
-" Register text object plugins and define surround and snippet variables
-" Note: Use ad-hoc approach for including python string headers instead of relying
-" on user so that built-in change-delim and delete-delim commands that rely on
-" buffer and global surround variables still include header, but without including
-" regex for built-in visual, insert, and motion based vim-surround insertions.
-function! succinct#add_snippets(source, ...) abort
-  let scope = a:0 && a:1 ? b: : g:
-  let snippets = {}  " for user reference
-  for key in keys(a:source)  " funcref cannot be lower case so iterate keys
-    let name = 'snippet_' . char2nr(key)
-    let scope[name] = s:pre_process(a:source[key])
-    let snippets[key] = scope[name]
-  endfor
-  return snippets
-endfunction
-function! succinct#add_delims(source, ...) abort
-  let scope = a:0 && a:1 ? b: : g:
-  let delims = {}
-  for key in keys(a:source)  " funcref cannot be lower case so iterate keys
-    let name = 'surround_' . char2nr(key)
-    let scope[name] = s:pre_process(a:source[key])
-    let delims[key] = scope[name]
-  endfor
-  let plugin = a:0 && a:1 ? &l:filetype : a:0 ? 'global' : 'default'  " plugin name
-  let plugin = substitute(plugin, '\A', '', 'g')  " alpahbetic required
-  let plugin = substitute(plugin, '\(\u\)', '\l', 'g')  " lower-case required
-  call call('succinct#add_objects', [plugin, a:source] + a:000)
-  return delims
-endfunction
 function! succinct#add_objects(plugin, source, ...) abort
   let objects = {}
   if !exists('*textobj#user#plugin')  " see: https://vi.stackexchange.com/a/14911/8084
@@ -398,7 +357,7 @@ function! succinct#add_objects(plugin, source, ...) abort
       echohl WarningMsg | echom msg | echohl None | continue
     endif
     let args = [a:plugin, key, a:source[key]]
-    let objs = call('succinct#translate_delims', args + a:000)
+    let objs = call('s:get_object', args + a:000)
     call extend(objects, objs)
   endfor
   if !empty(objects)  " enforces lowercase alphabet
@@ -407,6 +366,46 @@ function! succinct#add_objects(plugin, source, ...) abort
     exe 'Textobj' . name . 'DefaultKeyMappings!'
   endif
   return objects
+endfunction
+
+" Register surround and snippet definitions
+" Note: Use ad-hoc approach for including python string headers instead of relying
+" on user so that built-in change-delim and delete-delim commands that rely on
+" buffer and global surround variables still include header, but without including
+" regex for built-in visual, insert, and motion based vim-surround insertions.
+function! succinct#_pre_process(arg) abort
+  let chars = ['r', 'n', 't', '1', '2', '3', '4', '5', '6', '7']
+  let [chars, result] = type(a:arg) > 1 ? [[], ''] : [chars, a:arg]
+  for char in chars
+    let repl = eval('"\' . char . '"')
+    let check = char2nr(repl) > 7 ? '\a\@!' : ''
+    let result = substitute(result, '\\' . char . check, repl, 'g')
+  endfor
+  return empty(result) ? a:arg : result
+endfunction
+function! succinct#add_snippets(source, ...) abort
+  let scope = a:0 && a:1 ? b: : g:
+  let snippets = {}  " for user reference
+  for key in keys(a:source)  " funcref cannot be lower case so iterate keys
+    let name = 'snippet_' . char2nr(key)
+    let scope[name] = succinct#_pre_process(a:source[key])
+    let snippets[key] = scope[name]
+  endfor
+  return snippets
+endfunction
+function! succinct#add_delims(source, ...) abort
+  let scope = a:0 && a:1 ? b: : g:
+  let delims = {}
+  for key in keys(a:source)  " funcref cannot be lower case so iterate keys
+    let name = 'surround_' . char2nr(key)
+    let scope[name] = succinct#_pre_process(a:source[key])
+    let delims[key] = scope[name]
+  endfor
+  let plugin = a:0 && a:1 ? &l:filetype : a:0 ? 'global' : 'default'  " plugin name
+  let plugin = substitute(plugin, '\A', '', 'g')  " alpahbetic required
+  let plugin = substitute(plugin, '\(\u\)', '\l', 'g')  " lower-case required
+  call call('succinct#add_objects', [plugin, a:source] + a:000)
+  return delims
 endfunction
 
 "-----------------------------------------------------------------------------
@@ -451,7 +450,7 @@ function! s:select_source(name) abort
   let size = max(map(copy(items), 'len(v:val[0]) + len(v:val[1])'))
   for [key, name] in items
     let label = repeat(' ', size - len(key) - len(name))
-    let label .= name . ' ' . key . ': ' . eval(name)
+    let label .= name . ' ' . key . ': ' . string(eval(name))
     call add(labels, label)
   endfor | return reverse(labels)
 endfunction
@@ -576,7 +575,7 @@ function! s:get_padding(pad, ...) abort
   let search = a:0 > 0 ? a:1 : 0  " whether to search
   let inner = a:0 > 1 && a:2 ? "\n" : ''  " e.g. 'yS' instead of 'ys'
   if search  " convert e.g. literal '\n  ' to regex '\_s*'
-    let pad = succinct#search_value(a:pad . inner)
+    let pad = s:process_value(a:pad . inner)
     return [pad, pad]
   else  " e.g. <Space><CR><Cursor><CR><Space>
     let rpad = join(reverse(split(a:pad, '\zs')), '')
@@ -610,7 +609,7 @@ endfunction
 " *searching* for delimiters with searchpair(), else return delimiters themselves.
 " Note: This was adapted from vim-surround/plugin/surround.vim. Note is critical to
 " escape characters one-by-one or \r\r groups inside user-input delimiters are caught.
-function! succinct#search_value(value, ...) abort
+function! s:process_value(value, ...) abort
   let value = a:0 && a:1 ? a:value : escape(a:value, '[]\.*~^$')
   let value = substitute(value, '\_s\+', '\\_s*', 'g')  " allow arbitrary padding
   return value
@@ -619,7 +618,7 @@ function! succinct#process_value(value, ...) abort
   " Acquire user-input for placeholders \1, \2, \3, ...
   let search = a:0 > 0 ? a:1 : 0  " whether to perform search
   let noesc = a:0 > 1 ? a:2 : 0  " whether to bypass escape
-  let input = type(a:value) == 2 ? s:pre_process(a:value()) : a:value  " func or str
+  let input = type(a:value) == 2 ? succinct#_pre_process(a:value()) : a:value  " func or str
   if empty(input) | return '' | endif  " e.g. funcref that starts asynchronous fzf
   for nr in range(7)
     let idx = matchstr(input, nr2char(nr) . '.\{-\}\ze' . nr2char(nr))
@@ -641,7 +640,7 @@ function! succinct#process_value(value, ...) abort
     let char = strpart(input, idx, 1)
     let jdx = char2nr(char) > 7 ? -1 : stridx(input, char, idx + 1)
     if jdx == -1  " match individual character
-      let part = !search ? char : succinct#search_value(char, noesc)
+      let part = !search ? char : s:process_value(char, noesc)
     else  " replace \1, \2, \3, ... with user input using inner text as prompt
       let part = repl_{char2nr(char)}  " defined above
       let query = strpart(input, idx + 1, jdx - idx - 1)  " query between \1...\1
@@ -650,7 +649,7 @@ function! succinct#process_value(value, ...) abort
         let group = matchstr(query, "^\r\\zs[^\r]*\r[^\r]*")  " match replace group
         let sub = strpart(group, 0, stridx(group, "\r"))  " prompt delimiters
         let repl = strpart(group, stridx(group, "\r") + 1)  " user-input
-        let repl = !search ? repl : succinct#search_value(repl)
+        let repl = !search ? repl : s:process_value(repl)
         let part = substitute(part, sub, repl, '')  " apply substitution as requested
         let query = strpart(query, strlen(group) + 1)  " skip over the group
       endwhile
