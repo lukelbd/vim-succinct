@@ -348,13 +348,13 @@ function! succinct#add_objects(plugin, source, ...) abort
     runtime autoload/textobj/user.vim
     if !exists('*textobj#user#plugin')  " plugin not available
       let msg = 'Warning: Cannot define text objects (vim-textobj-user not found).'
-      echohl WarningMsg | echom msg | echohl None | return {}
+      redraw | echohl WarningMsg | echom msg | echohl None | return {}
     endif
   endif
   for key in keys(a:source)
     if type(a:source[key]) != 1
       let msg = 'Warning: Cannot add key ' . string(key) . ' as text object (non-string type).'
-      echohl WarningMsg | echom msg | echohl None | continue
+      redraw | echohl WarningMsg | echom msg | echohl None | continue
     endif
     let args = [a:plugin, key, a:source[key]]
     let objs = call('s:get_object', args + a:000)
@@ -489,9 +489,8 @@ endfunction
 " all entries shown). In future may have to make this work but for now this is fine.
 function! s:fzf_check() abort
   if exists('*fzf#run') | return 1 | endif
-  redraw | echohl ErrorMsg
-  echom 'Error: fzf.vim plugin not available.'
-  echohl None | return 0
+  let msg = 'Error: fzf.vim plugin not available.'
+  redraw | echohl ErrorMsg | echom msg | echohl None
 endfunction
 function! succinct#fzf_template() abort
   let templates = s:template_source(expand('%:e'))
